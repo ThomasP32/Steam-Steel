@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { JoinGameModalComponent } from '@app/components/join-game-modal/join-game-modal.component';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 
@@ -8,11 +8,11 @@ import { SocketService } from '@app/services/communication-socket/communication-
     standalone: true,
     templateUrl: './home-page.component.html',
     styleUrls: ['./home-page.component.scss'],
-    imports: [RouterLink, JoinGameModalComponent],
+    imports: [JoinGameModalComponent],
 })
 export class HomePageComponent implements OnInit {
-    teamNumber = 'Équipe 109';
-    developers = ['Anis Mehenni', 'Céline Ouchiha', 'Thomas Perron Duveau', 'Emlyn Murphy'];
+    teamNumber = 'Équipe 106';
+    developers = ['Maude Racine', 'Noémie Hélias', 'Thomas Perron Duveau', 'Camille Ménard', 'Cerine Ouchene', 'Valentine Champvillard'];
     showJoinGameModal = false;
     isJoinGameModalVisible = false;
 

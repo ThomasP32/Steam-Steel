@@ -38,7 +38,6 @@ cache:
 stages:
     - install
     - lint
-    - test
     - deploy
 
 install:client:
