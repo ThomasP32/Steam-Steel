@@ -1,0 +1,138 @@
+import 'package:flutter/material.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
+import 'package:mobile/assets/theme/text_styles.dart';
+
+class AppTheme {
+  static ThemeData get darkTheme => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+
+    // Color Scheme
+    colorScheme: const ColorScheme.dark(
+      primary: AppColors.primaryCyan,
+      secondary: AppColors.primaryMagenta,
+      surface: AppColors.black,
+      onPrimary: AppColors.white,
+      onSecondary: AppColors.white,
+      error: AppColors.error,
+      onError: AppColors.white,
+    ),
+
+    // Scaffold
+    scaffoldBackgroundColor: AppColors.black,
+
+    // App Bar Theme
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.black,
+      foregroundColor: AppColors.white,
+      elevation: 0,
+      titleTextStyle: AppTextStyles.headlineMedium,
+    ),
+
+    // Text Theme
+    textTheme: const TextTheme(
+      displayLarge: AppTextStyles.displayLarge,
+      displayMedium: AppTextStyles.displayMedium,
+      displaySmall: AppTextStyles.displaySmall,
+      headlineLarge: AppTextStyles.headlineLarge,
+      headlineMedium: AppTextStyles.headlineMedium,
+      headlineSmall: AppTextStyles.headlineSmall,
+      bodyLarge: AppTextStyles.bodyLarge,
+      bodyMedium: AppTextStyles.bodyMedium,
+      bodySmall: AppTextStyles.bodySmall,
+      labelLarge: AppTextStyles.labelLarge,
+      labelMedium: AppTextStyles.labelMedium,
+      labelSmall: AppTextStyles.labelSmall,
+    ),
+
+    // Font Family
+    fontFamily: AppTextStyles.fontFamily,
+
+    // Button Themes
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.white,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        textStyle: AppTextStyles.labelLarge,
+      ),
+    ),
+
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.white,
+        side: const BorderSide(color: AppColors.white),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        textStyle: AppTextStyles.labelLarge,
+      ),
+    ),
+
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.primaryCyan,
+        textStyle: AppTextStyles.labelLarge,
+      ),
+    ),
+
+    // Card Theme
+    cardTheme: const CardTheme(
+      color: AppColors.darkGray,
+      shadowColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+      ),
+    ),
+
+    // Input Decoration Theme
+    inputDecorationTheme: const InputDecorationTheme(
+      fillColor: AppColors.darkGray,
+      filled: true,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        borderSide: BorderSide(color: AppColors.mediumGray),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        borderSide: BorderSide(color: AppColors.primaryCyan, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        borderSide: BorderSide(color: AppColors.error),
+      ),
+      hintStyle: AppTextStyles.bodyMedium,
+      labelStyle: AppTextStyles.labelLarge,
+    ),
+
+    // Icon Theme
+    iconTheme: const IconThemeData(color: AppColors.white, size: 24),
+
+    // Bottom Navigation Bar Theme
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: AppColors.black,
+      selectedItemColor: AppColors.primaryCyan,
+      unselectedItemColor: AppColors.mediumGray,
+      type: BottomNavigationBarType.fixed,
+    ),
+
+    // Divider Theme
+    dividerTheme: const DividerThemeData(
+      color: AppColors.whiteDivider,
+      thickness: 1,
+    ),
+
+    // Dialog Theme
+    dialogTheme: const DialogTheme(
+      backgroundColor: AppColors.darkGray,
+      titleTextStyle: AppTextStyles.headlineSmall,
+      contentTextStyle: AppTextStyles.bodyMedium,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+      ),
+    ),
+  );
+}

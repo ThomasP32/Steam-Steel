@@ -1,0 +1,65 @@
+# There is an issue with the `include` directive in this file. for now please use the full path to the `very_good_analysis` package
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+    exclude:
+        - '**/*.g.dart'
+        - '**/generated_plugin_registrant.dart'
+        - './pubspec.lock'
+        - './pubspec.yaml'
+        - './build/**'
+        - './ios/**'
+        - './android/**'
+        - './test/**'
+    language:
+        strict-casts: true
+        strict-raw-types: true
+    errors:
+        avoid_dynamic_calls: ignore
+        flutter_style_todos: ignore
+        inference_failure_on_instance_creation: ignore
+        inference_failure_on_untyped_parameter: ignore
+        library_private_types_in_public_api: ignore
+        missing_required_param: error
+        missing_return: error
+        unawaited_futures: warning
+        unused_element: warning
+        unused_import: warning
+        unused_local_variable: warning
+        use_build_context_synchronously: ignore
+
+linter:
+    rules:
+        # Style
+        always_use_package_imports: true
+        directives_ordering: true
+        prefer_single_quotes: true
+        sort_pub_dependencies: true
+
+        # Error handling
+        avoid_catches_without_on_clauses: true
+        avoid_catching_errors: true
+        use_rethrow_when_possible: true
+
+        # State management
+        cancel_subscriptions: true
+        close_sinks: true
+
+        # Flutter specific
+        sized_box_for_whitespace: true
+        use_build_context_synchronously: true
+        use_decorated_box: true
+        use_key_in_widget_constructors: true
+
+        # Performance
+        avoid_unnecessary_containers: true
+        prefer_const_constructors: true
+        prefer_const_constructors_in_immutables: true
+        prefer_const_declarations: true
+        prefer_const_literals_to_create_immutables: true
+
+        # Security
+        secure_pubspec_urls: true
+
+        #documentation
+        public_member_api_docs: false
