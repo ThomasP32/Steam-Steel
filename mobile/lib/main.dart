@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/assets/theme/app_theme.dart';
 import 'package:mobile/router/app_router.dart';
+import 'package:mobile/widgets/mainpage/main_page_footer.dart';
 
 void main() {
   runApp(MobileApp()); //TODO: MAKE CONST
@@ -29,13 +30,36 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Steam & Steel Battlegrounds')),
-      backgroundColor: Colors.black,
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () => context.go('/game'),
-          child: const Text('Game Screen'),
-        ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'lib/assets/backgrounds/origbig.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextButton(
+                    onPressed: () => context.go('/join-game'),
+                    child: const Text('Rejoindre une partie'),
+                  ),
+                  const SizedBox(width: 24),
+                  TextButton(
+                    onPressed: () => context.go('/lobby'),
+                    child: const Text('Commencer une nouvelle partie'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 40),
+              const MainPageFooter(),
+            ],
+          ),
+        ],
       ),
     );
   }

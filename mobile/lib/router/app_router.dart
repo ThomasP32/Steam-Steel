@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:mobile/main.dart';
-import 'package:mobile/screens/game_screen.dart';
+import 'package:mobile/screens/joingame_screen.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -12,9 +12,9 @@ class AppRouter {
         builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
-        path: '/game',
-        name: 'game',
-        builder: (context, state) => const GameScreen(),
+        path: '/join-game',
+        name: 'join-game',
+        builder: (context, state) => const JoinGameScreen(),
       ),
     ],
   );

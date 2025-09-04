@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class GameScreen extends StatelessWidget {
-  const GameScreen({super.key});
+class JoinGameScreen extends StatelessWidget {
+  const JoinGameScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

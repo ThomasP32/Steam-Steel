@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Brand Colors
-  static const Color primaryCyan = Color(0xFF62FBF2);
-  static const Color primaryMagenta = Color(0xFFF158FF);
-  static const Color secondaryPurple = Color(0xFF845EC2);
-  static const Color secondaryPink = Color(0xFFD65DB1);
+  // Main Theme Colors
+  static const Color brass = Color(0xFFD9A760);
+  static const Color accent = Color(0xFF565656);
+
+  //Buttons colors
+  static const Color buttonBackground = Color(0xFF2c3e50); // Leather Brown
+  static const Color buttonBorder = Color(0xFF202020); // Burnished Gold
+  static const Color buttonText = Color(0xFFC0C0C0); // Button text color
 
   // Neutral Colors
   static const Color black = Color(0xFF000000);
@@ -29,29 +32,9 @@ class AppColors {
   static const Color warning = Color(0xFFFF9800);
   static const Color error = Color(0xFFF44336);
   static const Color info = Color(0xFF2196F3);
-
-  // Gradients
-  static const LinearGradient brandGradient = LinearGradient(
-    colors: [primaryCyan, primaryMagenta],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const LinearGradient alternativeBrandGradient = LinearGradient(
-    colors: [secondaryPurple, secondaryPink],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const LinearGradient darkGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF0A0A0A), Color(0xFF1A1A1A), Color(0xFF0A0A0A)],
-  );
-
-  static const LinearGradient fadeGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color.fromARGB(255, 0, 0, 0), Color.fromARGB(0, 0, 0, 0)],
-  );
+  // Brand Colors
+  static const Color primaryCyan = Color(0xFF62FBF2);
+  static const Color primaryMagenta = Color(0xFFF158FF);
+  static const Color secondaryPurple = Color(0xFF845EC2);
+  static const Color secondaryPink = Color(0xFFD65DB1);
 }

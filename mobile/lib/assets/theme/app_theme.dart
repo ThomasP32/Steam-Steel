@@ -51,32 +51,43 @@ class AppTheme {
     // Button Themes
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.transparent,
-        foregroundColor: AppColors.white,
-        shadowColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        backgroundColor: AppColors.buttonBackground,
+        foregroundColor: AppColors.buttonText,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(3),
+          side: const BorderSide(color: AppColors.buttonBorder, width: 3),
+        ),
+        elevation: 5,
         textStyle: AppTextStyles.labelLarge,
       ),
     ),
 
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.white,
+        foregroundColor: AppColors.buttonText,
         side: const BorderSide(color: AppColors.white),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(3),
+          side: const BorderSide(color: AppColors.buttonBorder, width: 3),
+        ),
         textStyle: AppTextStyles.labelLarge,
       ),
     ),
 
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: AppColors.primaryCyan,
+        foregroundColor: AppColors.buttonText,
+        backgroundColor: AppColors.buttonBackground,
         textStyle: AppTextStyles.labelLarge,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(3),
+          side: const BorderSide(color: AppColors.buttonBorder, width: 3),
+        ),
       ),
     ),
 
     // Card Theme
-    cardTheme: const CardTheme(
+    cardTheme: const CardThemeData(
       color: AppColors.darkGray,
       shadowColor: Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -126,7 +137,7 @@ class AppTheme {
     ),
 
     // Dialog Theme
-    dialogTheme: const DialogTheme(
+    dialogTheme: const DialogThemeData(
       backgroundColor: AppColors.darkGray,
       titleTextStyle: AppTextStyles.headlineSmall,
       contentTextStyle: AppTextStyles.bodyMedium,
