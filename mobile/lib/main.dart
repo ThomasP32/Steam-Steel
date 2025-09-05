@@ -39,24 +39,45 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextButton(
-                    onPressed: () => context.go('/join-game'),
-                    child: const Text('Rejoindre une partie'),
+              // Main content takes the available space and is centered
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        'lib/assets/main-menu/SteamSteel.png',
+                        width: 800,
+                        height: 400,
+                      ),
+                      const SizedBox(height: 40),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextButton(
+                            onPressed: () => context.go('/join-game'),
+                            child: const Text('Rejoindre une partie'),
+                          ),
+                          const SizedBox(width: 24),
+                          TextButton(
+                            onPressed: () => context.go('/lobby'),
+                            child: const Text('Commencer une nouvelle partie'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 60),
+                    ],
                   ),
-                  const SizedBox(width: 24),
-                  TextButton(
-                    onPressed: () => context.go('/lobby'),
-                    child: const Text('Commencer une nouvelle partie'),
-                  ),
-                ],
+                ),
               ),
-              const SizedBox(height: 40),
-              const MainPageFooter(),
+              const SafeArea(
+                top: false,
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: MainPageFooter(),
+                ),
+              ),
             ],
           ),
         ],
