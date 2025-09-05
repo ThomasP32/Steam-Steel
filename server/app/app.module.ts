@@ -1,6 +1,9 @@
 import { AdminController } from '@app/http/controllers/admin/admin.controller';
+import { AuthController } from '@app/http/controllers/auth.controller';
 import { MapController } from '@app/http/controllers/map/map.controller';
 import { Map, mapSchema } from '@app/http/model/schemas/map/map.schema';
+import { User, UserSchema } from '@app/http/model/schemas/user.schema';
+import { UserService } from '@app/http/services/user.service';
 import { AdminService } from '@app/http/services/admin/admin.service';
 import { MapService } from '@app/http/services/map/map.service';
 import { GameCreationService } from '@app/services/game-creation/game-creation.service';
@@ -32,9 +35,12 @@ import { GameManagerGateway } from './socket/game/gateways/game-manager/game-man
                 uri: config.get<string>('DATABASE_CONNECTION_STRING'), // Loaded from .env
             }),
         }),
-        MongooseModule.forFeature([{ name: Map.name, schema: mapSchema }]),
+        MongooseModule.forFeature([
+            { name: Map.name, schema: mapSchema },
+            { name: User.name, schema: UserSchema },
+        ]),
     ],
-    controllers: [MapController, AdminController],
+    controllers: [MapController, AdminController, AuthController],
     providers: [
         MapService,
         AdminService,
@@ -52,6 +58,7 @@ import { GameManagerGateway } from './socket/game/gateways/game-manager/game-man
         CombatCountdownService,
         VirtualGameManagerService,
         ItemsManagerService,
+        UserService,
     ],
 })
 export class AppModule {}
