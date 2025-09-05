@@ -131,7 +131,7 @@ lint:flutter:
         - dart format --set-exit-if-changed .
 
 # build:flutter:android:
-#     image: cirrusci/flutter:stable
+#     image: cirrusci/flutter:3.24.5
 #     stage: build
 #     needs: ['install:flutter']
 #     <<: *only-flutter
