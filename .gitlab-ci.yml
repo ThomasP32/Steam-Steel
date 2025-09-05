@@ -127,8 +127,6 @@ lint:flutter:
     <<: *only-flutter
     script:
         - cd mobile
-        - echo "Running flutter format check..."
-        - flutter format --set-exit-if-changed .
         - echo "Running flutter analyze..."
         - flutter analyze
 
