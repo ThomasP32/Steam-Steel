@@ -104,7 +104,7 @@ lint:server:
 
 # Flutter jobs
 install:flutter:
-    image: cirrusci/flutter:stable
+    image: cirrusci/flutter:3.24.5
     stage: install
     <<: *only-flutter
     script:
@@ -120,10 +120,10 @@ install:flutter:
         policy: pull-push
 
 lint:flutter:
-    image: cirrusci/flutter:stable
+    image: cirrusci/flutter:3.24.5
     stage: lint
     needs: ['install:flutter']
-    allow_failure: true
+    allow_failure: false
     <<: *only-flutter
     script:
         - cd mobile
