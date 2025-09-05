@@ -127,6 +127,7 @@ lint:flutter:
     <<: *only-flutter
     script:
         - cd mobile
+        - echo "# dummy .env for CI/tests" > .env
         - echo "Running flutter analyze..."
         - flutter analyze
 
