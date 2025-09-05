@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { MapConversionService } from '@app/services/map-conversion/map-conversion.service';
 import { TIME_LIMIT_DELAY } from '@common/constants';
@@ -11,7 +11,7 @@ import { firstValueFrom } from 'rxjs';
     standalone: true,
     templateUrl: './game-choice-page.component.html',
     styleUrls: ['./game-choice-page.component.scss'],
-    imports: [CommonModule, RouterLink],
+    imports: [CommonModule],
 })
 export class GameChoicePageComponent implements OnInit {
     map: Map;

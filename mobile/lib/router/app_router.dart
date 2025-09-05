@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:mobile/main.dart';
+import 'package:mobile/screens/gamecreation_screen.dart';
 import 'package:mobile/screens/joingame_screen.dart';
 
 class AppRouter {
@@ -15,6 +16,11 @@ class AppRouter {
         path: '/join-game',
         name: 'join-game',
         builder: (context, state) => const JoinGameScreen(),
+      ),
+      GoRoute(
+        path: '/create-game',
+        name: 'create-game',
+        builder: (context, state) => const GameCreationScreen(),
       ),
     ],
   );

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Character } from '@app/interfaces/character';
 import { CharacterService } from '@app/services/character/character.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
@@ -16,7 +16,7 @@ import { firstValueFrom, Subscription } from 'rxjs';
 @Component({
     selector: 'app-character-form-page',
     standalone: true,
-    imports: [RouterOutlet, CommonModule, FormsModule],
+    imports: [CommonModule, FormsModule],
     templateUrl: './character-form-page.component.html',
     styleUrls: ['./character-form-page.component.scss'],
 })

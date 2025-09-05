@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/assets/theme/app_theme.dart';
 import 'package:mobile/router/app_router.dart';
 import 'package:mobile/widgets/mainpage/main_page_footer.dart';
 
-void main() {
-  runApp(MobileApp()); //TODO: MAKE CONST
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load();
+  runApp(const MobileApp());
 }
 
 class MobileApp extends StatelessWidget {
-  MobileApp({super.key});
-  final AppRouter appRouter = AppRouter();
+  const MobileApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +63,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 24),
                           TextButton(
-                            onPressed: () => context.go('/lobby'),
+                            onPressed: () => context.go('/create-game'),
                             child: const Text('Commencer une nouvelle partie'),
                           ),
                         ],
