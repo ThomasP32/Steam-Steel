@@ -6,6 +6,7 @@ cache:
         - client/node_modules/
         - server/node_modules/
     policy: pull
+
 .only-client: &only-client
     only:
         refs:
@@ -14,7 +15,6 @@ cache:
         changes:
             - client/**/*
             - common/**/*
-            - common/**/*
     cache:
         key: '${CI_COMMIT_REF_SLUG}-client'
         paths:
@@ -22,14 +22,14 @@ cache:
         policy: pull
 
 .only-server: &only-server
-    .only-server: &only-server
-        only:
-            refs:
-                - branches
-                - merge_requests
-            changes:
-                - server/**/*
-                - common/**/*
+    only:
+        refs:
+            - branches
+            - merge_requests
+        changes:
+            - server/**/*
+            - common/**/*
+    cache:
         key: '${CI_COMMIT_REF_SLUG}-server'
         paths:
             - server/node_modules/
@@ -38,16 +38,16 @@ cache:
 .only-flutter: &only-flutter
     only:
         refs:
-        .only-mobile: &only-mobile
-            only:
-                refs:
-                    - branches
-                    - merge_requests
-                changes:
-                    - mobile/**/*
-                    - common/**/*
-            - flutter_app/.dart_tool/
-            - flutter_app/build/
+            - branches
+            - merge_requests
+        changes:
+            - mobile/**/*
+            - common/**/*
+    cache:
+        key: '${CI_COMMIT_REF_SLUG}-flutter'
+        paths:
+            - mobile/.dart_tool/
+            - mobile/build/
         policy: pull
 
 stages:
@@ -108,14 +108,14 @@ install:flutter:
     stage: install
     <<: *only-flutter
     script:
-        - cd flutter_app
+        - cd mobile
         - flutter --version
         - flutter pub get
     cache:
         key: '${CI_COMMIT_REF_SLUG}-flutter'
         paths:
-            - flutter_app/.dart_tool/
-            - flutter_app/build/
+            - mobile/.dart_tool/
+            - mobile/build/
             - $HOME/.pub-cache/
         policy: pull-push
 
@@ -126,7 +126,7 @@ lint:flutter:
     allow_failure: true
     <<: *only-flutter
     script:
-        - cd flutter_app
+        - cd mobile
         - flutter analyze
         - dart format --set-exit-if-changed .
 
@@ -148,19 +148,19 @@ lint:flutter:
 #         - yes | $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "build-tools;30.0.3" "platforms;android-30"
 #         - cd $CI_PROJECT_DIR
 #     script:
-#         - cd flutter_app
+#         - cd mobile
 #         - flutter build apk --release
 #         - flutter build appbundle --release
 #     artifacts:
 #         paths:
-#             - flutter_app/build/app/outputs/flutter-apk/app-release.apk
-#             - flutter_app/build/app/outputs/bundle/release/app-release.aab
+#             - mobile/build/app/outputs/flutter-apk/app-release.apk
+#             - mobile/build/app/outputs/bundle/release/app-release.aab
 #         expire_in: 1 week
 #     cache:
 #         key: '${CI_COMMIT_REF_SLUG}-flutter'
 #         paths:
-#             - flutter_app/.dart_tool/
-#             - flutter_app/build/
+#             - mobile/.dart_tool/
+#             - mobile/build/
 #             - $HOME/.pub-cache/
 #         policy: pull
 
