@@ -104,21 +104,33 @@ lint:server:
 
 # Flutter jobs
 install:flutter:
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-          flutter-version: '3.24.5'
-          channel: 'stable'
-          cache: true
-          stage: install
-    - name: Install dependencies
-      run: |
-          cd mobile
-          flutter pub get
-    - name: analyze code / linting
-      run: |
-          cd mobile
-          flutter analyze --no-fatal-infos
+    image: cirrusci/flutter:3.24.5
+    stage: install
+    <<: *only-flutter
+    script:
+        - cd mobile
+        - flutter --version
+        - flutter pub get
+    cache:
+        key: '${CI_COMMIT_REF_SLUG}-flutter'
+        paths:
+            - mobile/.dart_tool/
+            - mobile/build/
+            - $HOME/.pub-cache/
+        policy: pull-push
+
+lint:flutter:
+    image: cirrusci/flutter:3.24.5
+    stage: lint
+    needs: ['install:flutter']
+    allow_failure: false
+    <<: *only-flutter
+    script:
+        - cd mobile
+        - echo "Running flutter format check..."
+        - flutter format --set-exit-if-changed .
+        - echo "Running flutter analyze..."
+        - flutter analyze
 
 # build:flutter:android:
 #     image: cirrusci/flutter:3.24.5
