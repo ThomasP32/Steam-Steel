@@ -17,6 +17,14 @@ class AppRouter {
         name: 'join-game',
         builder: (context, state) => const JoinGameScreen(),
       ),
+      // GoRoute(
+      //   path: '/game/:code',
+      //   name: 'game',
+      //   builder: (context, state) {
+      //     final code = state.pathParameters['code'] ?? '';
+      //     return JoinGameScreen(initialCode: code, autoJoin: true);
+      //   },
+      // ),
       GoRoute(
         path: '/create-game',
         name: 'create-game',

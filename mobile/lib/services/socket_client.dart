@@ -26,7 +26,10 @@ class SocketClient {
     });
     socket!.on(
       'connect',
-      (_) => DebugLogger.log('connected to $uri', tag: 'SocketClient'),
+      (_) => DebugLogger.log(
+        'connected to $uri, SocketId = ${socket?.id} ',
+        tag: 'SocketClient',
+      ),
     );
     socket!.on(
       'disconnect',
