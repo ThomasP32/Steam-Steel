@@ -55,49 +55,6 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'Debug join 2633',
-        child: const Icon(Icons.play_arrow),
-        onPressed: () {
-          // Build a minimal JoinGameData payload. Many fields are not required
-          // server-side for addPlayerToGame name uniqueness, so keep it small.
-          final socket = SocketService().socketId;
-          final payload = {
-            'gameId': '9210',
-            'player': {
-              'socketId': socket ?? 'debug-socket',
-              'name': 'DebugPlayer',
-              'avatar': 1,
-              'isActive': true,
-              'specs': {
-                'life': 4,
-                'evasions': 2,
-                'speed': 4,
-                'attack': 4,
-                'defense': 4,
-                'attackBonus': 4,
-                'defenseBonus': 4,
-                'movePoints': 3,
-                'actions': 1,
-                'nVictories': 0,
-                'nDefeats': 0,
-                'nCombats': 0,
-                'nEvasions': 0,
-                'nLifeTaken': 0,
-                'nLifeLost': 0,
-                'nItemsUsed': 0,
-              },
-              'inventory': <dynamic>[],
-              'position': {'x': 0, 'y': 0},
-              'initialPosition': {'x': 0, 'y': 0},
-              'turn': 0,
-              'visitedTiles': <dynamic>[],
-              'profile': '',
-            },
-          };
-          SocketService().send('joinGame', payload);
-        },
-      ),
       body: Stack(
         children: [
           Positioned.fill(
