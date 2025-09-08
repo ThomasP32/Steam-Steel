@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 // no keyboard-specific imports needed for mobile
@@ -33,6 +34,7 @@ class _JoinGameCodeState extends State<JoinGameCode> {
       ..add(
         _socketService!.listen<void>('gameAccessed').listen((_) {
           // success
+          if (!mounted) return;
           setState(() {
             _isLoading = false;
           });
@@ -41,8 +43,23 @@ class _JoinGameCodeState extends State<JoinGameCode> {
             'JoinGameCode: gameAccessed received, code=$code',
             tag: 'JoinGameCode',
           );
-          // call the public onJoin callback with the joined code
-          widget.onJoin(code);
+
+          try {
+            GoRouter.of(context).go('/$code/choose-character');
+          } on Exception catch (e) {
+            DebugLogger.log(
+              'JoinGameCode: failed to navigate to /$code/choose-character: $e',
+              tag: 'JoinGameCode',
+            );
+          }
+          try {
+            Navigator.of(context, rootNavigator: true).pop();
+          } on Exception catch (e) {
+            DebugLogger.log(
+              'JoinGameCode: failed to pop dialog: $e',
+              tag: 'JoinGameCode',
+            );
+          }
         }),
       )
       ..add(

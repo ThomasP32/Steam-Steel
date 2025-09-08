@@ -32,6 +32,7 @@ flutter:
         - lib/assets/backgrounds/mainbackground.gif
         - lib/assets/backgrounds/origbig.png
         - lib/assets/main-menu/SteamSteel.png
+        - lib/assets/characters/
         - .env
     fonts:
         - family: 'Press Start 2P'

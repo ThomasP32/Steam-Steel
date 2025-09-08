@@ -1,7 +1,8 @@
 import 'package:go_router/go_router.dart';
 import 'package:mobile/main.dart';
+import 'package:mobile/screens/character_creation_screen.dart';
 import 'package:mobile/screens/gamecreation_screen.dart';
-import 'package:mobile/screens/joingame_screen.dart';
+import 'package:mobile/screens/waiting_room_screen.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -13,18 +14,21 @@ class AppRouter {
         builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
-        path: '/join-game',
-        name: 'join-game',
-        builder: (context, state) => const JoinGameScreen(),
+        path: '/:gameId/waiting-room/player',
+        name: 'waiting-room',
+        builder: (context, state) {
+          final code = state.pathParameters['gameId'] ?? '';
+          return WaitingRoomScreen(gameId: code);
+        },
       ),
-      // GoRoute(
-      //   path: '/game/:code',
-      //   name: 'game',
-      //   builder: (context, state) {
-      //     final code = state.pathParameters['code'] ?? '';
-      //     return JoinGameScreen(initialCode: code, autoJoin: true);
-      //   },
-      // ),
+      GoRoute(
+        path: '/:gameId/choose-character',
+        name: 'choose-character',
+        builder: (context, state) {
+          final code = state.pathParameters['gameId'] ?? '';
+          return CharacterCreationScreen(gameId: code);
+        },
+      ),
       GoRoute(
         path: '/create-game',
         name: 'create-game',

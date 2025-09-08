@@ -3,12 +3,10 @@ import 'dart:async';
 import 'package:mobile/services/socket_client.dart';
 import 'package:mobile/utils/debug_logger.dart';
 
-/// App-level SocketService implemented as a singleton.
-/// Use `SocketService()` anywhere to get the shared instance.
 class SocketService {
+  factory SocketService() => _instance;
   SocketService._internal();
   static final SocketService _instance = SocketService._internal();
-  factory SocketService() => _instance;
 
   final SocketClient _client = SocketClient();
   final Map<String, StreamController<dynamic>> _controllers = {};
@@ -57,7 +55,6 @@ class SocketService {
 
   void disconnect() => _client.disconnect();
 
-  /// Current socket id if connected.
   String? get socketId => _client.socket?.id;
 
   void send(String event, [dynamic data]) {
@@ -83,8 +80,6 @@ class SocketService {
     return _controllers[event]!.stream as Stream<T>;
   }
 
-  /// Do not call [dispose] from widgets. This will shutdown the global
-  /// connection and controllers. Call only when the app is terminating.
   void dispose() {
     for (final c in _controllers.values) {
       c.close();

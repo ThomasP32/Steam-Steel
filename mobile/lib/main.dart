@@ -14,7 +14,7 @@ Future<void> main() async {
   try {
     SocketService().connect();
     DebugLogger.log('SocketService connected', tag: 'main');
-  } catch (_) {}
+  } on Object catch (_) {}
   runApp(const MobileApp());
 }
 
@@ -44,13 +44,8 @@ class HomeScreen extends StatelessWidget {
             title: const Text('Entrez le code de la partie'),
             content: JoinGameCode(
               onJoin: (code) {
-                Navigator.of(ctx).pop();
-                // Navigate to the game lobby / waiting room
-                try {
-                  context.go('/game/$code');
-                } catch (_) {
-                  // ignore navigation errors in case router isn't set up yet
-                }
+                // navigation handled inside JoinGameCode; keep this callback
+                // empty to avoid double navigation.
               },
             ),
           ),
@@ -68,7 +63,7 @@ class HomeScreen extends StatelessWidget {
           // server-side for addPlayerToGame name uniqueness, so keep it small.
           final socket = SocketService().socketId;
           final payload = {
-            'gameId': '7357',
+            'gameId': '9210',
             'player': {
               'socketId': socket ?? 'debug-socket',
               'name': 'DebugPlayer',
