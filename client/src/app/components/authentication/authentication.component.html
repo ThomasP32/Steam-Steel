@@ -1,0 +1,15 @@
+<div class="auth-container">
+    <h2>Inscription</h2>
+    <input name="registerEmail" [(ngModel)]="registerEmail" placeholder="Email" />
+    <input name="registerPassword" [(ngModel)]="registerPassword" placeholder="Mot de passe" type="password" />
+    <input name="registerUsername" [(ngModel)]="registerUsername" placeholder="Pseudonyme" />
+    <input name="registerAvatar" [(ngModel)]="registerAvatar" placeholder="Avatar" />
+    <button type="button" (click)="register()">S'inscrire</button>
+    <div *ngIf="registerMessage" class="message">{{ registerMessage }}</div>
+
+    <h2>Connexion</h2>
+    <input name="loginEmail" [(ngModel)]="loginEmail" placeholder="Email" />
+    <input name="loginPassword" [(ngModel)]="loginPassword" placeholder="Mot de passe" type="password" />
+    <button type="button" (click)="login()">Se connecter</button>
+    <div *ngIf="loginMessage" class="message">{{ loginMessage }}</div>
+</div>

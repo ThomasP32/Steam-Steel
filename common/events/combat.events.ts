@@ -23,7 +23,8 @@ export enum CombatEvents {
     CombatFinishedNormally = 'combatFinishedNormally',
     GameFinishedPlayerWon = 'gameFinishedPlayerWon',
     ResumeTurnAfterCombatWin = 'resumeTurnAfterCombatWin',
-
+    GameFinished = 'gameFinished',
+    
     YourTurnCombat = 'yourTurnCombat',
     PlayerTurnCombat = 'playerTurnCombat',
 

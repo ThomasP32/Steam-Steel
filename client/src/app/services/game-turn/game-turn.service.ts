@@ -322,8 +322,16 @@ export class GameTurnService {
     }
 
     listenForEndOfGame() {
+        let endGameHandled = false;
         this.socketSubscription.add(
-            this.socketService.listen<Player>(CombatEvents.GameFinishedPlayerWon).subscribe(() => {
+            this.socketService.listen<{ updatedGame: Game }>(CombatEvents.GameFinished).subscribe((data) => {
+                if (endGameHandled) return;
+                endGameHandled = true;
+                this.gameService.setGame(data.updatedGame);
+                const updatedPlayer = data.updatedGame.players.find((p) => p.socketId === this.playerService.player.socketId);
+                if (updatedPlayer) {
+                    this.playerService.setPlayer(updatedPlayer);
+                }
                 this.playerWon.next(true);
             }),
         );

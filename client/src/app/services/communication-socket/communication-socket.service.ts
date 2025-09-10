@@ -9,14 +9,18 @@ import { environment } from 'src/environments/environment';
 export class SocketService {
     public socket: Socket;
 
-    constructor() {
-        this.connect();
-    }
+    
 
     connect() {
-        if (!this.socket) {
-            this.socket = io(environment.socketUrl, { transports: ['websocket'] });
+        // Toujours utiliser le token le plus à jour et réinitialiser le socket
+        const token = localStorage.getItem('authToken');
+        if (this.socket) {
+            this.socket.disconnect();
         }
+        this.socket = io(environment.socketUrl, {
+            transports: ['websocket'],
+            auth: { token },
+        });
         this.socket.connect();
     }
 

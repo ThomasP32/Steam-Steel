@@ -89,21 +89,7 @@
                 <h1>CHOISIS TON AVATAR</h1>
                 <img [src]="selectedCharacter.image" alt="Selected Character" />
                 <h2 class="character-name">
-                    @if(!isEditing){ <span (click)="startEditing()"> {{ name || 'Choisis ton nom' }}</span
-                    >} @if(isEditing){
-                    <input
-                        [(ngModel)]="name"
-                        class="character-name-input"
-                        (blur)="stopEditing()"
-                        (keydown.enter)="stopEditing()"
-                        maxlength="25"
-                        #nameInput
-                    />
-                    }
-
-                    <button class="edit-icon" (click)="toggleEditing()">
-                        @if(isEditing) {<i class="fas fa-save"></i>} @else { <i class="fas fa-pencil-alt"></i>}
-                    </button>
+                    <span> {{ name || 'Choisis ton nom' }}</span>
                 </h2>
                 @if(isJoiningGame) {
                 <button class="start-button" (click)="onSubmit()">Rejoindre la partie</button>
