@@ -82,7 +82,7 @@ export const ALL_ITEMS: ItemCategory[] = [
     ItemCategory.Amulet,
 ];
 
-export const N_WIN_VICTORIES = 1;
+export const N_WIN_VICTORIES = 3;
 
 export const DEFAULT_HP: number = 4;
 
