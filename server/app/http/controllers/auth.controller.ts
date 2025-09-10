@@ -3,7 +3,7 @@ import { ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from 
 import { Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { UserService } from '../services/user/user.service';
-const JWT_SECRET = 'votre_secret';
+import { JWT_SECRET } from '@common/constants';
 
 @ApiTags('Auth')
 @Controller('auth')

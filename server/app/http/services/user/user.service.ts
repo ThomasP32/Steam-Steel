@@ -71,7 +71,7 @@ export class UserService {
         avatar?: string,
     ): Promise<{ success: boolean; message?: string; user?: User }> {
         if (!email || !password || !username) {
-            return { success: false, message: 'Email, mot de passe et username sont obligatoires.' };
+            return { success: false, message: 'Email, mot de passe et speudo sont obligatoires.' };
         }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
@@ -81,9 +81,9 @@ export class UserService {
         if (existingEmail) {
             return { success: false, message: 'Cet email est déjà utilisé.' };
         }
-        const existingPseudo = await this.findByUsername(username);
-        if (existingPseudo) {
-            return { success: false, message: 'Ce username est déjà utilisé.' };
+        const existingUsername = await this.findByUsername(username);
+        if (existingUsername) {
+            return { success: false, message: 'Ce speudo est déjà utilisé.' };
         }
         const user = await this.create(email, password, username, avatar);
         return { success: true, user };

@@ -19,23 +19,64 @@ export class AuthService {
     }
 
     async login(email: string, password: string): Promise<any> {
-        const response = await firstValueFrom(this.communicationService.basicPost<any>(`${this.apiUrl}/login`, { email, password }));
-        const body = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
-        if (body?.token) {
-            localStorage.setItem('authToken', body.token);
-            // Utilise le service socket pour ouvrir la connexion
+        let response: any;
+        let body: any;
+        try {
+            response = await firstValueFrom(this.communicationService.basicPost<any>(`${this.apiUrl}/login`, { email, password }));
+            body = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
+        } catch (err: any) {
+            let errorMsg = "Erreur d'authentification.";
+            if (err?.error) {
+                try {
+                    const parsed = typeof err.error === 'string' ? JSON.parse(err.error) : err.error;
+                    errorMsg = parsed?.message || errorMsg;
+                } catch {
+                    errorMsg = err.error;
+                }
+            }
+            throw new Error(errorMsg);
+        }
+
+        if (!body?.token) {
+            throw new Error(body?.message || "Erreur d'authentification.");
+        }
+
+        localStorage.setItem('authToken', body.token);
+        return await new Promise((resolve, reject) => {
+            let resolved = false;
+            const timeoutId = setTimeout(() => {
+                if (!resolved) {
+                    resolved = true;
+                    resolve(response);
+                }
+            }, 1000);
             try {
+                this.socketService.disconnect();
                 this.socketService.connect();
-                // Optionnel: écouter l'event 'auth_error' pour déconnecter si refusé
-                this.socketService.socket?.on('auth_error', (msg: string) => {
-                    this.socketService.disconnect();
-                    alert(msg);
+                this.socketService.socket?.once('auth_error', (msg: string) => {
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timeoutId);
+                        this.socketService.disconnect();
+                        try {
+                            const token = localStorage.getItem('authToken');
+                            const payload = token ? JSON.parse(atob(token.split('.')[1])) : null;
+                            if (payload && payload.userId === body.user?._id) {
+                                localStorage.removeItem('authToken');
+                            }
+                        } catch {
+                            reject(new Error(msg || 'Ce compte est déjà connecté ailleurs.'));
+                        }
+                    }
                 });
             } catch (e) {
-                // ignore si le service n'est pas dispo
+                if (!resolved) {
+                    resolved = true;
+                    clearTimeout(timeoutId);
+                    resolve(response);
+                }
             }
-            return response;
-        }
+        });
     }
 
     async getUserInfo(): Promise<any> {
