@@ -344,4 +344,16 @@ export class GameManagerService {
         }
         return false;
     }
+
+    markCtfGameWinners(gameId: string, game: Game) {
+        let winnerFound = false;
+        for (const player of game.players) {
+            if (!winnerFound && this.checkForWinnerCtf(player, gameId)) {
+                player.isGameWinner = true;
+                winnerFound = true;
+            } else {
+                player.isGameWinner = false;
+            }
+        }
+    }
 }

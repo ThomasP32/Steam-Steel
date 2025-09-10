@@ -1,7 +1,9 @@
-import { Body, Controller, HttpStatus, Inject, Post, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpStatus, Inject, Patch, Post, Req, Res } from '@nestjs/common';
 import { ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
-import { UserService } from '../services/user.service';
+import * as jwt from 'jsonwebtoken';
+import { UserService } from '../services/user/user.service';
+const JWT_SECRET = 'votre_secret';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -22,39 +24,12 @@ export class AuthController {
         @Body('avatar') avatar: string,
         @Res() response: Response,
     ) {
-        // Vérification des champs obligatoires
-        if (!email || !password || !pseudonyme) {
-            return response.status(HttpStatus.BAD_REQUEST).json({
-                success: false,
-                message: 'Email, mot de passe et pseudonyme sont obligatoires.',
-            });
-        }
-        // Vérification du format de l'email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return response.status(HttpStatus.BAD_REQUEST).json({
-                success: false,
-                message: "Le format de l'email est invalide.",
-            });
-        }
-        // Vérification unicité email et pseudonyme
         try {
-            const existingEmail = await this.userService.findByEmail(email);
-            if (existingEmail) {
-                return response.status(HttpStatus.BAD_REQUEST).json({
-                    success: false,
-                    message: 'Cet email est déjà utilisé.',
-                });
+            const result = await this.userService.registerUser(email, password, pseudonyme, avatar);
+            if (!result.success) {
+                return response.status(HttpStatus.BAD_REQUEST).json(result);
             }
-            const existingPseudo = await this.userService.findByPseudonyme(pseudonyme);
-            if (existingPseudo) {
-                return response.status(HttpStatus.BAD_REQUEST).json({
-                    success: false,
-                    message: 'Ce pseudonyme est déjà utilisé.',
-                });
-            }
-            const user = await this.userService.create(email, password, pseudonyme, avatar);
-            response.status(HttpStatus.CREATED).json({ success: true, message: 'Inscription réussie !', user });
+            response.status(HttpStatus.CREATED).json({ success: true, message: 'Inscription réussie !', user: result.user });
         } catch (error) {
             response.status(HttpStatus.BAD_REQUEST).json({
                 success: false,
@@ -75,11 +50,12 @@ export class AuthController {
         try {
             const user = await this.userService.validateUser(email, password);
             if (user) {
-                response.status(HttpStatus.OK).json({ success: true, message: 'Connexion réussie !', user });
+                const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1d' });
+                response.status(HttpStatus.OK).json({ success: true, message: 'Connexion réussie !', user, token });
             } else {
                 response.status(HttpStatus.UNAUTHORIZED).json({
                     success: false,
-                    message: 'Invalid credentials',
+                    message: 'Email ou mot de passe incorrects.',
                 });
             }
         } catch (error) {
@@ -87,6 +63,64 @@ export class AuthController {
                 success: false,
                 message: error.message || 'Login failed',
             });
+        }
+    }
+
+    @Get('me')
+    async getProfile(@Req() req) {
+        const { userId, error } = await this.getUserIdFromToken(req);
+        if (error) return { success: false, message: error };
+        const user = await this.userService.findById(userId);
+        if (!user) return { success: false, message: 'Utilisateur non trouvé' };
+        if (user.password) delete user.password;
+        return { success: true, user };
+    }
+
+    @Delete('delete')
+    async deleteAccount(@Req() req) {
+        const { userId, error } = await this.getUserIdFromToken(req);
+        if (error) return { success: false, message: error };
+        const user = await this.userService.findById(userId);
+        if (!user) return { success: false, message: 'Utilisateur non trouvé' };
+        await this.userService.deleteById(userId);
+        return { success: true, message: 'Compte supprimé avec succès' };
+    }
+
+    @Patch('update')
+    async updateAccount(@Req() req, @Body('email') email: string, @Body('pseudonyme') pseudonyme: string, @Body('avatar') avatar: string) {
+        const { userId, error } = await this.getUserIdFromToken(req);
+        if (error) return { success: false, message: error };
+        const user = await this.userService.findById(userId);
+        if (!user) return { success: false, message: 'Utilisateur non trouvé' };
+        const result = await this.userService.updateUserWithChecks(user, email, pseudonyme, avatar);
+        return result;
+    }
+
+    @Patch('stats')
+    async updateStats(@Req() req, @Body() stats: { mode: string; isWin: boolean; duration: number }) {
+        const { userId, error } = await this.getUserIdFromToken(req);
+        if (error) return { success: false, message: error };
+        const user = await this.userService.updateStatsById(userId, stats.mode, stats.isWin, stats.duration);
+        if (!user) return { success: false, message: 'Utilisateur non trouvé' };
+        return { success: true, user };
+    }
+
+    private async getUserIdFromToken(req: any): Promise<{ userId?: string; error?: string }> {
+        let token = req.query.token;
+        if (!token && req.body && req.body.token) {
+            token = req.body.token;
+        }
+        if (!token) {
+            return { error: 'Token manquant' };
+        }
+        try {
+            const decoded: any = jwt.verify(token, JWT_SECRET);
+            if (!decoded || !decoded.userId) {
+                return { error: 'Token invalide' };
+            }
+            return { userId: decoded.userId };
+        } catch (e) {
+            return { error: 'Token invalide ou expiré' };
         }
     }
 }

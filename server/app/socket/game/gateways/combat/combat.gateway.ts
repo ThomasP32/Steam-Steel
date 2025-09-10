@@ -176,6 +176,9 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             const combatFinishedData: CombatFinishedData = { updatedGame: game, winner: attackingPlayer, loser: defendingPlayer };
             this.server.to(gameId).emit(CombatEvents.CombatFinished, combatFinishedData);
             if (this.combatService.checkForGameWinner(game.id, attackingPlayer)) {
+                this.combatService.markClassicGameWinners(game.id, game);
+
+                this.server.to(gameId).emit(CombatEvents.GameFinished, { updatedGame: game });
                 this.server.to(gameId).emit(CombatEvents.GameFinishedPlayerWon, attackingPlayer);
                 return;
             }
@@ -305,6 +308,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             this.server.to(updatedGame.id).emit(CombatEvents.CombatFinished, combatFinishedData);
 
             if (this.combatService.checkForGameWinner(updatedGame.id, winner)) {
+                this.combatService.markClassicGameWinners(updatedGame.id, updatedGame);
                 this.server.to(updatedGame.id).emit(CombatEvents.GameFinishedPlayerWon, winner);
                 return;
             }

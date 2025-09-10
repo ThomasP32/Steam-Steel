@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth/auth.service';
 @Component({
@@ -19,6 +19,8 @@ export class AuthentificationComponent {
     registerMessage = '';
     loginMessage = '';
 
+    @Output() close = new EventEmitter<void>();
+
     constructor(private authService: AuthService) {}
 
     async register() {
@@ -29,6 +31,9 @@ export class AuthentificationComponent {
 
     async login() {
         this.loginMessage = await this.handleAuth(() => this.authService.login(this.loginEmail, this.loginPassword));
+        if (this.loginMessage && this.loginMessage.toLowerCase().includes('réussie')) {
+            this.close.emit();
+        }
     }
 
     private async handleAuth(requestFn: () => Promise<any>): Promise<string> {

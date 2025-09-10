@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { AccountComponent } from '@app/components/account/account.component';
 import { AuthentificationComponent } from '@app/components/authentification/authentification.component';
 import { JoinGameModalComponent } from '@app/components/join-game-modal/join-game-modal.component';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
@@ -9,7 +10,7 @@ import { SocketService } from '@app/services/communication-socket/communication-
     standalone: true,
     templateUrl: './home-page.component.html',
     styleUrls: ['./home-page.component.scss'],
-    imports: [JoinGameModalComponent, AuthentificationComponent, CommonModule],
+    imports: [JoinGameModalComponent, AuthentificationComponent, AccountComponent, CommonModule],
 })
 export class HomePageComponent implements OnInit {
     teamNumber = 'Équipe 106';
@@ -17,12 +18,24 @@ export class HomePageComponent implements OnInit {
     showJoinGameModal = false;
     isJoinGameModalVisible = false;
     isAuthModalVisible = false;
+    isLoggedIn = false;
+    isAccountModalVisible = false;
+
     toggleAuthModal(): void {
         this.isAuthModalVisible = true;
     }
 
     onCloseAuthModal(): void {
         this.isAuthModalVisible = false;
+        this.checkLoginStatus();
+    }
+
+    toggleAccountModal(): void {
+        this.isAccountModalVisible = true;
+    }
+    onCloseAccountModal(): void {
+        this.isAccountModalVisible = false;
+        this.checkLoginStatus();
     }
 
     constructor(
@@ -33,6 +46,7 @@ export class HomePageComponent implements OnInit {
         this.socketService = socketService;
     }
     ngOnInit(): void {
+        this.checkLoginStatus();
         this.connect();
     }
 
@@ -40,6 +54,11 @@ export class HomePageComponent implements OnInit {
         if (!this.socketService.isSocketAlive()) {
             this.socketService.connect();
         }
+    }
+
+    checkLoginStatus() {
+        const token = localStorage.getItem('authToken');
+        this.isLoggedIn = typeof token === 'string' && token.length > 0;
     }
 
     toggleJoinGameVisibility(): void {

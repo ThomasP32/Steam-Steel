@@ -195,4 +195,16 @@ export class CombatService {
         }
         return false;
     }
+
+    markClassicGameWinners(gameId: string, game: Game) {
+        let winnerFound = false;
+        for (const player of game.players) {
+            if (!winnerFound && this.checkForGameWinner(gameId, player)) {
+                player.isGameWinner = true;
+                winnerFound = true;
+            } else {
+                player.isGameWinner = false;
+            }
+        }
+    }
 }
