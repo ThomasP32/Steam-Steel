@@ -2,7 +2,7 @@
     <h2>Mon Compte</h2>
     <ng-container *ngIf="!editMode; else editForm">
         <p><b>Email :</b> {{ userInfo.user.email }}</p>
-        <p><b>Pseudonyme :</b> {{ userInfo.user.pseudonyme }}</p>
+        <p><b>Pseudonyme :</b> {{ userInfo.user.username }}</p>
         <p><b>Avatar :</b> {{ userInfo.user.avatar }}</p>
         <button class="button" (click)="enableEdit()">Modifier</button>
         <button class="button" (click)="logout()">Déconnexion</button>
@@ -10,7 +10,7 @@
     </ng-container>
     <ng-template #editForm>
         <p><b>Email :</b> <input [(ngModel)]="editEmail" /></p>
-        <p><b>Pseudonyme :</b> <input [(ngModel)]="editPseudonyme" /></p>
+        <p><b>Pseudonyme :</b> <input [(ngModel)]="editUsername" /></p>
         <p><b>Avatar :</b> <input [(ngModel)]="editAvatar" /></p>
         <div class="edit-message">{{ editMessage }}</div>
         <button class="button" (click)="saveEdit()">Enregistrer</button>

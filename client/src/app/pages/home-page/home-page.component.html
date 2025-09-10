@@ -5,7 +5,7 @@
     <div class="modal-overlay">
         <div class="modal">
             <span class="close-button" (click)="onCloseModal()">×</span>
-            <app-join-game-modal (close)="onCloseModal()"></app-join-game-modal>
+            <app-join-game-modal></app-join-game-modal>
         </div>
     </div>
     }
@@ -25,8 +25,8 @@
     <ng-container *ngIf="isAuthModalVisible">
         <div class="modal-overlay">
             <div class="modal">
-                <span class="close-button" (click)="onCloseAuthModal()">×</span>
-                <app-authentification (close)="onCloseAuthModal()"></app-authentification>
+                <button type="button" class="close-button" aria-label="Close" (click)="onCloseAuthModal()">×</button>
+                <app-authentication (closed)="onCloseAuthModal()"></app-authentication>
             </div>
         </div>
     </ng-container>
@@ -35,7 +35,7 @@
         <div class="modal-overlay">
             <div class="modal">
                 <span class="close-button" (click)="onCloseAccountModal()">×</span>
-                <app-account (close)="onCloseAccountModal()"></app-account>
+                <app-account (closed)="onCloseAccountModal()"></app-account>
             </div>
         </div>
     </ng-container>

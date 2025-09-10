@@ -3,36 +3,38 @@ import { Component, EventEmitter, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth/auth.service';
 @Component({
-    selector: 'app-authentification',
+    selector: 'app-authentication',
     standalone: true,
     imports: [FormsModule, CommonModule],
-    templateUrl: './authentification.component.html',
-    styleUrl: './authentification.component.scss',
+    templateUrl: './authentication.component.html',
+    styleUrl: './authentication.component.scss',
 })
-export class AuthentificationComponent {
+export class AuthenticationComponent {
     registerEmail = '';
     registerPassword = '';
-    registerPseudonyme = '';
+    registerUsername = '';
     registerAvatar = '';
     loginEmail = '';
     loginPassword = '';
     registerMessage = '';
     loginMessage = '';
 
-    @Output() close = new EventEmitter<void>();
+    @Output() closed = new EventEmitter<void>();
 
-    constructor(private authService: AuthService) {}
+    constructor(private readonly authService: AuthService) {
+        this.authService = authService;
+    }
 
     async register() {
         this.registerMessage = await this.handleAuth(() =>
-            this.authService.register(this.registerEmail, this.registerPassword, this.registerPseudonyme, this.registerAvatar),
+            this.authService.register(this.registerEmail, this.registerPassword, this.registerUsername, this.registerAvatar),
         );
     }
 
     async login() {
         this.loginMessage = await this.handleAuth(() => this.authService.login(this.loginEmail, this.loginPassword));
         if (this.loginMessage && this.loginMessage.toLowerCase().includes('réussie')) {
-            this.close.emit();
+            this.closed.emit();
         }
     }
 

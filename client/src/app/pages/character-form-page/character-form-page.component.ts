@@ -68,7 +68,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     async ngOnInit(): Promise<void> {
         this.playerService.resetPlayer();
         const userInfo = await this.authService.getUserInfo();
-        this.name = userInfo?.user?.pseudonyme || 'Joueur';
+        this.name = userInfo?.user?.username || 'Joueur';
         this.playerService.setPlayerName(this.name);
 
         this.selectedCharacter = this.characters[0];

@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AccountComponent } from '@app/components/account/account.component';
-import { AuthentificationComponent } from '@app/components/authentification/authentification.component';
+import { AuthenticationComponent } from '@app/components/authentication/authentication.component';
 import { JoinGameModalComponent } from '@app/components/join-game-modal/join-game-modal.component';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 @Component({
@@ -10,7 +10,7 @@ import { SocketService } from '@app/services/communication-socket/communication-
     standalone: true,
     templateUrl: './home-page.component.html',
     styleUrls: ['./home-page.component.scss'],
-    imports: [JoinGameModalComponent, AuthentificationComponent, AccountComponent, CommonModule],
+    imports: [JoinGameModalComponent, AuthenticationComponent, AccountComponent, CommonModule],
 })
 export class HomePageComponent implements OnInit {
     teamNumber = 'Équipe 106';

@@ -5,10 +5,12 @@ import { User } from '../../model/schemas/user/user.schema';
 
 @Injectable()
 export class UserService {
-    constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+    constructor(@InjectModel(User.name) private readonly userModel: Model<User>) {
+        this.userModel = userModel;
+    }
 
-    async create(email: string, password: string, pseudonyme: string, avatar?: string): Promise<User> {
-        const user = new this.userModel({ email, password, pseudonyme, avatar });
+    async create(email: string, password: string, username: string, avatar?: string): Promise<User> {
+        const user = new this.userModel({ email, password, username, avatar });
         return user.save();
     }
 
@@ -24,8 +26,8 @@ export class UserService {
         return null;
     }
 
-    async findByPseudonyme(pseudonyme: string): Promise<User | null> {
-        return this.userModel.findOne({ pseudonyme }).exec();
+    async findByUsername(username: string): Promise<User | null> {
+        return this.userModel.findOne({ username }).exec();
     }
 
     async findById(id: string): Promise<User | null> {
@@ -40,8 +42,8 @@ export class UserService {
         return { deleted: true };
     }
 
-    async updateById(id: string, email: string, pseudonyme: string, avatar?: string): Promise<User | null> {
-        return this.userModel.findByIdAndUpdate(id, { email, pseudonyme, avatar }, { new: true }).select('-password').lean();
+    async updateById(id: string, email: string, username: string, avatar?: string): Promise<User | null> {
+        return this.userModel.findByIdAndUpdate(id, { email, username, avatar }, { new: true }).select('-password').lean();
     }
 
     async updateStatsById(id: string, mode: string, isWin: boolean, duration: number): Promise<User | null> {
@@ -65,11 +67,11 @@ export class UserService {
     async registerUser(
         email: string,
         password: string,
-        pseudonyme: string,
+        username: string,
         avatar?: string,
     ): Promise<{ success: boolean; message?: string; user?: User }> {
-        if (!email || !password || !pseudonyme) {
-            return { success: false, message: 'Email, mot de passe et pseudonyme sont obligatoires.' };
+        if (!email || !password || !username) {
+            return { success: false, message: 'Email, mot de passe et username sont obligatoires.' };
         }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
@@ -79,28 +81,28 @@ export class UserService {
         if (existingEmail) {
             return { success: false, message: 'Cet email est déjà utilisé.' };
         }
-        const existingPseudo = await this.findByPseudonyme(pseudonyme);
+        const existingPseudo = await this.findByUsername(username);
         if (existingPseudo) {
-            return { success: false, message: 'Ce pseudonyme est déjà utilisé.' };
+            return { success: false, message: 'Ce username est déjà utilisé.' };
         }
-        const user = await this.create(email, password, pseudonyme, avatar);
+        const user = await this.create(email, password, username, avatar);
         return { success: true, user };
     }
 
-    async updateUserWithChecks(user: User, email: string, pseudonyme: string, avatar?: string): Promise<{ success: boolean; message?: string }> {
+    async updateUserWithChecks(user: User, email: string, username: string, avatar?: string): Promise<{ success: boolean; message?: string }> {
         if (email && email !== user.email) {
             const existingEmail = await this.findByEmail(email);
-            if (existingEmail && existingEmail._id.toString() !== user._id.toString()) {
+            if (existingEmail && String(existingEmail._id) !== String(user._id)) {
                 return { success: false, message: 'Cet email est déjà utilisé.' };
             }
         }
-        if (pseudonyme && pseudonyme !== user.pseudonyme) {
-            const existingPseudo = await this.findByPseudonyme(pseudonyme);
-            if (existingPseudo && existingPseudo._id.toString() !== user._id.toString()) {
-                return { success: false, message: 'Ce pseudonyme est déjà utilisé.' };
+        if (username && username !== user.username) {
+            const existingPseudo = await this.findByUsername(username);
+            if (existingPseudo && String(existingPseudo._id) !== String(user._id)) {
+                return { success: false, message: 'Ce username est déjà utilisé.' };
             }
         }
-        await this.updateById(user._id.toString(), email, pseudonyme, avatar);
+        await this.updateById(String(user._id), email, username, avatar);
         return { success: true, message: 'Compte mis à jour avec succès' };
     }
 }

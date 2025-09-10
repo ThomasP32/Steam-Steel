@@ -14,15 +14,21 @@ export class AccountComponent implements OnInit {
     userInfo: any;
     editMode = false;
     editEmail = '';
-    editPseudonyme = '';
+    editUsername = '';
     editAvatar = '';
     editMessage = '';
 
-    @Output() close = new EventEmitter<void>();
+    @Output() closed = new EventEmitter<void>();
 
-    constructor(private readonly authService: AuthService) {}
+    constructor(private readonly authService: AuthService) {
+        this.authService = authService;
+    }
 
-    async ngOnInit() {
+    ngOnInit(): void {
+        void this.loadUserInfo();
+    }
+
+    private async loadUserInfo(): Promise<void> {
         this.userInfo = await this.authService.getUserInfo();
         this.resetEditFields();
     }
@@ -37,7 +43,7 @@ export class AccountComponent implements OnInit {
     resetEditFields() {
         if (this.userInfo?.user) {
             this.editEmail = this.userInfo.user.email;
-            this.editPseudonyme = this.userInfo.user.pseudonyme;
+            this.editUsername = this.userInfo.user.username;
             this.editAvatar = this.userInfo.user.avatar;
         }
         this.editMessage = '';
@@ -50,7 +56,7 @@ export class AccountComponent implements OnInit {
 
     async saveEdit() {
         try {
-            const result = await this.authService.updateAccount(this.editEmail, this.editPseudonyme, this.editAvatar);
+            const result = await this.authService.updateAccount(this.editEmail, this.editUsername, this.editAvatar);
             if (result?.success === false) {
                 this.editMessage = result?.message || 'Erreur lors de la modification.';
                 return;
@@ -81,13 +87,13 @@ export class AccountComponent implements OnInit {
 
     logout(): void {
         localStorage.removeItem('authToken');
-        this.close.emit();
+        this.closed.emit();
     }
 
     deleteAccount(): void {
         this.authService.deleteAccount().then(() => {
             localStorage.removeItem('authToken');
-            this.close.emit();
+            this.closed.emit();
         });
     }
 }

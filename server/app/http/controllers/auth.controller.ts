@@ -20,12 +20,12 @@ export class AuthController {
     async register(
         @Body('email') email: string,
         @Body('password') password: string,
-        @Body('pseudonyme') pseudonyme: string,
+        @Body('username') username: string,
         @Body('avatar') avatar: string,
         @Res() response: Response,
     ) {
         try {
-            const result = await this.userService.registerUser(email, password, pseudonyme, avatar);
+            const result = await this.userService.registerUser(email, password, username, avatar);
             if (!result.success) {
                 return response.status(HttpStatus.BAD_REQUEST).json(result);
             }
@@ -87,12 +87,12 @@ export class AuthController {
     }
 
     @Patch('update')
-    async updateAccount(@Req() req, @Body('email') email: string, @Body('pseudonyme') pseudonyme: string, @Body('avatar') avatar: string) {
+    async updateAccount(@Req() req, @Body('email') email: string, @Body('username') username: string, @Body('avatar') avatar: string) {
         const { userId, error } = await this.getUserIdFromToken(req);
         if (error) return { success: false, message: error };
         const user = await this.userService.findById(userId);
         if (!user) return { success: false, message: 'Utilisateur non trouvé' };
-        const result = await this.userService.updateUserWithChecks(user, email, pseudonyme, avatar);
+        const result = await this.userService.updateUserWithChecks(user, email, username, avatar);
         return result;
     }
 

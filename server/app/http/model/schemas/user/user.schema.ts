@@ -10,7 +10,7 @@ export class User extends Document {
     password: string;
 
     @Prop({ required: true, unique: true })
-    pseudonyme: string;
+    username: string;
 
     @Prop()
     avatar: string;

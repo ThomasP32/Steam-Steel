@@ -4,15 +4,18 @@ import { firstValueFrom } from 'rxjs';
 import { SocketService } from '../communication-socket/communication-socket.service';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-    private apiUrl = 'auth';
+    private readonly apiUrl = 'auth';
 
     constructor(
         private readonly communicationService: CommunicationMapService,
         private readonly socketService: SocketService,
-    ) {}
+    ) {
+        this.communicationService = communicationService;
+        this.socketService = socketService;
+    }
 
-    async register(email: string, password: string, pseudonyme: string, avatar?: string): Promise<any> {
-        return firstValueFrom(this.communicationService.basicPost<any>(`${this.apiUrl}/register`, { email, password, pseudonyme, avatar }));
+    async register(email: string, password: string, username: string, avatar?: string): Promise<any> {
+        return firstValueFrom(this.communicationService.basicPost<any>(`${this.apiUrl}/register`, { email, password, username, avatar }));
     }
 
     async login(email: string, password: string): Promise<any> {
@@ -45,10 +48,10 @@ export class AuthService {
         return firstValueFrom(this.communicationService.basicDelete(`${this.apiUrl}/delete?token=${token}`));
     }
 
-    async updateAccount(email: string, pseudonyme: string, avatar?: string): Promise<any> {
+    async updateAccount(email: string, username: string, avatar?: string): Promise<any> {
         const token = localStorage.getItem('authToken');
         const response = await firstValueFrom(
-            this.communicationService.basicPatch<any>(`${this.apiUrl}/update?token=${token}`, { email, pseudonyme, avatar }),
+            this.communicationService.basicPatch<any>(`${this.apiUrl}/update?token=${token}`, { email, username, avatar }),
         );
         const body = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
         return body;
