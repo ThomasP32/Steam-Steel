@@ -5,6 +5,7 @@ import { Inject } from '@nestjs/common';
 import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JournalService } from '../../../../services/journal/journal.service';
+import { UserSocketService } from '../../../../services/user-socket/user-socket.service';
 
 @WebSocketGateway({ namespace: '/game', cors: { origin: '*' } })
 export class GameGateway {
@@ -13,6 +14,7 @@ export class GameGateway {
 
     @Inject(GameCreationService) private readonly gameCreationService: GameCreationService;
     @Inject(JournalService) private readonly journalService: JournalService;
+    @Inject(UserSocketService) private readonly userSocketSession: UserSocketService;
 
     @SubscribeMessage(GameCreationEvents.CreateGame)
     handleCreateGame(client: Socket, newGame: Game): void {

@@ -9,10 +9,7 @@ import { environment } from 'src/environments/environment';
 export class SocketService {
     public socket: Socket;
 
-    
-
     connect() {
-        // Toujours utiliser le token le plus à jour et réinitialiser le socket
         const token = localStorage.getItem('authToken');
         if (this.socket) {
             this.socket.disconnect();

@@ -82,7 +82,7 @@ export const ALL_ITEMS: ItemCategory[] = [
     ItemCategory.Amulet,
 ];
 
-export const N_WIN_VICTORIES = 3;
+export const N_WIN_VICTORIES = 1;
 
 export const DEFAULT_HP: number = 4;
 
@@ -145,3 +145,5 @@ export const BONUS_REDUCTION: number = 2;
 export const MINIMUM_MOVES: number = 1;
 
 export const CONTINUE_ODDS: number = 0.4;
+
+export const JWT_SECRET: string = 'votre_secret';

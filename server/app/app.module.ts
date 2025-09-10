@@ -19,10 +19,11 @@ import { CombatCountdownService } from './services/countdown/combat/combat-count
 import { GameCountdownService } from './services/countdown/game/game-countdown.service';
 import { GameManagerService } from './services/game-manager/game-manager.service';
 import { ItemsManagerService } from './services/items-manager/items-manager.service';
+import { UserSocketService } from './services/user-socket/user-socket.service';
 import { VirtualGameManagerService } from './services/virtual-game-manager/virtual-game-manager.service';
+import { AccountGateway } from './socket/game/gateways/account/account.gateway';
 import { CombatGateway } from './socket/game/gateways/combat/combat.gateway';
 import { GameManagerGateway } from './socket/game/gateways/game-manager/game-manager.gateway';
-
 @Module({
     // decorateur qui permet d'indique que la classe regroupe controleur, service, etc.
     imports: [
@@ -59,6 +60,8 @@ import { GameManagerGateway } from './socket/game/gateways/game-manager/game-man
         VirtualGameManagerService,
         ItemsManagerService,
         UserService,
+        UserSocketService,
+        AccountGateway,
     ],
 })
 export class AppModule {}

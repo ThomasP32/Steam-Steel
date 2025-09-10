@@ -32,9 +32,14 @@ export class AuthenticationComponent {
     }
 
     async login() {
-        this.loginMessage = await this.handleAuth(() => this.authService.login(this.loginEmail, this.loginPassword));
-        if (this.loginMessage && this.loginMessage.toLowerCase().includes('réussie')) {
+        this.loginMessage = '';
+        try {
+            const response = await this.authService.login(this.loginEmail, this.loginPassword);
+            const body = typeof response?.body === 'string' ? JSON.parse(response.body) : response?.body;
+            this.loginMessage = body?.message || 'Connexion réussie !';
             this.closed.emit();
+        } catch (e: any) {
+            this.loginMessage = e?.message || 'Erreur lors de la connexion.';
         }
     }
 
