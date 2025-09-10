@@ -65,6 +65,7 @@ export interface Player {
     turn: number;
     visitedTiles: Coordinate[];
     profile: ProfileType;
+    isGameWinner?: boolean;
 }
 
 export interface GameClassic extends Map {

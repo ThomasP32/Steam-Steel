@@ -3,6 +3,7 @@ import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } fro
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
 import { Character } from '@app/interfaces/character';
+import { AuthService } from '@app/services/auth/auth.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
@@ -12,7 +13,6 @@ import { GameCreationEvents, JoinGameData } from '@common/events/game-creation.e
 import { Bonus, Game, Player } from '@common/game';
 import { Map } from '@common/map.types';
 import { firstValueFrom, Subscription } from 'rxjs';
-
 @Component({
     selector: 'app-character-form-page',
     standalone: true,
@@ -54,6 +54,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         private readonly characterService: CharacterService,
         private readonly router: Router,
         private readonly route: ActivatedRoute,
+        private readonly authService: AuthService,
     ) {
         this.communicationMapService = communicationMapService;
         this.socketService = socketService;
@@ -61,11 +62,14 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         this.characterService = characterService;
         this.router = router;
         this.route = route;
+        this.authService = authService;
     }
 
     async ngOnInit(): Promise<void> {
         this.playerService.resetPlayer();
-        this.name = this.playerService.player.name || 'Choisis ton nom';
+        const userInfo = await this.authService.getUserInfo();
+        this.name = userInfo?.user?.username || 'Joueur';
+        this.playerService.setPlayerName(this.name);
 
         this.selectedCharacter = this.characters[0];
         this.currentIndex = 0;
@@ -191,38 +195,6 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     assignDice(bonusType: 'attack' | 'defense'): void {
         this.attackOrDefenseBonus = bonusType;
         this.playerService.assignDice(this.attackOrDefenseBonus);
-    }
-
-    toggleEditing(): void {
-        this.isEditing = !this.isEditing;
-        if (this.isEditing) {
-            this.startEditing();
-        } else {
-            this.stopEditing();
-        }
-    }
-
-    startEditing(): void {
-        this.isEditing = true;
-
-        if (this.name === 'Choisis ton nom') {
-            this.name = '';
-        }
-
-        setTimeout(() => {
-            this.nameInput.nativeElement.focus();
-        });
-    }
-
-    stopEditing(): void {
-        this.isEditing = false;
-        const trimmedName = this.name.trim();
-
-        if (trimmedName !== '') {
-            this.playerService.setPlayerName(trimmedName);
-        } else {
-            this.name = 'Choisis ton nom';
-        }
     }
 
     async onSubmit() {

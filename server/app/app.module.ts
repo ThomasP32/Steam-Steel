@@ -1,8 +1,11 @@
 import { AdminController } from '@app/http/controllers/admin/admin.controller';
+import { AuthController } from '@app/http/controllers/auth.controller';
 import { MapController } from '@app/http/controllers/map/map.controller';
 import { Map, mapSchema } from '@app/http/model/schemas/map/map.schema';
+import { User, UserSchema } from '@app/http/model/schemas/user/user.schema';
 import { AdminService } from '@app/http/services/admin/admin.service';
 import { MapService } from '@app/http/services/map/map.service';
+import { UserService } from '@app/http/services/user/user.service';
 import { GameCreationService } from '@app/services/game-creation/game-creation.service';
 import { JournalService } from '@app/services/journal/journal.service';
 import { ChatRoomGateway } from '@app/socket/game/gateways/chatroom/chatroom.gateway';
@@ -16,10 +19,11 @@ import { CombatCountdownService } from './services/countdown/combat/combat-count
 import { GameCountdownService } from './services/countdown/game/game-countdown.service';
 import { GameManagerService } from './services/game-manager/game-manager.service';
 import { ItemsManagerService } from './services/items-manager/items-manager.service';
+import { UserSocketService } from './services/user-socket/user-socket.service';
 import { VirtualGameManagerService } from './services/virtual-game-manager/virtual-game-manager.service';
+import { AccountGateway } from './socket/game/gateways/account/account.gateway';
 import { CombatGateway } from './socket/game/gateways/combat/combat.gateway';
 import { GameManagerGateway } from './socket/game/gateways/game-manager/game-manager.gateway';
-
 @Module({
     // decorateur qui permet d'indique que la classe regroupe controleur, service, etc.
     imports: [
@@ -32,9 +36,12 @@ import { GameManagerGateway } from './socket/game/gateways/game-manager/game-man
                 uri: config.get<string>('DATABASE_CONNECTION_STRING'), // Loaded from .env
             }),
         }),
-        MongooseModule.forFeature([{ name: Map.name, schema: mapSchema }]),
+        MongooseModule.forFeature([
+            { name: Map.name, schema: mapSchema },
+            { name: User.name, schema: UserSchema },
+        ]),
     ],
-    controllers: [MapController, AdminController],
+    controllers: [MapController, AdminController, AuthController],
     providers: [
         MapService,
         AdminService,
@@ -52,6 +59,9 @@ import { GameManagerGateway } from './socket/game/gateways/game-manager/game-man
         CombatCountdownService,
         VirtualGameManagerService,
         ItemsManagerService,
+        UserService,
+        UserSocketService,
+        AccountGateway,
     ],
 })
 export class AppModule {}

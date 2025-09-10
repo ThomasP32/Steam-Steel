@@ -1,0 +1,55 @@
+// Style moderne et centré pour le compte utilisateur
+.account-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    padding: 2rem 2.5rem 1.5rem 2.5rem;
+    max-width: 350px;
+    margin: 2rem auto;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.account-card h2 {
+    margin-bottom: 1.2rem;
+    color: #2d3a4b;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.account-card p {
+    margin: 0.5rem 0;
+    color: #444;
+    font-size: 1.1rem;
+}
+
+.account-card b {
+    color: #2d3a4b;
+}
+
+.button {
+    margin-top: 1.5rem;
+    padding: 0.7rem 2.2rem;
+    background: linear-gradient(90deg, #4f8cff 0%, #6edbff 100%);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(79, 140, 255, 0.08);
+    transition:
+        background 0.2s,
+        transform 0.2s;
+}
+.button:hover {
+    background: linear-gradient(90deg, #357ae8 0%, #4fd1ff 100%);
+    transform: translateY(-2px) scale(1.03);
+}
+.edit-message {
+    color: #2d3a4b;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+}

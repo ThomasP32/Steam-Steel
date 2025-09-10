@@ -121,10 +121,10 @@
     <div class="popup-overlay">
         <div class="modal">
             @if(game.mode === 'ctf') {
-            <h2>{{currentPlayerTurn}} a capturé le drapeau.</h2>
+            <h2>{{ winnerName }} a capturé le drapeau.</h2>
             <p>La partie est finie, vous serez redirigé.</p>
             } @else {
-            <h2>{{currentPlayerTurn}} a gagné 3 combats.</h2>
+            <h2>{{ winnerName }} a gagné 3 combats.</h2>
             <p>La partie est finie, vous serez redirigé.</p>
             }
         </div>

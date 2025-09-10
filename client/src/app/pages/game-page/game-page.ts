@@ -9,6 +9,7 @@ import { GamePlayersListComponent } from '@app/components/game-players-list/game
 import { InventoryModalComponent } from '@app/components/inventory-modal/inventory-modal.component';
 import { JournalComponent } from '@app/components/journal/journal.component';
 import { PlayerInfosComponent } from '@app/components/player-infos/player-infos.component';
+import { AuthService } from '@app/services/auth/auth.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { CombatService } from '@app/services/combat/combat.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
@@ -29,7 +30,6 @@ import { Game, Player, Specs } from '@common/game';
 import { GamePageActiveView } from '@common/game-page';
 import { Coordinate, Map } from '@common/map.types';
 import { Subscription } from 'rxjs';
-
 @Component({
     selector: 'app-game-page',
     standalone: true,
@@ -93,6 +93,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         private readonly combatService: CombatService,
         protected readonly imageService: ImageService,
         protected readonly mapConversionService: MapConversionService,
+        private readonly authService: AuthService,
     ) {
         this.router = router;
         this.socketService = socketService;
@@ -104,6 +105,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         this.combatService = combatService;
         this.imageService = imageService;
         this.mapConversionService = mapConversionService;
+        this.authService = authService;
     }
 
     ngOnInit() {
@@ -155,6 +157,12 @@ export class GamePageComponent implements OnInit, OnDestroy {
 
     get moves(): MovesMap {
         return this.gameTurnService.moves;
+    }
+
+    get winnerName(): string {
+        if (!this.game || !this.game.players) return 'Un joueur';
+        const winner = this.game.players.find((p) => p.isGameWinner);
+        return winner?.name || 'Un joueur';
     }
 
     toggleView(view: GamePageActiveView): void {
@@ -257,6 +265,9 @@ export class GamePageComponent implements OnInit, OnDestroy {
             this.showExitModal = false;
             this.showEndGameModal = isGameOver;
             if (isGameOver) {
+                const mode = this.game.mode;
+                const duration = this.game.duration ?? 0;
+                this.authService.updateStats({ mode, isWin: !!this.player.isGameWinner, duration });
                 setTimeout(() => {
                     this.navigateToEndOfGame();
                 }, TIME_REDIRECTION);
