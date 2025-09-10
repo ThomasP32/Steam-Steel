@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:mobile/main.dart';
+import 'package:mobile/screens/account_screen.dart';
 import 'package:mobile/screens/character_creation_screen.dart';
 import 'package:mobile/screens/gamecreation_screen.dart';
 import 'package:mobile/screens/waiting_room_screen.dart';
@@ -33,6 +34,11 @@ class AppRouter {
         path: '/create-game',
         name: 'create-game',
         builder: (context, state) => const GameCreationScreen(),
+      ),
+      GoRoute(
+        path: '/auth',
+        name: 'auth',
+        builder: (context, state) => const AuthScreen(),
       ),
     ],
   );

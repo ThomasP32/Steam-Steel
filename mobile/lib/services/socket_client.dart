@@ -33,7 +33,10 @@ class SocketClient {
     );
     socket!.on(
       'disconnect',
-      (_) => DebugLogger.log('socket disconnected', tag: 'SocketClient'),
+      (_) => DebugLogger.log(
+        'socket disconnected, SocketId = ${socket?.id}',
+        tag: 'SocketClient',
+      ),
     );
     socket!.on(
       'gameEvent',
