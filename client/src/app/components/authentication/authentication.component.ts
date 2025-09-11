@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CharacterService } from '@app/services/character/character.service';
+import { Avatar } from '@common/game';
 import { AuthService } from '../../services/auth/auth.service';
 @Component({
     selector: 'app-authentication',
@@ -13,15 +15,20 @@ export class AuthenticationComponent {
     registerEmail = '';
     registerPassword = '';
     registerUsername = '';
-    registerAvatar = '';
+    registerAvatar: Avatar = Avatar.Avatar1;
     loginEmail = '';
     loginPassword = '';
     registerMessage = '';
     loginMessage = '';
 
+    avatars = this.characterService.characters;
+
     @Output() closed = new EventEmitter<void>();
 
-    constructor(private readonly authService: AuthService) {
+    constructor(
+        private readonly authService: AuthService,
+        public characterService: CharacterService,
+    ) {
         this.authService = authService;
     }
 

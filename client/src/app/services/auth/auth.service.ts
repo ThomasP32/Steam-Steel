@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { firstValueFrom } from 'rxjs';
 import { SocketService } from '../communication-socket/communication-socket.service';
+import { Avatar } from '@common/game';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
     private readonly apiUrl = 'auth';
@@ -14,7 +15,7 @@ export class AuthService {
         this.socketService = socketService;
     }
 
-    async register(email: string, password: string, username: string, avatar?: string): Promise<any> {
+    async register(email: string, password: string, username: string, avatar?: Avatar): Promise<any> {
         return firstValueFrom(this.communicationService.basicPost<any>(`${this.apiUrl}/register`, { email, password, username, avatar }));
     }
 
@@ -89,7 +90,7 @@ export class AuthService {
         return firstValueFrom(this.communicationService.basicDelete(`${this.apiUrl}/delete?token=${token}`));
     }
 
-    async updateAccount(email: string, username: string, avatar?: string): Promise<any> {
+    async updateAccount(email: string, username: string, avatar?: Avatar): Promise<any> {
         const token = localStorage.getItem('authToken');
         const response = await firstValueFrom(
             this.communicationService.basicPatch<any>(`${this.apiUrl}/update?token=${token}`, { email, username, avatar }),

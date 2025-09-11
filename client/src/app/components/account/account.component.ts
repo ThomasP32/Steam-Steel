@@ -2,6 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '@app/services/auth/auth.service';
+import { CharacterService } from '@app/services/character/character.service';
+import { Avatar } from '@common/game';
 
 @Component({
     selector: 'app-account',
@@ -15,12 +17,16 @@ export class AccountComponent implements OnInit {
     editMode = false;
     editEmail = '';
     editUsername = '';
-    editAvatar = '';
+    editAvatar: Avatar;
     editMessage = '';
+    avatars = this.characterService.characters;
 
     @Output() closed = new EventEmitter<void>();
 
-    constructor(private readonly authService: AuthService) {
+    constructor(
+        private readonly authService: AuthService,
+        public characterService: CharacterService,
+    ) {
         this.authService = authService;
     }
 
@@ -49,6 +55,10 @@ export class AccountComponent implements OnInit {
         this.editMessage = '';
     }
 
+    getAvatarPreview(avatar: Avatar): string {
+        return this.characterService.getAvatarPreview(avatar);
+    }
+
     enableEdit() {
         this.editMode = true;
         this.editMessage = '';
@@ -67,16 +77,7 @@ export class AccountComponent implements OnInit {
             this.editMessage = 'Modifications enregistrées !';
         } catch (e: any) {
             this.editMode = true;
-            if (e?.error) {
-                try {
-                    const parsed = typeof e.error === 'string' ? JSON.parse(e.error) : e.error;
-                    this.editMessage = parsed?.message || 'Erreur lors de la modification.';
-                } catch {
-                    this.editMessage = e.error;
-                }
-            } else {
-                this.editMessage = 'Erreur lors de la modification.';
-            }
+            this.editMessage = 'Erreur lors de la modification.';
         }
     }
 

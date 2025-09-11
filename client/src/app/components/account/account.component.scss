@@ -1,15 +1,79 @@
-// Style moderne et centré pour le compte utilisateur
+.account-main-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1.2rem;
+    margin-bottom: 0.7rem;
+}
+
+.avatar-square {
+    width: 64px;
+    height: 64px;
+    background: #f7fbff;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(79, 140, 255, 0.1);
+    border: 2px solid #e0e7ef;
+    flex-shrink: 0;
+}
+
+.info-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    justify-content: center;
+    height: 64px;
+}
+
+.avatar-square {
+    width: 64px;
+    height: 64px;
+    background: #f7fbff;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(79, 140, 255, 0.1);
+    border: 2px solid #e0e7ef;
+}
+
+.avatar-img-square {
+    width: 56px;
+    height: 56px;
+    border-radius: 6px;
+    object-fit: cover;
+    display: block;
+}
+
+.info-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+}
+
+.info-row {
+    font-size: 1.05rem;
+    color: #2d3a4b;
+    margin-bottom: 0.1rem;
+}
 .account-card {
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
     padding: 2rem 2.5rem 1.5rem 2.5rem;
-    max-width: 350px;
+    width: 100%;
+    max-width: 400px;
     margin: 2rem auto;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
+    box-sizing: border-box;
 }
 
 .account-card h2 {
@@ -30,19 +94,37 @@
 }
 
 .button {
-    margin-top: 1.5rem;
-    padding: 0.7rem 2.2rem;
+    padding: 0.4rem 1.1rem;
     background: linear-gradient(90deg, #4f8cff 0%, #6edbff 100%);
     color: #fff;
     border: none;
     border-radius: 8px;
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(79, 140, 255, 0.08);
     transition:
         background 0.2s,
         transform 0.2s;
+    margin-top: 0;
+}
+
+.button-row {
+    display: flex;
+    gap: 0.7rem;
+    margin-top: 1.2rem;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+}
+
+@media (max-width: 600px) {
+    .button-row {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+        flex-wrap: wrap;
+    }
 }
 .button:hover {
     background: linear-gradient(90deg, #357ae8 0%, #4fd1ff 100%);
@@ -52,4 +134,82 @@
     color: #2d3a4b;
     font-size: 0.95rem;
     margin-bottom: 0.5rem;
+}
+
+.account-card h3 {
+    color: #000000;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    margin-top: 1.2rem;
+    text-align: center;
+}
+
+.account-card .stats-block {
+    background: #f7fbff;
+    border-radius: 10px;
+    padding: 0.7rem 0.7rem 0.5rem 0.7rem;
+    margin-top: 0.7rem;
+    box-shadow: 0 2px 8px rgba(79, 140, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.98rem;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.account-card .stats-block p {
+    margin: 0.2rem 0;
+    font-size: 0.98rem;
+    color: #2d3a4b;
+    text-align: center;
+}
+
+.avatar-selection {
+    width: 100%;
+    margin-bottom: 18px;
+    text-align: left;
+}
+
+.avatar-selection label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2d3a4b;
+}
+
+.avatar-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.avatar-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    box-shadow: 0 2px 8px rgba(79, 140, 255, 0.08);
+    cursor: pointer;
+    object-fit: cover;
+    background: #f7fbff;
+    transition:
+        border 0.2s,
+        transform 0.2s,
+        box-shadow 0.2s;
+    vertical-align: middle;
+}
+
+.avatar-img.selected {
+    border: 2.5px solid #4f8cff;
+    box-shadow: 0 0 0 3px #b3d8ff;
+    transform: scale(1.08);
+    background: #e6f2ff;
+}
+
+.avatar-img:hover {
+    border: 2.5px solid #6edbff;
+    transform: scale(1.06);
 }
