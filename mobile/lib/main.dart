@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/assets/theme/app_theme.dart';
 import 'package:mobile/router/app_router.dart';
 import 'package:mobile/services/api_client.dart';
+import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/mainpage/join_game_code.dart';
@@ -87,24 +88,53 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 40),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextButton(
-                            onPressed: () => _showJoinModal(context),
-                            child: const Text('Rejoindre une partie'),
-                          ),
-                          const SizedBox(width: 24),
-                          TextButton(
-                            onPressed: () => context.go('/create-game'),
-                            child: const Text('Commencer une nouvelle partie'),
-                          ),
-                          const SizedBox(width: 24),
-                          TextButton(
-                            onPressed: () => context.go('/auth'),
-                            child: const Text('Compte'),
-                          ),
-                        ],
+                      ValueListenableBuilder(
+                        valueListenable: AuthService().notifier,
+                        builder: (context, user, _) {
+                          final loggedIn = user != null;
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children:
+                                loggedIn
+                                    ? [
+                                      TextButton(
+                                        onPressed:
+                                            () => _showJoinModal(context),
+                                        child: const Text(
+                                          'Rejoindre une partie',
+                                        ),
+                                      ),
+                                      const SizedBox(width: 24),
+                                      TextButton(
+                                        onPressed:
+                                            () => context.go('/create-game'),
+                                        child: const Text(
+                                          'Commencer une nouvelle partie',
+                                        ),
+                                      ),
+                                      const SizedBox(width: 24),
+                                      TextButton(
+                                        onPressed: () => context.go('/auth'),
+                                        child: const Text('Compte'),
+                                      ),
+                                    ]
+                                    : [
+                                      TextButton(
+                                        onPressed:
+                                            () => context.go(
+                                              '/auth?tab=register',
+                                            ),
+                                        child: const Text('Inscription'),
+                                      ),
+                                      const SizedBox(width: 24),
+                                      TextButton(
+                                        onPressed:
+                                            () => context.go('/auth?tab=login'),
+                                        child: const Text('Se connecter'),
+                                      ),
+                                    ],
+                          );
+                        },
                       ),
                       const SizedBox(height: 60),
                     ],

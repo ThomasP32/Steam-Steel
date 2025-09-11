@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/services/auth_service.dart';
-import 'package:mobile/utils/debug_logger.dart';
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key});
+  const AuthScreen({super.key, this.initialTab});
+
+  final String? initialTab;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -15,76 +16,181 @@ class _AuthScreenState extends State<AuthScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _loading = false;
+  late VoidCallback _authListener;
+  bool _showRegister = false;
+  final _usernameCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _authService.fetchUser().catchError((_) {});
-    _authService.notifier.addListener(() => setState(() {}));
+    // determine initial tab from widget param
+    _showRegister = (widget.initialTab?.toLowerCase() == 'register');
+    _authListener = () {
+      if (mounted) setState(() {});
+    };
+    _authService.notifier.addListener(_authListener);
+
+    _authService.fetchUser().catchError((err) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final msg =
+            err is Exception
+                ? err.toString().replaceFirst('Exception: ', '')
+                : err.toString();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
+      });
+    });
   }
 
   @override
   void dispose() {
     _emailCtrl.dispose();
     _passCtrl.dispose();
+    _usernameCtrl.dispose();
+    _authService.notifier.removeListener(_authListener);
     super.dispose();
   }
 
+  Future<void> _register() async {
+    if (mounted) setState(() => _loading = true);
+    try {
+      await _authService.register(
+        _emailCtrl.text,
+        _passCtrl.text,
+        _usernameCtrl.text,
+        'avatar1',
+      );
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Inscription réussie')));
+      // after register, try login automatically
+      await _authService.login(_emailCtrl.text, _passCtrl.text);
+    } on Exception catch (e) {
+      final raw = e.toString();
+      final msg =
+          raw.startsWith('Exception: ')
+              ? raw.substring('Exception: '.length)
+              : raw;
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   Future<void> _login() async {
-    setState(() => _loading = true);
+    if (mounted) setState(() => _loading = true);
     try {
       await _authService.login(_emailCtrl.text, _passCtrl.text);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Connecté')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Connecté')));
+      }
     } on Exception catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      final raw = e.toString();
+      final msg =
+          raw.startsWith('Exception: ')
+              ? raw.substring('Exception: '.length)
+              : raw;
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
+      }
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final user = _authService.notifier.value;
-    DebugLogger.log('User: $user', tag: 'AuthScreen');
     return Scaffold(
       appBar: AppBar(title: const Text('Compte')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child:
             user == null
-                ? Column(
-                  children: [
-                    TextField(
-                      controller: _emailCtrl,
-                      decoration: const InputDecoration(labelText: 'Email'),
-                    ),
-                    TextField(
-                      controller: _passCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Mot de passe',
-                      ),
-                      obscureText: true,
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: _loading ? null : _login,
-                      child:
-                          _loading
-                              ? const CircularProgressIndicator()
-                              : const Text('Se connecter'),
-                    ),
-                  ],
-                )
+                ? (_showRegister
+                    ? Column(
+                      children: [
+                        TextField(
+                          controller: _emailCtrl,
+                          decoration: const InputDecoration(labelText: 'Email'),
+                        ),
+                        TextField(
+                          controller: _passCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Mot de passe',
+                          ),
+                          obscureText: true,
+                        ),
+                        TextField(
+                          controller: _usernameCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Pseudonyme',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: _loading ? null : _register,
+                          child:
+                              _loading
+                                  ? const CircularProgressIndicator()
+                                  : const Text('Inscription'),
+                        ),
+                        TextButton(
+                          onPressed:
+                              () => setState(() => _showRegister = false),
+                          child: const Text('Déjà inscrit ? Se connecter'),
+                        ),
+                      ],
+                    )
+                    : Column(
+                      children: [
+                        TextField(
+                          controller: _emailCtrl,
+                          decoration: const InputDecoration(labelText: 'Email'),
+                        ),
+                        TextField(
+                          controller: _passCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Mot de passe',
+                          ),
+                          obscureText: true,
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: _loading ? null : _login,
+                          child:
+                              _loading
+                                  ? const CircularProgressIndicator()
+                                  : const Text('Se connecter'),
+                        ),
+                        TextButton(
+                          onPressed: () => setState(() => _showRegister = true),
+                          child: const Text('Pas encore inscrit ? Inscription'),
+                        ),
+                      ],
+                    ))
                 : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Pseudonyme: ${user['user']?['username'] ?? ''}'),
-                    Text('Email: ${user['user']?['email'] ?? ''}'),
+                    Text('Pseudonyme: ${user.username}'),
+                    Text('Email: ${user.email}'),
                     const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (mounted) context.go('/');
+                      },
+                      child: const Text("Retour à l'accueil"),
+                    ),
                     ElevatedButton(
                       onPressed: () async {
                         await _authService.logout();

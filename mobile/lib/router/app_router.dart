@@ -38,7 +38,9 @@ class AppRouter {
       GoRoute(
         path: '/auth',
         name: 'auth',
-        builder: (context, state) => const AuthScreen(),
+        builder:
+            (context, state) =>
+                AuthScreen(initialTab: state.queryParameters['tab']),
       ),
     ],
   );
