@@ -34,7 +34,7 @@
     <ng-container *ngIf="isAccountModalVisible">
         <div class="modal-overlay">
             <div class="modal">
-                <span class="close-button" (click)="onCloseAccountModal()">×</span>
+                <button type="button" class="close-button" aria-label="Close" (click)="onCloseAuthModal()">×</button>
                 <app-account (closed)="onCloseAccountModal()"></app-account>
             </div>
         </div>

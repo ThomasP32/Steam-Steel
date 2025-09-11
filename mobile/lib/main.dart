@@ -23,7 +23,7 @@ Future<void> main() async {
       'Persisted authToken (start): ${stored == null ? 'null' : '${stored.substring(0, 8)}...'}',
       tag: 'main',
     );
-  } catch (e) {
+  } on Exception catch (e) {
     DebugLogger.log('Debug startup read failed: $e', tag: 'main');
   }
   try {

@@ -17,7 +17,7 @@ class AuthService {
 
   static const _tokenKey = 'authToken';
 
-  Future<String?> get token async => await _storage.read(key: _tokenKey);
+  Future<String?> get token async => _storage.read(key: _tokenKey);
 
   final http.Client _client = http.Client();
 
@@ -54,7 +54,7 @@ class AuthService {
               ? body['message']
               : 'Login failed ${r.statusCode}';
       throw Exception(msg.toString());
-    } catch (_) {
+    } on Exception catch (_) {
       throw Exception('Login failed ${r.statusCode}');
     }
   }
@@ -108,12 +108,12 @@ class AuthService {
             final userMap = Map<String, dynamic>.from(parsed['user'] as Map);
             notifier.value = User.fromJson(userMap);
             return;
-          } catch (_) {
+          } on Exception catch (_) {
             // ignore and fallback
           }
         }
         // otherwise continue to fallback
-      } catch (_) {
+      } on Exception catch (_) {
         // ignore and fallback
       }
     }
@@ -139,11 +139,11 @@ class AuthService {
             final userMap = Map<String, dynamic>.from(parsed['user'] as Map);
             notifier.value = User.fromJson(userMap);
             return;
-          } catch (_) {
+          } on Exception catch (_) {
             // ignore
           }
         }
-      } catch (_) {
+      } on Exception catch (_) {
         // ignore
       }
     }
@@ -158,7 +158,7 @@ class AuthService {
               ? body['message']
               : 'Fetch user failed';
       throw Exception(msg.toString());
-    } catch (_) {
+    } on Exception catch (_) {
       throw Exception('Fetch user failed');
     }
   }

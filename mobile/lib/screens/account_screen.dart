@@ -62,10 +62,11 @@ class _AuthScreenState extends State<AuthScreen> {
         _usernameCtrl.text,
         'avatar1',
       );
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Inscription réussie')));
+      }
       // after register, try login automatically
       await _authService.login(_emailCtrl.text, _passCtrl.text);
     } on Exception catch (e) {
@@ -74,10 +75,11 @@ class _AuthScreenState extends State<AuthScreen> {
           raw.startsWith('Exception: ')
               ? raw.substring('Exception: '.length)
               : raw;
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(msg)));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
