@@ -22,19 +22,34 @@
         </ng-container>
     </div>
 
+    <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
+        <i class="fas fa-comments" aria-hidden="true"></i>
+    </button>
+    <div class="global-chat-wrapper" [ngClass]="{ visible: isChatVisible }">
+        <div class="chat-inner">
+            <div class="chat-header">
+                <strong>Global chat</strong>
+                <button class="close-button" (click)="isChatVisible = false">×</button>
+            </div>
+            <div class="chat-body">
+                <app-chatroom [playerName]="userName" [gameId]="'global'"></app-chatroom>
+            </div>
+        </div>
+    </div>
+
     <ng-container *ngIf="isAuthModalVisible">
         <div class="modal-overlay">
             <div class="modal">
-                <button type="button" class="close-button" aria-label="Close" (click)="onCloseAuthModal()">×</button>
+                <span class="close-button" (click)="onCloseAuthModal()" onkeypress="">×</span>
+
                 <app-authentication (closed)="onCloseAuthModal()"></app-authentication>
             </div>
         </div>
     </ng-container>
-
     <ng-container *ngIf="isAccountModalVisible">
         <div class="modal-overlay">
             <div class="modal">
-                <button type="button" class="close-button" aria-label="Close" (click)="onCloseAuthModal()">×</button>
+                <span class="close-button" (click)="onCloseAccountModal()" onkeypress="">×</span>
                 <app-account (closed)="onCloseAccountModal()"></app-account>
             </div>
         </div>
