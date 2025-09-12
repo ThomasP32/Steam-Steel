@@ -20,14 +20,16 @@ export class ProfilePictureComponent {
         return this.characterService.characters;
     }
 
-    constructor(public characterService: CharacterService) {}
+    constructor(public characterService: CharacterService) {
+        this.characterService = characterService;
+    }
 
     selectPredefinedAvatar(avatarId: Avatar) {
         this.selectedAvatar = avatarId;
         this.customAvatarPreview = undefined;
         this.selectedAvatarChange.emit(avatarId);
         this.customAvatarPreviewChange.emit(undefined);
-        this.characterService.selectPredefinedAvatar(avatarId);
+        this.characterService.selectPredefinedAvatar();
     }
 
     onAvatarFileSelected(event: Event) {

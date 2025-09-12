@@ -93,7 +93,7 @@ export class CharacterService {
         return this.characters.find((character) => character.id === avatar)?.preview || '';
     }
 
-    selectPredefinedAvatar(avatarId: Avatar) {
+    selectPredefinedAvatar() {
         this.customAvatarFile = null;
         this.customAvatarPreview = undefined;
     }
@@ -115,5 +115,4 @@ export class CharacterService {
         this.customAvatarFile = null;
         this.customAvatarPreview = undefined;
     }
-    //
 }

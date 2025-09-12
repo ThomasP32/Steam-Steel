@@ -25,7 +25,9 @@ export class AuthenticationComponent {
 
     @Output() closed = new EventEmitter<void>();
 
-    constructor(private readonly authService: AuthService) {}
+    constructor(private readonly authService: AuthService) {
+        this.authService = authService;
+    }
 
     async register() {
         const avatar = this.registerAvatar;

@@ -26,7 +26,11 @@ export class AccountComponent implements OnInit {
     constructor(
         private readonly authService: AuthService,
         private readonly characterService: CharacterService,
-    ) {}
+    ) {
+        this.authService = authService;
+        this.characterService = characterService;
+        this.editAvatar = Avatar.Avatar1;
+    }
 
     ngOnInit(): void {
         void this.loadUserInfo();
