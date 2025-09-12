@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
+import { Avatar } from '@common/game';
 import { firstValueFrom } from 'rxjs';
 import { SocketService } from '../communication-socket/communication-socket.service';
-import { Avatar } from '@common/game';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
     private readonly apiUrl = 'auth';
@@ -15,8 +15,16 @@ export class AuthService {
         this.socketService = socketService;
     }
 
-    async register(email: string, password: string, username: string, avatar?: Avatar): Promise<any> {
-        return firstValueFrom(this.communicationService.basicPost<any>(`${this.apiUrl}/register`, { email, password, username, avatar }));
+    async register(email: string, password: string, username: string, avatar: Avatar, avatarCustom?: string): Promise<any> {
+        return firstValueFrom(
+            this.communicationService.basicPost<any>(`${this.apiUrl}/register`, {
+                email,
+                password,
+                username,
+                avatar,
+                avatarCustom: avatarCustom || null,
+            }),
+        );
     }
 
     async login(email: string, password: string): Promise<any> {
@@ -90,10 +98,15 @@ export class AuthService {
         return firstValueFrom(this.communicationService.basicDelete(`${this.apiUrl}/delete?token=${token}`));
     }
 
-    async updateAccount(email: string, username: string, avatar?: Avatar): Promise<any> {
+    async updateAccount(email: string, username: string, avatar?: Avatar, avatarCustom?: string): Promise<any> {
         const token = localStorage.getItem('authToken');
         const response = await firstValueFrom(
-            this.communicationService.basicPatch<any>(`${this.apiUrl}/update?token=${token}`, { email, username, avatar }),
+            this.communicationService.basicPatch<any>(`${this.apiUrl}/update?token=${token}`, {
+                email,
+                username,
+                avatar,
+                avatarCustom: avatarCustom || null,
+            }),
         );
         const body = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
         return body;

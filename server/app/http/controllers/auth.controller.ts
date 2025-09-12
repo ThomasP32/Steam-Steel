@@ -1,9 +1,10 @@
+import { JWT_SECRET } from '@common/constants';
+import { Avatar } from '@common/game';
 import { Body, Controller, Delete, Get, HttpStatus, Inject, Patch, Post, Req, Res } from '@nestjs/common';
 import { ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { UserService } from '../services/user/user.service';
-import { JWT_SECRET } from '@common/constants';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -21,11 +22,12 @@ export class AuthController {
         @Body('email') email: string,
         @Body('password') password: string,
         @Body('username') username: string,
-        @Body('avatar') avatar: string,
+        @Body('avatar') avatar: Avatar,
+        @Body('avatarCustom') avatarCustom: string,
         @Res() response: Response,
     ) {
         try {
-            const result = await this.userService.registerUser(email, password, username, avatar);
+            const result = await this.userService.registerUser(email, password, username, avatar, avatarCustom);
             if (!result.success) {
                 return response.status(HttpStatus.BAD_REQUEST).json(result);
             }
@@ -87,12 +89,18 @@ export class AuthController {
     }
 
     @Patch('update')
-    async updateAccount(@Req() req, @Body('email') email: string, @Body('username') username: string, @Body('avatar') avatar: string) {
+    async updateAccount(
+        @Req() req,
+        @Body('email') email: string,
+        @Body('username') username: string,
+        @Body('avatar') avatar: Avatar,
+        @Body('avatarCustom') avatarCustom: string,
+    ) {
         const { userId, error } = await this.getUserIdFromToken(req);
         if (error) return { success: false, message: error };
         const user = await this.userService.findById(userId);
         if (!user) return { success: false, message: 'Utilisateur non trouvé' };
-        const result = await this.userService.updateUserWithChecks(user, email, username, avatar);
+        const result = await this.userService.updateUserWithChecks(user, email, username, avatar, avatarCustom);
         return result;
     }
 

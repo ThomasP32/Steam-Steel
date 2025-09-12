@@ -6,16 +6,12 @@
         <input name="registerUsername" [(ngModel)]="registerUsername" placeholder="Pseudonyme" />
         <div class="avatar-selection">
             <label>Choisissez un avatar :</label>
-            <div class="avatar-list">
-                <img
-                    *ngFor="let avatar of avatars"
-                    [src]="avatar.preview"
-                    [alt]="'Avatar ' + avatar.id"
-                    [class.selected]="registerAvatar === avatar.id"
-                    (click)="registerAvatar = avatar.id"
-                    class="avatar-img"
-                />
-            </div>
+            <app-profile-picture
+                [selectedAvatar]="registerAvatar"
+                [customAvatarPreview]="registerCustomAvatarPreview"
+                (selectedAvatarChange)="registerAvatar = $event"
+                (customAvatarPreviewChange)="registerCustomAvatarPreview = $event"
+            ></app-profile-picture>
         </div>
         <button type="button" (click)="register()">S'inscrire</button>
         <div *ngIf="registerMessage" class="message">{{ registerMessage }}</div>

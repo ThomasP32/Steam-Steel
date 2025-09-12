@@ -16,6 +16,9 @@ export class User extends Document {
     @Prop()
     avatar: Avatar;
 
+    @Prop()
+    avatarCustom?: string;
+
     @Prop({
         default: {
             classique: { gamesPlayed: 0, gamesWon: 0 },
