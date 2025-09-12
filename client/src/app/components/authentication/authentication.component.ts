@@ -1,11 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Avatar } from '@common/game';
 import { AuthService } from '../../services/auth/auth.service';
+import { ProfilePictureComponent } from '../profile-picture/profile-picture.component';
+
 @Component({
     selector: 'app-authentication',
     standalone: true,
-    imports: [FormsModule, CommonModule],
+    imports: [FormsModule, CommonModule, ProfilePictureComponent],
     templateUrl: './authentication.component.html',
     styleUrl: './authentication.component.scss',
 })
@@ -13,7 +16,8 @@ export class AuthenticationComponent {
     registerEmail = '';
     registerPassword = '';
     registerUsername = '';
-    registerAvatar = '';
+    registerAvatar: Avatar = Avatar.Avatar1;
+    registerCustomAvatarPreview: string | undefined;
     loginEmail = '';
     loginPassword = '';
     registerMessage = '';
@@ -26,8 +30,10 @@ export class AuthenticationComponent {
     }
 
     async register() {
+        const avatar = this.registerAvatar;
+        const avatarCustom = this.registerCustomAvatarPreview;
         this.registerMessage = await this.handleAuth(() =>
-            this.authService.register(this.registerEmail, this.registerPassword, this.registerUsername, this.registerAvatar),
+            this.authService.register(this.registerEmail, this.registerPassword, this.registerUsername, avatar, avatarCustom),
         );
     }
 

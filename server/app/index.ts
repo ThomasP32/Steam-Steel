@@ -2,9 +2,10 @@ import { AppModule } from '@app/app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-
+import { json } from 'express';
 const bootstrap = async () => {
     const app = await NestFactory.create(AppModule); // creation d'une instance de l'application
+    app.use(json({ limit: '10mb' }));
     app.setGlobalPrefix('api'); // ajoute un préfixe global à toute les routes (/courses devient /api/courses)
     app.useGlobalPipes(
         new ValidationPipe({

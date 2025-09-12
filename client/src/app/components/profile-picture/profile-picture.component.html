@@ -1,0 +1,20 @@
+<div class="profile-picture-container">
+    <div class="avatar-list">
+        <img
+            *ngFor="let avatar of avatars"
+            [src]="avatar.preview"
+            [alt]="'Avatar ' + avatar.id"
+            [class.selected]="selectedAvatar === avatar.id && !customAvatarPreview"
+            (click)="selectPredefinedAvatar(avatar.id)"
+            class="avatar-img"
+        />
+        <label class="avatar-upload-label">
+            <input type="file" accept="image/*" (change)="onAvatarFileSelected($event)" hidden />
+            <span class="avatar-upload-btn">+</span>
+        </label>
+        <img *ngIf="customAvatarPreview" [src]="customAvatarPreview" alt="Aperçu avatar personnalisé" class="avatar-img selected" />
+    </div>
+    <div *ngIf="customAvatarPreview" class="custom-avatar-reset">
+        <button type="button" (click)="removeCustomAvatar()">Retirer l'image personnalisée</button>
+    </div>
+</div>
