@@ -21,7 +21,7 @@
             <button class="button" (click)="toggleAccountModal()">Mon Compte</button>
         </ng-container>
     </div>
-
+    @if (isLoggedIn) {
     <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
         <i class="fas fa-comments" aria-hidden="true"></i>
     </button>
@@ -36,6 +36,7 @@
             </div>
         </div>
     </div>
+    }
 
     <ng-container *ngIf="isAuthModalVisible">
         <div class="modal-overlay">

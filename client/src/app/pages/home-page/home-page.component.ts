@@ -33,6 +33,7 @@ export class HomePageComponent implements OnInit {
     onCloseAuthModal(): void {
         this.isAuthModalVisible = false;
         this.checkLoginStatus();
+        this.setupUserAndGlobalChat();
     }
 
     toggleAccountModal(): void {
@@ -41,6 +42,7 @@ export class HomePageComponent implements OnInit {
     onCloseAccountModal(): void {
         this.isAccountModalVisible = false;
         this.checkLoginStatus();
+        this.setupUserAndGlobalChat();
     }
 
     constructor(
@@ -66,12 +68,16 @@ export class HomePageComponent implements OnInit {
             } catch {
                 this.userName = 'User';
             }
-        } else {
-            this.userName = 'Guest';
         }
 
         try {
-            this.socketService.sendMessage(ChatEvents.JoinChatRoom, 'global');
+            setTimeout(() => {
+                try {
+                    this.socketService.sendMessage(ChatEvents.JoinChatRoom, 'global');
+                } catch (e) {
+                    // ignore
+                }
+            }, 0);
         } catch (e) {
             // ignore
         }
