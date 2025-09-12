@@ -1,3 +1,4 @@
+import { Avatar } from '@common/game';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -9,8 +10,8 @@ export class UserService {
         this.userModel = userModel;
     }
 
-    async create(email: string, password: string, username: string, avatar?: string): Promise<User> {
-        const user = new this.userModel({ email, password, username, avatar });
+    async create(email: string, password: string, username: string, avatar?: Avatar, avatarCustom?: string): Promise<User> {
+        const user = new this.userModel({ email, password, username, avatar, avatarCustom });
         return user.save();
     }
 
@@ -42,8 +43,11 @@ export class UserService {
         return { deleted: true };
     }
 
-    async updateById(id: string, email: string, username: string, avatar?: string): Promise<User | null> {
-        return this.userModel.findByIdAndUpdate(id, { email, username, avatar }, { new: true }).select('-password').lean();
+    async updateById(id: string, email: string, username: string, avatar?: Avatar, avatarCustom?: string): Promise<User | null> {
+        const update: any = { email, username };
+        if (avatar !== undefined) update.avatar = avatar;
+        if (avatarCustom !== undefined) update.avatarCustom = avatarCustom;
+        return this.userModel.findByIdAndUpdate(id, update, { new: true }).select('-password').lean();
     }
 
     async updateStatsById(id: string, mode: string, isWin: boolean, duration: number): Promise<User | null> {
@@ -68,7 +72,8 @@ export class UserService {
         email: string,
         password: string,
         username: string,
-        avatar?: string,
+        avatar?: Avatar,
+        avatarCustom?: string,
     ): Promise<{ success: boolean; message?: string; user?: User }> {
         if (!email || !password || !username) {
             return { success: false, message: 'Email, mot de passe et speudo sont obligatoires.' };
@@ -85,11 +90,17 @@ export class UserService {
         if (existingUsername) {
             return { success: false, message: 'Ce speudo est déjà utilisé.' };
         }
-        const user = await this.create(email, password, username, avatar);
+        const user = await this.create(email, password, username, avatar, avatarCustom);
         return { success: true, user };
     }
 
-    async updateUserWithChecks(user: User, email: string, username: string, avatar?: string): Promise<{ success: boolean; message?: string }> {
+    async updateUserWithChecks(
+        user: User,
+        email: string,
+        username: string,
+        avatar?: Avatar,
+        avatarCustom?: string,
+    ): Promise<{ success: boolean; message?: string }> {
         if (email && email !== user.email) {
             const existingEmail = await this.findByEmail(email);
             if (existingEmail && String(existingEmail._id) !== String(user._id)) {
@@ -102,7 +113,7 @@ export class UserService {
                 return { success: false, message: 'Ce username est déjà utilisé.' };
             }
         }
-        await this.updateById(String(user._id), email, username, avatar);
+        await this.updateById(String(user._id), email, username, avatar, avatarCustom);
         return { success: true, message: 'Compte mis à jour avec succès' };
     }
 }

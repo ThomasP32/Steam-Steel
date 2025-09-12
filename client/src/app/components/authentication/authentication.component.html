@@ -1,15 +1,26 @@
-<div class="auth-container">
-    <h2>Inscription</h2>
-    <input name="registerEmail" [(ngModel)]="registerEmail" placeholder="Email" />
-    <input name="registerPassword" [(ngModel)]="registerPassword" placeholder="Mot de passe" type="password" />
-    <input name="registerUsername" [(ngModel)]="registerUsername" placeholder="Pseudonyme" />
-    <input name="registerAvatar" [(ngModel)]="registerAvatar" placeholder="Avatar" />
-    <button type="button" (click)="register()">S'inscrire</button>
-    <div *ngIf="registerMessage" class="message">{{ registerMessage }}</div>
-
-    <h2>Connexion</h2>
-    <input name="loginEmail" [(ngModel)]="loginEmail" placeholder="Email" />
-    <input name="loginPassword" [(ngModel)]="loginPassword" placeholder="Mot de passe" type="password" />
-    <button type="button" (click)="login()">Se connecter</button>
-    <div *ngIf="loginMessage" class="message">{{ loginMessage }}</div>
+<div class="auth-flex-container">
+    <div class="auth-container auth-register">
+        <h2>Inscription</h2>
+        <input name="registerEmail" [(ngModel)]="registerEmail" placeholder="Email" />
+        <input name="registerPassword" [(ngModel)]="registerPassword" placeholder="Mot de passe" type="password" />
+        <input name="registerUsername" [(ngModel)]="registerUsername" placeholder="Pseudonyme" />
+        <div class="avatar-selection">
+            <label>Choisissez un avatar :</label>
+            <app-profile-picture
+                [selectedAvatar]="registerAvatar"
+                [customAvatarPreview]="registerCustomAvatarPreview"
+                (selectedAvatarChange)="registerAvatar = $event"
+                (customAvatarPreviewChange)="registerCustomAvatarPreview = $event"
+            ></app-profile-picture>
+        </div>
+        <button type="button" (click)="register()">S'inscrire</button>
+        <div *ngIf="registerMessage" class="message">{{ registerMessage }}</div>
+    </div>
+    <div class="auth-container auth-login">
+        <h2>Connexion</h2>
+        <input name="loginEmail" [(ngModel)]="loginEmail" placeholder="Email" />
+        <input name="loginPassword" [(ngModel)]="loginPassword" placeholder="Mot de passe" type="password" />
+        <button type="button" (click)="login()">Se connecter</button>
+        <div *ngIf="loginMessage" class="message">{{ loginMessage }}</div>
+    </div>
 </div>
