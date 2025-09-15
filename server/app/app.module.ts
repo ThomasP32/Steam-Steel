@@ -2,6 +2,7 @@ import { AdminController } from '@app/http/controllers/admin/admin.controller';
 import { AuthController } from '@app/http/controllers/auth.controller';
 import { MapController } from '@app/http/controllers/map/map.controller';
 import { Map, mapSchema } from '@app/http/model/schemas/map/map.schema';
+import { Message, MessageSchema } from '@app/http/model/schemas/message/message.schema';
 import { User, UserSchema } from '@app/http/model/schemas/user/user.schema';
 import { AdminService } from '@app/http/services/admin/admin.service';
 import { MapService } from '@app/http/services/map/map.service';
@@ -39,6 +40,7 @@ import { GameManagerGateway } from './socket/game/gateways/game-manager/game-man
         MongooseModule.forFeature([
             { name: Map.name, schema: mapSchema },
             { name: User.name, schema: UserSchema },
+            { name: Message.name, schema: MessageSchema },
         ]),
     ],
     controllers: [MapController, AdminController, AuthController],

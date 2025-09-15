@@ -76,7 +76,7 @@ export class UserService {
         avatarCustom?: string,
     ): Promise<{ success: boolean; message?: string; user?: User }> {
         if (!email || !password || !username) {
-            return { success: false, message: 'Email, mot de passe et speudo sont obligatoires.' };
+            return { success: false, message: 'Email, mot de passe et pseudo sont obligatoires.' };
         }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
@@ -88,7 +88,7 @@ export class UserService {
         }
         const existingUsername = await this.findByUsername(username);
         if (existingUsername) {
-            return { success: false, message: 'Ce speudo est déjà utilisé.' };
+            return { success: false, message: 'Ce pseudo est déjà utilisé.' };
         }
         const user = await this.create(email, password, username, avatar, avatarCustom);
         return { success: true, user };

@@ -10,7 +10,7 @@ cache:
 .only-client: &only-client
     only:
         refs:
-            - master
+            - branches
             - merge_requests
         changes:
             - client/**/*
@@ -24,7 +24,7 @@ cache:
 .only-server: &only-server
     only:
         refs:
-            - master
+            - branches
             - merge_requests
         changes:
             - server/**/*
@@ -35,11 +35,28 @@ cache:
             - server/node_modules/
         policy: pull
 
+.only-flutter: &only-flutter
+    only:
+        refs:
+            - branches
+            - merge_requests
+        changes:
+            - mobile/**/*
+            - common/**/*
+    cache:
+        key: '${CI_COMMIT_REF_SLUG}-flutter'
+        paths:
+            - mobile/.dart_tool/
+            - mobile/build/
+        policy: pull
+
 stages:
     - install
     - lint
+    - build
     - deploy
 
+# Client jobs
 install:client:
     stage: install
     <<: *only-client
@@ -53,6 +70,16 @@ install:client:
             - client/.npm/
         policy: pull-push
 
+lint:client:
+    stage: lint
+    needs: ['install:client']
+    allow_failure: true
+    <<: *only-client
+    script:
+        - cd client
+        - npm run lint
+
+# Server jobs
 install:server:
     stage: install
     <<: *only-server
@@ -66,15 +93,6 @@ install:server:
             - server/.npm/
         policy: pull-push
 
-lint:client:
-    stage: lint
-    needs: ['install:client']
-    allow_failure: true
-    <<: *only-client
-    script:
-        - cd client
-        - npm run lint
-
 lint:server:
     stage: lint
     needs: ['install:server']
@@ -84,6 +102,70 @@ lint:server:
         - cd server
         - npm run lint
 
+# Flutter jobs
+install:flutter:
+    image: instrumentisto/flutter:latest
+    stage: install
+    <<: *only-flutter
+    script:
+        - cd mobile
+        - flutter --version
+        - flutter pub get
+    cache:
+        key: '${CI_COMMIT_REF_SLUG}-flutter'
+        paths:
+            - mobile/.dart_tool/
+            - mobile/build/
+            - $HOME/.pub-cache/
+        policy: pull-push
+
+lint:flutter:
+    image: instrumentisto/flutter:latest
+    stage: lint
+    needs: ['install:flutter']
+    allow_failure: false
+    <<: *only-flutter
+    script:
+        - cd mobile
+        - echo "# dummy .env for CI/tests" > .env
+        - echo "Running flutter analyze..."
+        - flutter analyze
+
+# build:flutter:android:
+#     image: cirrusci/flutter:3.24.5
+#     stage: build
+#     needs: ['install:flutter']
+#     <<: *only-flutter
+#     before_script:
+#         - apt-get update -qq && apt-get install -y -qq git curl unzip openjdk-11-jdk
+#         - export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+#         # Install Android SDK
+#         - export ANDROID_SDK_ROOT=/opt/android-sdk
+#         - mkdir -p $ANDROID_SDK_ROOT
+#         - cd /opt
+#         - curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip
+#         - unzip sdk-tools.zip -d $ANDROID_SDK_ROOT
+#         - export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/bin:$ANDROID_SDK_ROOT/platform-tools
+#         - yes | $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "build-tools;30.0.3" "platforms;android-30"
+#         - cd $CI_PROJECT_DIR
+#     script:
+#         - cd mobile
+#         - flutter build apk --release
+#         - flutter build appbundle --release
+#     artifacts:
+#         paths:
+#             - mobile/build/app/outputs/flutter-apk/app-release.apk
+#             - mobile/build/app/outputs/bundle/release/app-release.aab
+#         expire_in: 1 week
+#     cache:
+#         key: '${CI_COMMIT_REF_SLUG}-flutter'
+#         paths:
+#             - mobile/.dart_tool/
+#             - mobile/build/
+#             - $HOME/.pub-cache/
+#         policy: pull
+
+# Deployment jobs
 pages:
     stage: deploy
     rules:

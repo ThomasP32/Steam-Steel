@@ -12,15 +12,15 @@ export class ChatRoomGateway {
     @Inject(ChatroomService) private readonly chatroomService: ChatroomService;
 
     @SubscribeMessage(ChatEvents.JoinChatRoom)
-    handleJoinRoom(client: Socket, roomId: string) {
+    async handleJoinRoom(client: Socket, roomId: string) {
         client.join(roomId);
-        const existingMessages = this.chatroomService.getMessages(roomId);
+        const existingMessages = await this.chatroomService.getMessages(roomId);
         this.server.to(roomId).emit(ChatEvents.PreviousMessages, existingMessages);
     }
 
     @SubscribeMessage(ChatEvents.Message)
-    handleMessage(client: Socket, data: { roomName: string; message: Message }) {
-        this.chatroomService.addMessage(data.roomName, data.message);
+    async handleMessage(client: Socket, data: { roomName: string; message: Message }) {
+        await this.chatroomService.addMessage(data.roomName, data.message);
         this.server.to(data.roomName).emit(ChatEvents.NewMessage, data.message);
     }
 }
