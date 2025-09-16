@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '@app/services/auth/auth.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { Avatar } from '@common/game';
+import { error } from 'console';
 import { ProfilePictureComponent } from '../profile-picture/profile-picture.component';
 @Component({
     selector: 'app-account',
@@ -81,6 +82,7 @@ export class AccountComponent implements OnInit {
         } catch (e: any) {
             this.editMode = true;
             this.editMessage = 'Erreur lors de la modification.';
+            return error(e);
         }
     }
 
