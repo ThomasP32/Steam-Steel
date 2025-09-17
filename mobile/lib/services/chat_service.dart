@@ -1,4 +1,5 @@
 import 'package:mobile/common/message.dart';
+import 'package:mobile/services/socket_service.dart';
 
 class ChatService {
   Message ensureMessage(dynamic raw) {
@@ -62,8 +63,15 @@ class ChatService {
     final roomId = (msgMap['roomId'] as String?) ?? (m['roomId'] as String?);
     final gameId = (msgMap['gameId'] as String?) ?? (m['gameId'] as String?);
     final channel = (msgMap['channel'] as String?) ?? (m['channel'] as String?);
+    // support MongoDB _id or id fields
+    final id =
+        (msgMap['_id'] as String?) ??
+        (msgMap['id'] as String?) ??
+        (m['_id'] as String?) ??
+        (m['id'] as String?);
 
     return Message(
+      id: id,
       author: author,
       text: text,
       timestamp: ts,
@@ -72,5 +80,16 @@ class ChatService {
       gameId: gameId,
       channel: channel,
     );
+  }
+
+  Future<void> deleteMessage(Message message) async {
+    final payload = {
+      'roomName': message.roomId ?? 'global',
+      'messageId': message.id,
+      'author': message.author,
+      'text': message.text,
+      'timestamp': message.timestamp.toIso8601String(),
+    };
+    SocketService().send('deleteMessage', payload);
   }
 }

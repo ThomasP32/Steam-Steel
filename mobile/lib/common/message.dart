@@ -4,10 +4,12 @@ class Message {
     required this.text,
     required this.timestamp,
     required this.roomType,
+    this.id,
     this.roomId,
     this.gameId,
     this.channel,
   });
+  final String? id;
   final String author;
   final String text;
   final DateTime timestamp;

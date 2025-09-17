@@ -18,19 +18,19 @@ export class ChatroomService {
         return 'game';
     }
 
-    async addMessage(roomId: string, message: IMessage): Promise<void> {
+    async addMessage(roomId: string, message: IMessage): Promise<any> {
         const roomType = this.inferRoomType(roomId);
         const isPersistent = roomType !== 'game';
 
         if (isPersistent && this.messageModel) {
-            // persist in DB with explicit roomType/roomId
-            await this.messageModel.create({ author: message.author, text: message.text, roomType, roomId });
+            const created = await this.messageModel.create({ author: message.author, text: message.text, roomType, roomId });
+            return created.toObject ? created.toObject() : created;
         } else {
-            // in-memory ephemeral storage
             if (!this.roomMessages[roomId]) {
                 this.roomMessages[roomId] = [];
             }
             this.roomMessages[roomId].push(message);
+            return message;
         }
     }
 
@@ -39,22 +39,54 @@ export class ChatroomService {
         const isPersistent = roomType !== 'game';
 
         if (isPersistent && this.messageModel) {
-            // load last `limit` messages from DB ordered by creation time
             const docs = await this.messageModel.find({ roomType, roomId }).sort({ createdAt: -1 }).limit(limit).lean().exec();
-            // map to IMessage and reverse to chronological order
             const docsReversed = docs.slice().reverse();
             return docsReversed.map((d: any) => ({
+                id: d._id?.toString?.() ?? d._id,
+                _id: d._id?.toString?.() ?? d._id,
                 author: d.author,
                 text: d.text,
                 timestamp: d.createdAt as Date,
                 roomType: d.roomType,
                 roomId: d.roomId,
-                // backward compatibility
                 gameId: d.roomType === 'game' ? d.roomId : undefined,
                 channel: d.roomType === 'channel' ? d.roomId : undefined,
             }));
         }
 
         return this.roomMessages[roomId] || [];
+    }
+
+    async deleteMessage(payload: { messageId?: string; author?: string; text?: string; timestamp?: string }): Promise<boolean> {
+        if (!this.messageModel) return false;
+
+        try {
+            if (payload.messageId) {
+                const res = await this.messageModel.deleteOne({ _id: payload.messageId }).exec();
+                return (res.deletedCount ?? 0) > 0;
+            }
+
+            let tsQuery: any = undefined;
+            if (payload.timestamp) {
+                const parsed = new Date(payload.timestamp);
+                if (!isNaN(parsed.getTime())) {
+                    const before = new Date(parsed.getTime() - 2000);
+                    const after = new Date(parsed.getTime() + 2000);
+                    tsQuery = { $gte: before, $lte: after };
+                }
+            }
+
+            const query: any = {};
+            if (payload.author) query.author = payload.author;
+            if (payload.text) query.text = payload.text;
+            if (tsQuery) query.createdAt = tsQuery;
+
+            if (Object.keys(query).length === 0) return false;
+
+            const res = await this.messageModel.deleteOne(query).exec();
+            return (res.deletedCount ?? 0) > 0;
+        } catch (e) {
+            return false;
+        }
     }
 }

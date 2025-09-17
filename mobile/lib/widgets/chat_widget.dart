@@ -9,6 +9,7 @@ import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/chat_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
+import 'package:mobile/widgets/delete_confirm_dialog.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 class ChatWidget extends StatefulWidget {
@@ -31,6 +32,7 @@ class _ChatWidgetState extends State<ChatWidget>
   DateTime _lastAutoSend = DateTime.fromMillisecondsSinceEpoch(0);
   StreamSubscription<dynamic>? _prevSub;
   StreamSubscription<dynamic>? _newSub;
+  StreamSubscription<dynamic>? _deletedSub;
   VoidCallback? _authListener;
   String _userName = 'Guest';
   bool _loading = false;
@@ -101,6 +103,57 @@ class _ChatWidgetState extends State<ChatWidget>
           });
     } on Object catch (e) {
       DebugLogger.log('newMessage listener init error: $e', tag: 'ChatWidget');
+    }
+
+    try {
+      _deletedSub = SocketService()
+          .listen<Map<String, dynamic>>('messageDeleted')
+          .listen((p) {
+            try {
+              DebugLogger.log('messageDeleted received: $p', tag: 'ChatWidget');
+              final messageId =
+                  (p['messageId'] as String?) ?? (p['id'] as String?);
+              if (messageId == null) {
+                final author = p['author'] as String?;
+                final text = p['text'] as String?;
+                final tsStr = p['timestamp'] as String?;
+                DateTime? ts;
+                if (tsStr != null) ts = DateTime.tryParse(tsStr)?.toLocal();
+                if (!mounted) return;
+                setState(() {
+                  _messages.removeWhere((raw) {
+                    final cand = chatService.ensureMessage(raw);
+                    if (author != null && cand.author != author) return false;
+                    if (text != null && cand.text != text) return false;
+                    if (ts != null && cand.timestamp != ts) return false;
+                    return true;
+                  });
+                });
+                _overlayEntry?.markNeedsBuild();
+                return;
+              }
+              if (!mounted) return;
+              setState(() {
+                _messages.removeWhere((raw) {
+                  final cand = chatService.ensureMessage(raw);
+                  return (cand.id != null && cand.id == messageId) ||
+                      (cand.timestamp.millisecondsSinceEpoch.toString() ==
+                          messageId);
+                });
+              });
+              _overlayEntry?.markNeedsBuild();
+            } on Object catch (e) {
+              DebugLogger.log(
+                'messageDeleted parse error: $e',
+                tag: 'ChatWidget',
+              );
+            }
+          });
+    } on Object catch (e) {
+      DebugLogger.log(
+        'messageDeleted listener init error: $e',
+        tag: 'ChatWidget',
+      );
     }
 
     try {
@@ -180,6 +233,7 @@ class _ChatWidgetState extends State<ChatWidget>
     }
     _inputCtrl.dispose();
     _accelSub?.cancel();
+    _deletedSub?.cancel();
     _ctrl.dispose();
     super.dispose();
   }
@@ -408,7 +462,7 @@ class _ChatWidgetState extends State<ChatWidget>
                             final time =
                                 '${m.timestamp.hour.toString().padLeft(2, '0')}:${m.timestamp.minute.toString().padLeft(2, '0')}';
                             final mine = m.author == _userName;
-                            return Padding(
+                            final Widget messageCard = Padding(
                               padding: const EdgeInsets.symmetric(vertical: 6),
                               child: Row(
                                 mainAxisAlignment:
@@ -451,6 +505,64 @@ class _ChatWidgetState extends State<ChatWidget>
                                 ],
                               ),
                             );
+
+                            if (!mine) return messageCard;
+
+                            return Dismissible(
+                              key: Key(
+                                '${m.author}-${m.timestamp.millisecondsSinceEpoch}-${m.text.hashCode}',
+                              ),
+                              direction: DismissDirection.endToStart,
+                              confirmDismiss: (dir) async {
+                                final res = await showDeleteConfirmDialog(
+                                  context,
+                                );
+                                return res ?? false;
+                              },
+                              onDismissed: (dir) {
+                                setState(() => _messages.removeAt(i));
+                                try {
+                                  SocketService().send('deleteMessage', {
+                                    'author': m.author,
+                                    'text': m.text,
+                                    'timestamp': m.timestamp.toIso8601String(),
+                                  });
+                                } on Object catch (e) {
+                                  DebugLogger.log(
+                                    'deleteMessage emit failed: $e',
+                                    tag: 'ChatWidget',
+                                  );
+                                }
+                              },
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 16),
+                                color: Colors.redAccent,
+                                child: const Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              child: GestureDetector(
+                                onLongPress: () async {
+                                  final res = await showDeleteConfirmDialog(
+                                    context,
+                                  );
+                                  if (res ?? false) {
+                                    setState(() => _messages.removeAt(i));
+                                    try {
+                                      await chatService.deleteMessage(m);
+                                    } on Object catch (e) {
+                                      DebugLogger.log(
+                                        'deleteMessage emit failed: $e',
+                                        tag: 'ChatWidget',
+                                      );
+                                    }
+                                  }
+                                },
+                                child: messageCard,
+                              ),
+                            );
                           },
                         )),
           ),
@@ -482,7 +594,6 @@ class _ChatWidgetState extends State<ChatWidget>
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // backdrop when visible
         if (_visible)
           Positioned.fill(
             child: GestureDetector(
@@ -490,7 +601,6 @@ class _ChatWidgetState extends State<ChatWidget>
               child: Container(color: Colors.black54),
             ),
           ),
-        // centered popup
         Center(
           child: FadeTransition(
             opacity: CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
