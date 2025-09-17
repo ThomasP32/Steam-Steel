@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
@@ -39,6 +40,16 @@ Future<void> main() async {
   } on Object catch (e) {
     DebugLogger.log('setupUserAndGlobalChat failed: $e', tag: 'main');
   }
+  try {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    DebugLogger.log('Preferred orientations set to landscape', tag: 'main');
+  } on Object catch (e) {
+    DebugLogger.log('Failed to set preferred orientations: $e', tag: 'main');
+  }
+
   runApp(const MobileApp());
 }
 

@@ -8,7 +8,6 @@ import { JoinGameModalComponent } from '@app/components/join-game-modal/join-gam
 import { AuthService } from '@app/services/auth/auth.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { ChatEvents } from '@common/events/chat.events';
-import { error } from 'console';
 @Component({
     selector: 'app-main-page',
     standalone: true,
@@ -80,7 +79,7 @@ export class HomePageComponent implements OnInit {
                 }
             }, 0);
         } catch (e) {
-            return error(e);
+            // ignore
         }
     }
 
