@@ -239,15 +239,24 @@ class _ChatWidgetState extends State<ChatWidget>
   }
 
   void _handleAccel(AccelerometerEvent e) {
-    const double threshold = 12;
-    final ax = e.x.abs();
-    final ay = e.y.abs();
-    final az = e.z.abs();
+    const double threshold = 6;
+    final ax = e.x;
+    final ay = e.y;
+    final az = e.z;
 
     final now = DateTime.now();
-    if (now.difference(_lastAutoSend).inMilliseconds < 800) return;
+    if (now.difference(_lastAutoSend).inMilliseconds < 600) return;
 
-    if (ay > threshold && ay > ax && ay > az) {
+    const thresholdSq = threshold * threshold;
+    final magSq = ax * ax + ay * ay + az * az;
+
+    if (magSq <= thresholdSq) return;
+
+    final absAx = ax.abs();
+    final absAy = ay.abs();
+    final absAz = az.abs();
+
+    if (absAy >= absAx && absAy >= absAz) {
       final text = _lastUserMessage?.trim();
       if (text != null && text.isNotEmpty) {
         _inputCtrl.text = text;
@@ -257,7 +266,7 @@ class _ChatWidgetState extends State<ChatWidget>
         _overlayEntry?.markNeedsBuild();
         _lastAutoSend = now;
       }
-    } else if (ax > threshold && ax > ay && ax > az) {
+    } else if (absAx >= absAy && absAx >= absAz) {
       final emoji = CHAT_REACTIONS[_selectedReactionIndex];
       _inputCtrl.text = emoji;
       _inputCtrl.selection = TextSelection.fromPosition(

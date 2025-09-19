@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobile/common/game.dart';
 import 'package:mobile/common/user.dart';
 import 'package:mobile/services/api_client.dart';
 import 'package:mobile/utils/debug_logger.dart';
@@ -63,9 +65,30 @@ class AuthService {
     String email,
     String password,
     String username,
-    String avatar,
+    Avatar avatar,
+    String? avatarCustom,
   ) async {
     final uri = Uri.parse('${ApiClient.baseUrl}/api/auth/register');
+    final avatarPayload = avatar.value;
+
+    var avatarCustomPayload = avatarCustom;
+    try {
+      if (avatarCustom != null && avatarCustom.isNotEmpty) {
+        final f = File(avatarCustom);
+        if (f.existsSync()) {
+          final bytes = f.readAsBytesSync();
+          final b64 = base64Encode(bytes);
+          avatarCustomPayload = 'data:image/png;base64,$b64';
+        }
+      }
+    } on Object catch (e) {
+      DebugLogger.log(
+        'Register avatarCustom conversion failed: $e',
+        tag: 'AuthService',
+      );
+      avatarCustomPayload = avatarCustom;
+    }
+
     final r = await _client.post(
       uri,
       headers: {'Content-Type': 'application/json'},
@@ -73,7 +96,8 @@ class AuthService {
         'email': email,
         'password': password,
         'username': username,
-        'avatar': avatar,
+        'avatar': avatarPayload,
+        'avatarCustom': avatarCustomPayload,
       }),
     );
     if (r.statusCode == 200 || r.statusCode == 201) return;

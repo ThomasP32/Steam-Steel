@@ -45,7 +45,6 @@ Future<void> main() async {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    DebugLogger.log('Preferred orientations set to landscape', tag: 'main');
   } on Object catch (e) {
     DebugLogger.log('Failed to set preferred orientations: $e', tag: 'main');
   }

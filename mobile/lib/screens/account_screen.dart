@@ -1,7 +1,12 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/common/game.dart';
 import 'package:mobile/services/auth_service.dart';
-import 'package:mobile/widgets/chat_widget.dart';
+import 'package:mobile/utils/debug_logger.dart';
+import 'package:mobile/widgets/register/avatar_picker.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key, this.initialTab});
@@ -19,6 +24,8 @@ class _AuthScreenState extends State<AuthScreen> {
   final _usernameCtrl = TextEditingController();
   bool _loading = false;
   bool _showRegister = false;
+  Avatar _selectedAvatar = Avatar.avatar1;
+  String? _customAvatarPreview; // data URL or file path
   late VoidCallback _authListener;
 
   @override
@@ -60,7 +67,8 @@ class _AuthScreenState extends State<AuthScreen> {
         _emailCtrl.text,
         _passCtrl.text,
         _usernameCtrl.text,
-        'avatar1',
+        _selectedAvatar,
+        _customAvatarPreview,
       );
       if (mounted) {
         ScaffoldMessenger.of(
@@ -99,11 +107,7 @@ class _AuthScreenState extends State<AuthScreen> {
           raw.startsWith('Exception: ')
               ? raw.substring('Exception: '.length)
               : raw;
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
-      }
+      DebugLogger.log('Login error: $msg', tag: 'AuthScreen');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -126,18 +130,36 @@ class _AuthScreenState extends State<AuthScreen> {
             TextField(
               controller: _passCtrl,
               decoration: const InputDecoration(labelText: 'Mot de passe'),
+              obscureText: true,
             ),
             TextField(
               controller: _usernameCtrl,
               decoration: const InputDecoration(labelText: 'Pseudonyme'),
             ),
             const SizedBox(height: 12),
+            const Text(
+              'Choisissez un avatar :',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            AvatarPicker(
+              selected: _selectedAvatar,
+              customPreview: _customAvatarPreview,
+              onAvatarChanged: (a) => setState(() => _selectedAvatar = a),
+              onCustomPreviewChanged:
+                  (p) => setState(() => _customAvatarPreview = p),
+            ),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loading ? null : _register,
               child:
                   _loading
-                      ? const CircularProgressIndicator()
-                      : const Text('Inscription'),
+                      ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : const Text("S'inscrire"),
             ),
             TextButton(
               onPressed: () => setState(() => _showRegister = false),
@@ -174,18 +196,92 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       }
     } else {
+      Widget avatarWidget;
+      final custom = user.avatarCustom;
+      if (custom != null && custom.isNotEmpty) {
+        if (custom.startsWith('data:')) {
+          try {
+            final parts = custom.split(',');
+            final payload = parts.length > 1 ? parts.last : parts.first;
+            final bytes = base64Decode(payload);
+            avatarWidget = Image.memory(
+              bytes,
+              width: 80,
+              height: 80,
+              fit: BoxFit.cover,
+            );
+          } on Object catch (_) {
+            avatarWidget = const SizedBox(width: 80, height: 80);
+          }
+        } else if (custom.startsWith('http')) {
+          avatarWidget = Image.network(
+            custom,
+            width: 80,
+            height: 80,
+            fit: BoxFit.cover,
+          );
+        } else {
+          final file = File(custom);
+          avatarWidget =
+              file.existsSync()
+                  ? Image.file(file, width: 80, height: 80, fit: BoxFit.cover)
+                  : const SizedBox(width: 80, height: 80);
+        }
+      } else {
+        var idx = int.tryParse(user.avatar) ?? 1;
+        if (idx < 1 || idx > 12) idx = 1;
+        avatarWidget = Image.asset(
+          'lib/assets/characters/$idx.png',
+          width: 80,
+          height: 80,
+          fit: BoxFit.cover,
+        );
+      }
+
       pageContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Pseudonyme: ${user.username}'),
+          avatarWidget,
+          const SizedBox(height: 8),
           Text('Email: ${user.email}'),
+          Text('Pseudonyme: ${user.username}'),
+          const SizedBox(height: 8),
+          const Text('Statistiques:', style: TextStyle(fontSize: 18)),
+          const SizedBox(height: 4),
+          Text(
+            'Classique : ${user.stats.classique.gamesPlayed} parties jouées, ${user.stats.classique.gamesWon} parties gagnées',
+          ),
+          Text(
+            'CTF : ${user.stats.ctf.gamesPlayed} parties jouées, ${user.stats.ctf.gamesWon} parties gagnées',
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Temps moyen par partie :',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+          Text('${user.stats.avgTime.toStringAsFixed(0)}s'),
           const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: () async {
+              if (mounted) context.go('/');
+            },
+            child: const Text('Modifier mon compte (TODO)'),
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: () async {
+              if (mounted) context.go('/');
+            },
+            child: const Text('Supprimer mon compte (TODO)'),
+          ),
+          const SizedBox(height: 8),
           ElevatedButton(
             onPressed: () async {
               if (mounted) context.go('/');
             },
             child: const Text("Retour à l'accueil"),
           ),
+          const SizedBox(height: 8),
           ElevatedButton(
             onPressed: () async {
               await _authService.logout();
@@ -198,25 +294,12 @@ class _AuthScreenState extends State<AuthScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Compte')),
+      appBar: AppBar(title: const Text('Mon compte')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Main content scrolls if needed
             Expanded(child: SingleChildScrollView(child: pageContent)),
-            // Chat widget placed below the form. Use Flexible with a max height
-            // so it can shrink on small screens and avoid RenderFlex overflow.
-            Flexible(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  // max 60% of available height, min 160 to keep usable
-                  maxHeight: MediaQuery.of(context).size.height * 0.6,
-                  minHeight: 160,
-                ),
-                child: const ChatWidget(),
-              ),
-            ),
           ],
         ),
       ),
