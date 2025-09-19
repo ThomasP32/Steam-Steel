@@ -1,16 +1,12 @@
 import 'dart:convert';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobile/services/api_config.dart';
 
 class ApiClient {
   // Resolve API URL with precedence: dotenv -> dart-define -> emulator fallback
   static String get baseUrl {
-    final envValue = dotenv.env['API_URL'];
-    if (envValue != null && envValue.isNotEmpty) return envValue;
-    const defineValue = String.fromEnvironment('API_URL');
-    if (defineValue.isNotEmpty) return defineValue;
-    return 'http://10.0.2.2:3000';
+    return ApiConfig.baseUrl;
   }
 
   final http.Client _http = http.Client();

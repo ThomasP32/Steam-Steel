@@ -1,16 +1,10 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:mobile/services/api_config.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
 class SocketClient {
-  String get baseUrl {
-    final envValue = dotenv.env['API_URL'];
-    if (envValue != null && envValue.isNotEmpty) return envValue;
-    const defineValue = String.fromEnvironment('API_URL');
-    if (defineValue.isNotEmpty) return defineValue;
-    return 'http://10.0.2.2:3000';
-  }
+  String get baseUrl => ApiConfig.baseUrl;
 
   io.Socket? socket;
 
