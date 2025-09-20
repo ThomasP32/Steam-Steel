@@ -164,11 +164,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
         _youJoinedSub?.cancel();
         setState(() {
           _isSubmitting = false;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No response from server.')),
-          );
         });
-        // Optionally show an error here (SnackBar) — keep minimal for now.
       }
     });
   }

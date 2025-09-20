@@ -11,6 +11,8 @@ import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/delete_confirm_dialog.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 class ChatWidget extends StatefulWidget {
   const ChatWidget({super.key});
@@ -192,7 +194,15 @@ class _ChatWidgetState extends State<ChatWidget>
 
   void _sendMessage() {
     final text = _inputCtrl.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty) {
+      try {
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.info(message: 'Le message est vide'),
+        );
+      } on Object catch (_) {}
+      return;
+    }
     final msg = {
       'roomName': 'global',
       'message': {

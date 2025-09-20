@@ -145,5 +145,16 @@ class AppTheme {
         borderRadius: BorderRadius.all(Radius.circular(8)),
       ),
     ),
+
+    snackBarTheme: const SnackBarThemeData(
+      backgroundColor: AppColors.darkGray,
+      elevation: 0,
+      contentTextStyle: AppTextStyles.bodyMedium,
+      actionTextColor: AppColors.primaryCyan,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+      ),
+      behavior: SnackBarBehavior.floating,
+    ),
   );
 }

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
 // no keyboard-specific imports needed for mobile
 
 typedef OnJoin = void Function(String code);
@@ -64,13 +66,13 @@ class _JoinGameCodeState extends State<JoinGameCode> {
       )
       ..add(
         _socketService!.listen<String>('gameNotFound').listen((reason) {
-          // show an error snackbar
           setState(() {
             _isLoading = false;
           });
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(reason)));
+          showTopSnackBar(
+            Overlay.of(context),
+            const CustomSnackBar.info(message: 'Partie introuvable'),
+          );
           _resetInputs();
         }),
       )
@@ -79,9 +81,10 @@ class _JoinGameCodeState extends State<JoinGameCode> {
           setState(() {
             _isLoading = false;
           });
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(reason)));
+          showTopSnackBar(
+            Overlay.of(context),
+            CustomSnackBar.error(message: 'Partie verrouillée: $reason'),
+          );
           _resetInputs();
         }),
       );
