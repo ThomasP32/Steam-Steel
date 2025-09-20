@@ -3,10 +3,21 @@ class Message {
     required this.author,
     required this.text,
     required this.timestamp,
-    required this.gameId,
+    required this.roomType,
+    this.id,
+    this.roomId,
+    this.gameId,
+    this.channel,
   });
+  final String? id;
   final String author;
   final String text;
   final DateTime timestamp;
-  final String gameId;
+
+  final String roomType; // 'global', 'game', 'channel'
+  final String? roomId;
+
+  // backward compatibility
+  final String? gameId;
+  final String? channel;
 }

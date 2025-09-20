@@ -62,6 +62,8 @@ const int MINIMUM_MOVES = 1;
 
 const double CONTINUE_ODDS = 0.4;
 
+const List<String> CHAT_REACTIONS = ['👍', '❤️', '🤡', '💀'];
+
 enum ProfileType {
   aggressive('aggressive'),
   defensive('defensive'),

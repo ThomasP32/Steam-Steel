@@ -9,6 +9,7 @@ class User {
       avgTime: 0,
     ),
     this.avatar = '',
+    this.avatarCustom,
   });
 
   factory User.fromJson(Map<String, dynamic> j) {
@@ -18,6 +19,7 @@ class User {
       username: j['username']?.toString() ?? '',
       email: j['email']?.toString() ?? '',
       avatar: j['avatar']?.toString() ?? '',
+      avatarCustom: j['avatarCustom']?.toString(),
       stats: stats,
     );
   }
@@ -27,6 +29,7 @@ class User {
   final String email;
   final String avatar;
   final UserStats stats;
+  final String? avatarCustom;
 }
 
 class GameStats {

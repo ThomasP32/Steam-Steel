@@ -11,26 +11,19 @@ class SocketService {
   final SocketClient _client = SocketClient();
   final Map<String, StreamController<dynamic>> _controllers = {};
 
-  void connect() {
-    _client.connect();
+  Future<void> connect() async {
+    await _client.connect();
     final socket = _client.socket;
 
     if (socket == null) return;
 
-    // Accept both shapes: (event, data) and single-argument shapes.
     socket.onAny((dynamic a, [dynamic b]) {
-      DebugLogger.log(
-        'socket onAny raw: $a ${b != null ? ', $b' : ''}',
-        tag: 'SocketService',
-      );
       String? eventName;
       dynamic eventData;
       if (b != null) {
-        // caller used (event, data)
         eventName = a?.toString();
         eventData = b;
       } else {
-        // single-arg shapes: could be a List like ['event', data]
         if (a is List && a.isNotEmpty) {
           eventName = a[0]?.toString();
           if (a.length > 1) eventData = a[1];

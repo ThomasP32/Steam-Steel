@@ -25,7 +25,9 @@ const bootstrap = async () => {
     SwaggerModule.setup('api/docs', app, document); // fait que lorsque taccede a /api/docs dans ton nav tu vois la documentation
     SwaggerModule.setup('', app, document); // meme chose mais a lurl racine
 
-    await app.listen(process.env.PORT); // idique decouter un port specifique pour les requete
+    const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+    // bind to 0.0.0.0 so the server is reachable from other machines on the network
+    await app.listen(port, '0.0.0.0'); // indique ecouter un port specifique pour les requetes
 };
 
 bootstrap();

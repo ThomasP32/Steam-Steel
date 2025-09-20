@@ -85,5 +85,6 @@ Example tasks you may be asked and how to implement them
 -   Defensive JSON parsing:
     -   Update parsing helpers to accept int/string variants, add unit tests that exercise both payload shapes.
 
+Don't put comments in the code unless they add value. Prefer self-documenting code.
 When in doubt, refer to existing implementations in the codebase or ask for clarification in the project discussions.
 Now wait for the user's next instruction and then execute the workflow above for that task.

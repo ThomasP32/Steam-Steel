@@ -20,7 +20,38 @@ export class ChatRoomGateway {
 
     @SubscribeMessage(ChatEvents.Message)
     async handleMessage(client: Socket, data: { roomName: string; message: Message }) {
-        await this.chatroomService.addMessage(data.roomName, data.message);
-        this.server.to(data.roomName).emit(ChatEvents.NewMessage, data.message);
+        const saved = await this.chatroomService.addMessage(data.roomName, data.message);
+        const toEmit = saved ?? data.message;
+        this.server.to(data.roomName).emit(ChatEvents.NewMessage, toEmit);
+    }
+
+    @SubscribeMessage(ChatEvents.DeleteMessage)
+    async handleDeleteMessage(
+        client: Socket,
+        payload: { roomName?: string; messageId?: string; author?: string; text?: string; timestamp?: string },
+    ) {
+        const ok = await this.chatroomService.deleteMessage({
+            messageId: payload.messageId,
+            author: payload.author,
+            text: payload.text,
+            timestamp: payload.timestamp,
+        });
+        if (ok) {
+            if (payload.roomName) {
+                this.server.to(payload.roomName).emit(ChatEvents.MessageDeleted, {
+                    messageId: payload.messageId,
+                    author: payload.author,
+                    text: payload.text,
+                    timestamp: payload.timestamp,
+                });
+            } else {
+                this.server.emit(ChatEvents.MessageDeleted, {
+                    messageId: payload.messageId,
+                    author: payload.author,
+                    text: payload.text,
+                    timestamp: payload.timestamp,
+                });
+            }
+        }
     }
 }

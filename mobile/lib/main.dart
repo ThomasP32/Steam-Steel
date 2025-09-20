@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +9,7 @@ import 'package:mobile/services/api_client.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
+import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/mainpage/join_game_code.dart';
 import 'package:mobile/widgets/mainpage/main_page_footer.dart';
 
@@ -27,10 +29,41 @@ Future<void> main() async {
     DebugLogger.log('Debug startup read failed: $e', tag: 'main');
   }
   try {
-    SocketService().connect();
+    await SocketService().connect();
     DebugLogger.log('SocketService connected', tag: 'main');
-  } on Object catch (_) {}
+  } on Object catch (e) {
+    DebugLogger.log('SocketService.connect failed: $e', tag: 'main');
+  }
+  // Fetch user info and join the global chat room so mobile mirrors web behavior
+  try {
+    await setupUserAndGlobalChat();
+  } on Object catch (e) {
+    DebugLogger.log('setupUserAndGlobalChat failed: $e', tag: 'main');
+  }
+  try {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  } on Object catch (e) {
+    DebugLogger.log('Failed to set preferred orientations: $e', tag: 'main');
+  }
+
   runApp(const MobileApp());
+}
+
+Future<void> setupUserAndGlobalChat() async {
+  try {
+    await AuthService().fetchUser();
+  } on Object catch (e) {
+    DebugLogger.log('AuthService.fetchUser error: $e', tag: 'main');
+  }
+
+  try {
+    SocketService().send('joinChatRoom', 'global');
+  } on Object catch (e) {
+    DebugLogger.log('Failed to send joinChatRoom: $e', tag: 'main');
+  }
 }
 
 class MobileApp extends StatelessWidget {
@@ -73,6 +106,7 @@ class HomeScreen extends StatelessWidget {
               fit: BoxFit.cover,
             ),
           ),
+          const Positioned.fill(child: ChatWidget()),
           Column(
             children: [
               Expanded(

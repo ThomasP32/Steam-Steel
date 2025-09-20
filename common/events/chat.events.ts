@@ -3,4 +3,6 @@ export enum ChatEvents {
     PreviousMessages = 'previousMessages',
     Message = 'message',
     NewMessage = 'newMessage',
+    DeleteMessage = 'deleteMessage',
+    MessageDeleted = 'messageDeleted',
 }
