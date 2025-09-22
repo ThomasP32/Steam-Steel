@@ -19,7 +19,8 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     @Input() gameId: string;
     messageText: string = '';
     messages: Message[] = [];
-    messageSubscription: Subscription;
+    messageSubscription: Subscription = new Subscription();
+    newMessageSubscription: Subscription = new Subscription();
     isChatRetracted: boolean = false;
     isWaitingRoom: boolean;
     isGamePage: boolean;
@@ -38,13 +39,18 @@ export class ChatroomComponent implements OnInit, OnDestroy {
         this.isWaitingRoom = currentUrl.includes('/waiting-room');
         this.isGamePage = currentUrl.includes('/game-page');
         this.isEndGame = currentUrl.includes('/end-game');
+
         this.messageSubscription = this.socketService.listen<Message[]>(ChatEvents.PreviousMessages).subscribe((messages: Message[]) => {
             this.messages = messages;
             this.scrollToBottom();
         });
 
-        this.messageSubscription = this.socketService.listen<Message>(ChatEvents.NewMessage).subscribe((message) => {
-            this.messages.push(message);
+        this.newMessageSubscription = this.socketService.listen<Message>(ChatEvents.NewMessage).subscribe((message) => {
+            const messageWithTimestamp = {
+                ...message,
+                timestamp: message.timestamp || new Date(),
+            };
+            this.messages.push(messageWithTimestamp);
             this.scrollToBottom();
         });
     }
@@ -79,6 +85,9 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         if (this.messageSubscription) {
             this.messageSubscription.unsubscribe();
+        }
+        if (this.newMessageSubscription) {
+            this.newMessageSubscription.unsubscribe();
         }
     }
 }

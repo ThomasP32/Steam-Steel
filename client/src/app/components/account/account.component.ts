@@ -89,11 +89,6 @@ export class AccountComponent implements OnInit {
         this.resetEditFields();
     }
 
-    logout(): void {
-        this.authService.logout();
-        this.closed.emit();
-    }
-
     deleteAccount(): void {
         this.authService.deleteAccount().then(() => {
             this.authService.logout();

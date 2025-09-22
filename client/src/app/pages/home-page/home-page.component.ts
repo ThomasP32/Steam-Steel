@@ -81,6 +81,11 @@ export class HomePageComponent implements OnInit, OnDestroy {
         this.isAccountModalVisible = false;
     }
 
+    logout(): void {
+        this.authService.logout();
+        this.isChatVisible = false;
+    }
+
     private async setupUserAndGlobalChat(): Promise<void> {
         try {
             const info = await this.authService.getUserInfo();

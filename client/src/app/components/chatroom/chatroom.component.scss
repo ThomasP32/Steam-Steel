@@ -229,17 +229,45 @@
     margin: 0;
 }
 
-.author {
-    font-weight: 0.8rem;
-    color: white;
+.message-item {
+    margin-bottom: 12px;
+    padding: 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 3px solid #b5651d;
 }
-.message {
+
+.message-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.author {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #b5651d;
+}
+
+.message-text {
     font-size: 0.9rem;
     color: white;
+    line-height: 1.4;
+    word-wrap: break-word;
 }
+
 .timestamp {
-    font-size: 0.8em;
-    color: grey;
+    font-size: 0.75rem;
+    color: #888;
+    font-style: italic;
+    white-space: nowrap;
 }
 
 .input-container {

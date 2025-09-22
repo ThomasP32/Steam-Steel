@@ -20,6 +20,7 @@
             <button class="button" (click)="navigateToCreateGame()">Commencer une nouvelle partie</button>
             <button class="button" (click)="navigateToAdmin()">Administration des jeux</button>
             <button class="button" (click)="toggleAccountModal()">Mon Compte</button>
+            <button class="button" (click)="logout()">Déconnexion</button>
         </ng-container>
     </div>
     @if (isLoggedIn) {
@@ -30,7 +31,7 @@
         <div class="chat-inner">
             <div class="chat-header">
                 <strong>Global chat</strong>
-                <button class="close-button" (click)="isChatVisible = false">×</button>
+                <span class="close-button" (click)="isChatVisible = false">×</span>
             </div>
             <div class="chat-body">
                 <app-chatroom [playerName]="userName" [gameId]="'global'"></app-chatroom>
