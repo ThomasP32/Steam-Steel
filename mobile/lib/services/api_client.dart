@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:mobile/services/api_config.dart';
 
 class ApiClient {
-  // Resolve API URL with precedence: dotenv -> dart-define -> emulator fallback
   static String get baseUrl {
     return ApiConfig.baseUrl;
   }

@@ -48,7 +48,6 @@ class AuthService {
         return;
       }
     }
-    // Try to parse server message for better error reporting
     try {
       final body = jsonDecode(r.body);
       final msg =
