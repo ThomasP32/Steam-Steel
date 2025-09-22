@@ -12,7 +12,8 @@
 
     <div class="button-section">
         <ng-container *ngIf="!isLoggedIn">
-            <button class="button" (click)="toggleAuthModal()">Inscription</button>
+            <button class="button" (click)="toggleRegisterModal()">Inscription</button>
+            <button class="button" (click)="toggleLoginModal()">Connexion</button>
         </ng-container>
         <ng-container *ngIf="isLoggedIn">
             <button class="create-game-button" (click)="toggleJoinGameVisibility()">Rejoindre une partie</button>
@@ -38,15 +39,24 @@
     </div>
     }
 
-    <ng-container *ngIf="isAuthModalVisible">
+    <ng-container *ngIf="isLoginModalVisible">
         <div class="modal-overlay">
             <div class="modal">
-                <span class="close-button" (click)="onCloseAuthModal()" onkeypress="">×</span>
-
-                <app-authentication (closed)="onCloseAuthModal()"></app-authentication>
+                <span class="close-button" (click)="onCloseLoginModal()">×</span>
+                <app-authentication mode="login" (closed)="onCloseLoginModal()"></app-authentication>
             </div>
         </div>
     </ng-container>
+
+    <ng-container *ngIf="isRegisterModalVisible">
+        <div class="modal-overlay">
+            <div class="modal">
+                <span class="close-button" (click)="onCloseRegisterModal()">×</span>
+                <app-authentication mode="register" (closed)="onCloseRegisterModal()"></app-authentication>
+            </div>
+        </div>
+    </ng-container>
+
     <ng-container *ngIf="isAccountModalVisible">
         <div class="modal-overlay">
             <div class="modal">

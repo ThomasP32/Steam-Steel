@@ -50,16 +50,22 @@ export class AuthController {
     @Post('login')
     async login(@Body('email') email: string, @Body('password') password: string, @Res() response: Response) {
         try {
-            const user = await this.userService.validateUser(email, password);
-            if (user) {
-                const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1d' });
-                response.status(HttpStatus.OK).json({ success: true, message: 'Connexion réussie !', user, token });
-            } else {
-                response.status(HttpStatus.UNAUTHORIZED).json({
-                    success: false,
-                    message: 'Email ou mot de passe incorrects.',
-                });
+            const result = await this.userService.validateUserLogin(email, password);
+            if (!result.success) {
+                const status = result.message === 'Email ou mot de passe incorrects.' ? HttpStatus.UNAUTHORIZED : HttpStatus.BAD_REQUEST;
+                return response.status(status).json(result);
             }
+
+            const token = jwt.sign({ userId: result.user._id }, JWT_SECRET, { expiresIn: '1d' });
+            const userId = String(result.user._id);
+
+            this.userService.registerUserSession(userId, token);
+            response.status(HttpStatus.OK).json({
+                success: true,
+                message: 'Connexion réussie !',
+                user: result.user,
+                token,
+            });
         } catch (error) {
             response.status(HttpStatus.BAD_REQUEST).json({
                 success: false,
@@ -84,8 +90,21 @@ export class AuthController {
         if (error) return { success: false, message: error };
         const user = await this.userService.findById(userId);
         if (!user) return { success: false, message: 'Utilisateur non trouvé' };
+
+        this.userService.removeUserSession(userId);
+
         await this.userService.deleteById(userId);
         return { success: true, message: 'Compte supprimé avec succès' };
+    }
+
+    @Post('logout')
+    async logout(@Req() req) {
+        const { userId, error } = await this.getUserIdFromToken(req);
+        if (error) return { success: false, message: error };
+
+        this.userService.removeUserSession(userId);
+
+        return { success: true, message: 'Déconnexion réussie' };
     }
 
     @Patch('update')

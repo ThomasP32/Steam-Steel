@@ -1,9 +1,28 @@
 <div class="auth-flex-container">
-    <div class="auth-container auth-register">
+    <div class="auth-container auth-register" *ngIf="mode === 'register' || mode === 'both'">
         <h2>Inscription</h2>
-        <input name="registerEmail" [(ngModel)]="registerEmail" placeholder="Email" />
-        <input name="registerPassword" [(ngModel)]="registerPassword" placeholder="Mot de passe" type="password" />
-        <input name="registerUsername" [(ngModel)]="registerUsername" placeholder="Pseudonyme" />
+        <input name="registerEmail" [(ngModel)]="registerEmail" 
+        placeholder="Email" 
+        (keydown.enter)="register()" 
+        maxlength="50" 
+        (input)="onInput($event, 'registerEmail')" />
+        <input
+            name="registerPassword"
+            [(ngModel)]="registerPassword"
+            placeholder="Mot de passe"
+            type="password"ss
+            maxlength="30"
+            (keydown.enter)="register()"
+            (input)="onInput($event, 'registerPassword')"
+        />
+        <input
+            name="registerUsername"
+            [(ngModel)]="registerUsername"
+            placeholder="Pseudonyme"
+            maxlength="20"
+            (keydown.enter)="register()"
+            (input)="onInput($event, 'registerUsername')"
+        />
         <div class="avatar-selection">
             <label>Choisissez un avatar :</label>
             <app-profile-picture
@@ -16,10 +35,23 @@
         <button type="button" (click)="register()">S'inscrire</button>
         <div *ngIf="registerMessage" class="message">{{ registerMessage }}</div>
     </div>
-    <div class="auth-container auth-login">
+    <div class="auth-container auth-login" *ngIf="mode === 'login' || mode === 'both'">
         <h2>Connexion</h2>
-        <input name="loginEmail" [(ngModel)]="loginEmail" placeholder="Email" />
-        <input name="loginPassword" [(ngModel)]="loginPassword" placeholder="Mot de passe" type="password" />
+        <input name="loginEmail" 
+        [(ngModel)]="loginEmail" 
+        placeholder="Email" 
+        maxlength="50" 
+        (keydown.enter)="login()"
+        (input)="onInput($event, 'loginEmail')" />
+        <input
+            name="loginPassword"
+            [(ngModel)]="loginPassword"
+            placeholder="Mot de passe"
+            type="password"
+            maxlength="30"
+            (keydown.enter)="login()"
+            (input)="onInput($event, 'loginPassword')"
+        />
         <button type="button" (click)="login()">Se connecter</button>
         <div *ngIf="loginMessage" class="message">{{ loginMessage }}</div>
     </div>

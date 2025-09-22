@@ -90,13 +90,13 @@ export class AccountComponent implements OnInit {
     }
 
     logout(): void {
-        localStorage.removeItem('authToken');
+        this.authService.logout();
         this.closed.emit();
     }
 
     deleteAccount(): void {
         this.authService.deleteAccount().then(() => {
-            localStorage.removeItem('authToken');
+            this.authService.logout();
             this.closed.emit();
         });
     }

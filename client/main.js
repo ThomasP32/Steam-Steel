@@ -9,6 +9,7 @@ function initWindow() {
         width: 1000,
         webPreferences: {
             nodeIntegration: true,
+            contextIsolation: false,
         },
     });
 
@@ -20,6 +21,17 @@ function initWindow() {
 
     // Initialize the DevTools.
     appWindow.webContents.openDevTools();
+
+    // Gérer la fermeture de la fenêtre
+    appWindow.on('close', function (event) {
+        // Envoyer un événement à l'application Angular avant de fermer
+        appWindow.webContents.send('app-closing');
+
+        // Donner un peu de temps pour que la déconnexion se fasse
+        setTimeout(() => {
+            appWindow = null;
+        }, 500);
+    });
 
     appWindow.on('closed', function () {
         appWindow = null;

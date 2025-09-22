@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AccountComponent } from '@app/components/account/account.component';
 import { AuthenticationComponent } from '@app/components/authentication/authentication.component';
@@ -8,6 +8,7 @@ import { JoinGameModalComponent } from '@app/components/join-game-modal/join-gam
 import { AuthService } from '@app/services/auth/auth.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { ChatEvents } from '@common/events/chat.events';
+import { Subscription } from 'rxjs';
 @Component({
     selector: 'app-main-page',
     standalone: true,
@@ -15,35 +16,19 @@ import { ChatEvents } from '@common/events/chat.events';
     styleUrls: ['./home-page.component.scss'],
     imports: [JoinGameModalComponent, AuthenticationComponent, AccountComponent, CommonModule, ChatroomComponent],
 })
-export class HomePageComponent implements OnInit {
+export class HomePageComponent implements OnInit, OnDestroy {
     teamNumber = 'Équipe 106';
     developers = ['Maude Racine', 'Noémie Hélias', 'Thomas Perron Duveau', 'Camille Ménard', 'Cerine Ouchene', 'Valentine Champvillard'];
     showJoinGameModal: boolean = false;
     isJoinGameModalVisible: boolean = false;
-    isAuthModalVisible: boolean = false;
+    isLoginModalVisible: boolean = false;
+    isRegisterModalVisible: boolean = false;
     isLoggedIn: boolean = false;
     isAccountModalVisible: boolean = false;
     isChatVisible: boolean = false;
     userName: string = 'Guest';
 
-    toggleAuthModal(): void {
-        this.isAuthModalVisible = true;
-    }
-
-    onCloseAuthModal(): void {
-        this.isAuthModalVisible = false;
-        this.checkLoginStatus();
-        this.setupUserAndGlobalChat();
-    }
-
-    toggleAccountModal(): void {
-        this.isAccountModalVisible = true;
-    }
-    onCloseAccountModal(): void {
-        this.isAccountModalVisible = false;
-        this.checkLoginStatus();
-        this.setupUserAndGlobalChat();
-    }
+    private authSubscription: Subscription = new Subscription();
 
     constructor(
         private readonly router: Router,
@@ -54,20 +39,54 @@ export class HomePageComponent implements OnInit {
         this.socketService = socketService;
         this.authService = authService;
     }
+
     ngOnInit(): void {
-        this.checkLoginStatus();
         this.connect();
-        this.setupUserAndGlobalChat();
+
+        this.authSubscription = this.authService.authState$.subscribe((isLoggedIn: boolean) => {
+            this.isLoggedIn = isLoggedIn;
+            if (isLoggedIn) {
+                this.setupUserAndGlobalChat();
+            } else {
+                this.userName = 'Guest';
+                this.isChatVisible = false;
+            }
+        });
+    }
+
+    ngOnDestroy(): void {
+        this.authSubscription.unsubscribe();
+    }
+
+    toggleLoginModal(): void {
+        this.isLoginModalVisible = true;
+    }
+
+    toggleRegisterModal(): void {
+        this.isRegisterModalVisible = true;
+    }
+
+    onCloseLoginModal(): void {
+        this.isLoginModalVisible = false;
+    }
+
+    onCloseRegisterModal(): void {
+        this.isRegisterModalVisible = false;
+    }
+
+    toggleAccountModal(): void {
+        this.isAccountModalVisible = true;
+    }
+    onCloseAccountModal(): void {
+        this.isAccountModalVisible = false;
     }
 
     private async setupUserAndGlobalChat(): Promise<void> {
-        if (this.isLoggedIn) {
-            try {
-                const info = await this.authService.getUserInfo();
-                this.userName = info?.user?.username || 'User';
-            } catch {
-                this.userName = 'User';
-            }
+        try {
+            const info = await this.authService.getUserInfo();
+            this.userName = info?.user?.username || 'User';
+        } catch {
+            this.userName = 'User';
         }
 
         try {
@@ -87,11 +106,6 @@ export class HomePageComponent implements OnInit {
         if (!this.socketService.isSocketAlive()) {
             this.socketService.connect();
         }
-    }
-
-    checkLoginStatus() {
-        const token = localStorage.getItem('authToken');
-        this.isLoggedIn = typeof token === 'string' && token.length > 0;
     }
 
     toggleJoinGameVisibility(): void {
