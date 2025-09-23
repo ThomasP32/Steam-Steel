@@ -27,18 +27,11 @@
     <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
         <i class="fas fa-comments" aria-hidden="true"></i>
     </button>
-    <div class="global-chat-wrapper" [ngClass]="{ visible: isChatVisible }">
-        <div class="chat-inner">
-            <div class="chat-header">
-                <strong>Global chat</strong>
-                <span class="close-button" (click)="isChatVisible = false">×</span>
-            </div>
-            <div class="chat-body">
-                <app-chatroom [playerName]="userName" [gameId]="'global'"></app-chatroom>
-            </div>
-        </div>
+    @if (isChatVisible) {
+    <div class="global-chat-wrapper">
+        <app-chatroom [playerName]="userName" [gameId]="'global'" (closed)="isChatVisible = false"></app-chatroom>
     </div>
-    }
+    } }
 
     <ng-container *ngIf="isLoginModalVisible">
         <div class="modal-overlay">

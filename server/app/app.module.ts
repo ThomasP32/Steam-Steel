@@ -1,10 +1,13 @@
 import { AdminController } from '@app/http/controllers/admin/admin.controller';
 import { AuthController } from '@app/http/controllers/auth.controller';
+import { ChannelController } from '@app/http/controllers/channel.controller';
 import { MapController } from '@app/http/controllers/map/map.controller';
+import { Channel, ChannelSchema } from '@app/http/model/schemas/channel/channel.schema';
 import { Map, mapSchema } from '@app/http/model/schemas/map/map.schema';
 import { Message, MessageSchema } from '@app/http/model/schemas/message/message.schema';
 import { User, UserSchema } from '@app/http/model/schemas/user/user.schema';
 import { AdminService } from '@app/http/services/admin/admin.service';
+import { ChannelService } from '@app/http/services/channel/channel.service';
 import { MapService } from '@app/http/services/map/map.service';
 import { UserService } from '@app/http/services/user/user.service';
 import { GameCreationService } from '@app/services/game-creation/game-creation.service';
@@ -41,12 +44,14 @@ import { GameManagerGateway } from './socket/game/gateways/game-manager/game-man
             { name: Map.name, schema: mapSchema },
             { name: User.name, schema: UserSchema },
             { name: Message.name, schema: MessageSchema },
+            { name: Channel.name, schema: ChannelSchema },
         ]),
     ],
-    controllers: [MapController, AdminController, AuthController],
+    controllers: [MapController, AdminController, AuthController, ChannelController],
     providers: [
         MapService,
         AdminService,
+        ChannelService,
         GameCreationService,
         GameGateway,
         Logger,

@@ -109,8 +109,6 @@ button {
     font-size: 18px;
 }
 
-
-
 .close-button {
     position: absolute;
     top: 10px;
@@ -150,7 +148,8 @@ button {
     bottom: 0;
     width: 100%;
     max-width: 25vw;
-    height: 0;
+    height: 100%;
+    max-height: 100vh;
     background: linear-gradient(135deg, #3b3f46 30%, #282c34 100%);
     border: 2px solid #b5651d;
     border-top-left-radius: 12px;
@@ -158,11 +157,6 @@ button {
     z-index: 1500;
     overflow: hidden;
     transition: height 0.3s ease-in-out;
-}
-
-.global-chat-wrapper.visible {
-    height: 100%;
-    max-height: 100vh;
 }
 
 .chat-inner {
@@ -189,4 +183,3 @@ button {
     background: #282c34;
     border-radius: 8px;
 }
-

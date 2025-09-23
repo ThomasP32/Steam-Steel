@@ -14,7 +14,9 @@ export class ChatroomService {
 
     private inferRoomType(roomId: string): 'game' | 'channel' | 'global' {
         if (roomId === 'global') return 'global';
-        if (roomId.startsWith('channel:')) return 'channel';
+        if (roomId && roomId.length < 50) {
+            return 'channel';
+        }
         return 'game';
     }
 
