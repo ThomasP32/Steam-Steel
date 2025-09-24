@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { MapAreaComponent } from '@app/components/map-area/map-area.component';
 import { MapControlBarComponent } from '@app/components/map-control-bar/map-control-bar.component';
 import { ToolbarComponent } from '@app/components/toolbar/toolbar.component';
@@ -11,7 +12,7 @@ import { takeUntil } from 'rxjs/operators';
 @Component({
     selector: 'app-game-creation-page',
     standalone: true,
-    imports: [MapControlBarComponent, ToolbarComponent, MapAreaComponent],
+    imports: [MapControlBarComponent, ToolbarComponent, MapAreaComponent, ChatroomComponent],
     templateUrl: './game-creation-page.component.html',
     styleUrl: './game-creation-page.component.scss',
 })
@@ -19,7 +20,8 @@ export class GameCreationPageComponent implements OnInit, OnDestroy {
     @ViewChild(MapAreaComponent, { static: false }) mapAreaComponent!: MapAreaComponent;
     @ViewChild(MapControlBarComponent, { static: false }) mapControlBarComponent!: MapControlBarComponent;
     @ViewChild(ToolbarComponent, { static: false }) appToolbarComponent!: ToolbarComponent;
-
+    
+    isChatVisible: boolean = false;
     isCreationPage = false;
     map!: Map;
     mapId: string = '';

@@ -10,6 +10,7 @@ import { InventoryModalComponent } from '@app/components/inventory-modal/invento
 import { JournalComponent } from '@app/components/journal/journal.component';
 import { PlayerInfosComponent } from '@app/components/player-infos/player-infos.component';
 import { AuthService } from '@app/services/auth/auth.service';
+import { ChannelService } from '@app/services/channel/channel.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { CombatService } from '@app/services/combat/combat.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
@@ -21,7 +22,6 @@ import { MapConversionService } from '@app/services/map-conversion/map-conversio
 import { PlayerService } from '@app/services/player-service/player.service';
 import { COUNTDOWN_PULSE, MAX_CHAR, TIME_DASH_OFFSET, TIME_LIMIT_DELAY, TIME_PULSE, TIME_REDIRECTION, TURN_DURATION } from '@common/constants';
 import { MovesMap } from '@common/directions';
-import { ChatEvents } from '@common/events/chat.events';
 import { CountdownEvents } from '@common/events/countdown.events';
 import { GameCreationEvents } from '@common/events/game-creation.events';
 import { GameManagerEvents } from '@common/events/game-manager.events';
@@ -50,6 +50,7 @@ import { Subscription } from 'rxjs';
 export class GamePageComponent implements OnInit, OnDestroy {
     private readonly socketSubscription: Subscription = new Subscription();
 
+    isChatVisible: boolean = false;
     GamePageActiveView = GamePageActiveView;
     activeView: GamePageActiveView = GamePageActiveView.Chat;
     activePlayers: Player[];
@@ -94,6 +95,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         protected readonly imageService: ImageService,
         protected readonly mapConversionService: MapConversionService,
         private readonly authService: AuthService,
+        private readonly channelService: ChannelService,
     ) {
         this.router = router;
         this.socketService = socketService;
@@ -106,6 +108,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         this.imageService = imageService;
         this.mapConversionService = mapConversionService;
         this.authService = authService;
+        this.channelService = channelService;
     }
 
     ngOnInit() {
@@ -143,7 +146,6 @@ export class GamePageComponent implements OnInit, OnDestroy {
                 this.socketService.sendMessage(GameManagerEvents.StartGame, this.gameService.game.id);
             }
 
-            this.socketService.sendMessage(ChatEvents.JoinChatRoom, this.game.id);
         }
     }
 
@@ -175,6 +177,8 @@ export class GamePageComponent implements OnInit, OnDestroy {
         this.characterService.resetCharacterAvailability();
         this.socketService.disconnect();
         this.router.navigate(['/main-menu']);
+        this.channelService.removePartyChannel(this.game.id);
+
     }
 
     areModalsOpen(): boolean {

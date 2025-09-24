@@ -7,7 +7,6 @@ import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { JoinGameModalComponent } from '@app/components/join-game-modal/join-game-modal.component';
 import { AuthService } from '@app/services/auth/auth.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
-import { ChatEvents } from '@common/events/chat.events';
 import { Subscription } from 'rxjs';
 @Component({
     selector: 'app-main-page',
@@ -26,7 +25,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
     isLoggedIn: boolean = false;
     isAccountModalVisible: boolean = false;
     isChatVisible: boolean = false;
-    userName: string = 'Guest';
 
     private authSubscription: Subscription = new Subscription();
 
@@ -45,12 +43,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
 
         this.authSubscription = this.authService.authState$.subscribe((isLoggedIn: boolean) => {
             this.isLoggedIn = isLoggedIn;
-            if (isLoggedIn) {
-                this.setupUserAndGlobalChat();
-            } else {
-                this.userName = 'Guest';
-                this.isChatVisible = false;
-            }
         });
     }
 
@@ -84,27 +76,6 @@ export class HomePageComponent implements OnInit, OnDestroy {
     logout(): void {
         this.authService.logout();
         this.isChatVisible = false;
-    }
-
-    private async setupUserAndGlobalChat(): Promise<void> {
-        try {
-            const info = await this.authService.getUserInfo();
-            this.userName = info?.user?.username || 'User';
-        } catch {
-            this.userName = 'User';
-        }
-
-        try {
-            setTimeout(() => {
-                try {
-                    this.socketService.sendMessage(ChatEvents.JoinChatRoom, 'global');
-                } catch (e) {
-                    // ignore
-                }
-            }, 0);
-        } catch (e) {
-            // ignore
-        }
     }
 
     async connect() {

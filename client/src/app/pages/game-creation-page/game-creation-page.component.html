@@ -11,5 +11,13 @@
     <div class="right-area">
         <app-map-control-bar></app-map-control-bar>
     </div>
+    <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
+        <i class="fas fa-comments" aria-hidden="true"></i>
+    </button>
+    @if (isChatVisible) {
+    <div class="global-chat-wrapper">
+        <app-chatroom [isInGame]="false" (closed)="isChatVisible = false"></app-chatroom>
+    </div>
+    }
     }
 </div>

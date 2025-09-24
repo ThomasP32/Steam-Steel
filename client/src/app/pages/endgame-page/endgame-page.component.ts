@@ -1,6 +1,7 @@
 import { Component, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
+import { ChannelService } from '@app/services/channel/channel.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { EndgameService } from '@app/services/endgame/endgame.service';
@@ -19,6 +20,7 @@ import { Subscription } from 'rxjs';
 })
 export class EndgamePageComponent implements OnDestroy {
     socketSubscription: Subscription = new Subscription();
+    isChatVisible: boolean = false;
 
     constructor(
         private readonly socketService: SocketService,
@@ -27,6 +29,7 @@ export class EndgamePageComponent implements OnDestroy {
         private readonly characterService: CharacterService,
         private readonly router: Router,
         protected endgameService: EndgameService,
+        private readonly channelService: ChannelService,
     ) {
         this.socketService = socketService;
         this.gameService = gameService;
@@ -34,6 +37,8 @@ export class EndgamePageComponent implements OnDestroy {
         this.characterService = characterService;
         this.router = router;
         this.endgameService = endgameService;
+        this.channelService = channelService;
+        
     }
 
     get player(): Player {
@@ -60,6 +65,7 @@ export class EndgamePageComponent implements OnDestroy {
         this.playerService.resetPlayer();
         this.characterService.resetCharacterAvailability();
         this.router.navigate(['/main-menu']);
+        this.channelService.removePartyChannel(this.game.id);
     }
 
     ngOnDestroy() {

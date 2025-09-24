@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { Character } from '@app/interfaces/character';
 import { AuthService } from '@app/services/auth/auth.service';
 import { CharacterService } from '@app/services/character/character.service';
@@ -16,7 +17,7 @@ import { firstValueFrom, Subscription } from 'rxjs';
 @Component({
     selector: 'app-character-form-page',
     standalone: true,
-    imports: [CommonModule, FormsModule],
+    imports: [CommonModule, FormsModule, ChatroomComponent],
     templateUrl: './character-form-page.component.html',
     styleUrls: ['./character-form-page.component.scss'],
 })
@@ -26,7 +27,8 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     Bonus = Bonus;
     name: string = '';
     isEditing: boolean = false;
-
+    isChatVisible: boolean = false;
+    
     lifeOrSpeedBonus: 'life' | 'speed';
     attackOrDefenseBonus: 'attack' | 'defense';
 

@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
+import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { CreateMapModalComponent } from '@app/components/create-map-modal/create-map-modal.component';
 import { ErrorMessageComponent } from '@app/components/error-message-component/error-message.component';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
@@ -11,7 +12,7 @@ import { Subject, takeUntil } from 'rxjs';
     standalone: true,
     templateUrl: './admin-page.component.html',
     styleUrls: ['./admin-page.component.scss'],
-    imports: [ErrorMessageComponent, CreateMapModalComponent],
+    imports: [ErrorMessageComponent, CreateMapModalComponent, ChatroomComponent],
 })
 export class AdminPageComponent implements OnInit, OnDestroy{
     @Input() mapId: string = '';
@@ -23,7 +24,8 @@ export class AdminPageComponent implements OnInit, OnDestroy{
     currentMapId: string | null = null;
     showDeleteModal = false;
     isCreateMapModalVisible = false;
-
+    isChatVisible: boolean = false;
+    
     private readonly unsubscribe$ = new Subject<void>();
 
     constructor(

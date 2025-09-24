@@ -29,7 +29,7 @@
     </button>
     @if (isChatVisible) {
     <div class="global-chat-wrapper">
-        <app-chatroom [playerName]="userName" [gameId]="'global'" (closed)="isChatVisible = false"></app-chatroom>
+        <app-chatroom [isInGame]="false" (closed)="isChatVisible = false"></app-chatroom>
     </div>
     } }
 

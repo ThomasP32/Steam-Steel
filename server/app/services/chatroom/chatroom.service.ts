@@ -12,8 +12,9 @@ export class ChatroomService {
         this.messageModel = messageModel;
     }
 
-    private inferRoomType(roomId: string): 'game' | 'channel' | 'global' {
+    private inferRoomType(roomId: string): 'game' | 'channel' | 'global' | 'party' {
         if (roomId === 'global') return 'global';
+        if (roomId.startsWith('partie-')) return 'party';
         if (roomId && roomId.length < 50) {
             return 'channel';
         }
@@ -22,7 +23,7 @@ export class ChatroomService {
 
     async addMessage(roomId: string, message: IMessage): Promise<any> {
         const roomType = this.inferRoomType(roomId);
-        const isPersistent = roomType !== 'game';
+        const isPersistent = roomType === 'global' || roomType === 'channel';
 
         if (isPersistent && this.messageModel) {
             const created = await this.messageModel.create({ author: message.author, text: message.text, roomType, roomId });
@@ -38,25 +39,18 @@ export class ChatroomService {
 
     async getMessages(roomId: string, limit = 100): Promise<IMessage[]> {
         const roomType = this.inferRoomType(roomId);
-        const isPersistent = roomType !== 'game';
+        const isPersistent = roomType === 'global' || roomType === 'channel';
 
         if (isPersistent && this.messageModel) {
-            const docs = await this.messageModel.find({ roomType, roomId }).sort({ createdAt: -1 }).limit(limit).lean().exec();
-            const docsReversed = docs.slice().reverse();
-            return docsReversed.map((d: any) => ({
-                id: d._id?.toString?.() ?? d._id,
-                _id: d._id?.toString?.() ?? d._id,
-                author: d.author,
-                text: d.text,
-                timestamp: d.createdAt as Date,
-                roomType: d.roomType,
-                roomId: d.roomId,
-                gameId: d.roomType === 'game' ? d.roomId : undefined,
-                channel: d.roomType === 'channel' ? d.roomId : undefined,
+            const docs = await this.messageModel.find({ roomId }).limit(limit).sort({ timestamp: 1 }).exec();
+            return docs.map((doc) => ({
+                author: doc.author,
+                text: doc.text,
+                timestamp: (doc as any).createdAt || new Date(),
             }));
+        } else {
+            return this.roomMessages[roomId] || [];
         }
-
-        return this.roomMessages[roomId] || [];
     }
 
     async deleteMessage(payload: { messageId?: string; author?: string; text?: string; timestamp?: string }): Promise<boolean> {
@@ -89,6 +83,13 @@ export class ChatroomService {
             return (res.deletedCount ?? 0) > 0;
         } catch (e) {
             return false;
+        }
+    }
+
+    cleanupPartyMessages(gameId: string): void {
+        const partyRoomId = `partie-${gameId}`;
+        if (this.roomMessages[partyRoomId]) {
+            delete this.roomMessages[partyRoomId];
         }
     }
 }

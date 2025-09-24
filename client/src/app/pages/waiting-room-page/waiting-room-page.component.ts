@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { PlayersListComponent } from '@app/components/players-list/players-list.component';
 import { ProfileModalComponent } from '@app/components/profile-modal/profile-modal.component';
+import { ChannelService } from '@app/services/channel/channel.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
@@ -11,7 +12,6 @@ import { GameService } from '@app/services/game/game.service';
 import { MapConversionService } from '@app/services/map-conversion/map-conversion.service';
 import { PlayerService } from '@app/services/player-service/player.service';
 import { TIME_LIMIT_DELAY, WaitingRoomParameters } from '@common/constants';
-import { ChatEvents } from '@common/events/chat.events';
 import { GameCreationEvents, ToggleGameLockStateData } from '@common/events/game-creation.events';
 import { Game, GameCtf, Player } from '@common/game';
 import { Map, Mode } from '@common/map.types';
@@ -36,6 +36,7 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         private readonly route: ActivatedRoute,
         private readonly router: Router,
         private readonly mapConversionService: MapConversionService,
+        private readonly channelService: ChannelService,
     ) {
         this.communicationMapService = communicationMapService;
         this.gameService = gameService;
@@ -64,6 +65,7 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     numberOfPlayers: number;
     maxPlayers: number;
     showProfileModal: boolean = false;
+    isChatVisible: boolean = false;
 
     async ngOnInit(): Promise<void> {
         if (!this.socketService.isSocketAlive()) {
@@ -88,7 +90,8 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         }
         this.socketService.sendMessage(GameCreationEvents.GetGameData, this.waitingRoomCode);
         this.socketService.sendMessage(GameCreationEvents.GetPlayers, this.waitingRoomCode);
-        this.socketService.sendMessage(ChatEvents.JoinChatRoom, this.waitingRoomCode);
+
+        this.channelService.createPartyChannel(this.waitingRoomCode, this.playerName);
     }
 
     generateRandomNumber(): void {
@@ -113,6 +116,8 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     }
 
     exitGame(): void {
+        this.channelService.removePartyChannel(this.waitingRoomCode);
+
         this.socketService.sendMessage(GameCreationEvents.LeaveGame, this.waitingRoomCode);
         this.characterService.resetCharacterAvailability();
         this.socketService.disconnect();

@@ -81,10 +81,12 @@
             </div>
             } }
         </div>
-        @if(player) {
-        <div class="waiting-room-chat">
-            <div></div>
-            <app-chatroom [playerName]="player.name" [gameId]="waitingRoomCode"></app-chatroom>
+        <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
+            <i class="fas fa-comments" aria-hidden="true"></i>
+        </button>
+        @if (isChatVisible) {
+        <div class="global-chat-wrapper">
+            <app-chatroom [gameId]="waitingRoomCode" [isInGame]="true" (closed)="isChatVisible = false"></app-chatroom>
         </div>
         } @if(showExitModal) {
         <div class="exit-modal">

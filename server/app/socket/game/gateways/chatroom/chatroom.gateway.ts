@@ -17,7 +17,7 @@ export class ChatRoomGateway {
     async handleJoinRoom(client: Socket, roomId: string) {
         client.join(roomId);
         const existingMessages = await this.chatroomService.getMessages(roomId);
-        this.server.to(roomId).emit(ChatEvents.PreviousMessages, existingMessages);
+        client.emit(ChatEvents.PreviousMessages, existingMessages);
     }
 
     @SubscribeMessage(ChatEvents.Message)

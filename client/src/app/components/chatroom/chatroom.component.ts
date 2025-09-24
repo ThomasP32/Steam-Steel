@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '@app/services/auth/auth.service';
 import { Channel, ChannelService } from '@app/services/channel/channel.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { ChatEvents } from '@common/events/chat.events';
@@ -15,10 +16,11 @@ import { Subscription } from 'rxjs';
     styleUrl: './chatroom.component.scss',
 })
 export class ChatroomComponent implements OnInit, OnDestroy {
-    @Input() playerName: string = '';
     @Input() gameId: string;
+    @Input() isInGame: boolean = false;
     @Output() closed = new EventEmitter<void>();
 
+    playerName: string = '';
     messageText: string = '';
     messages: Message[] = [];
     messageSubscription: Subscription = new Subscription();
@@ -36,18 +38,18 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     constructor(
         public readonly socketService: SocketService,
         private readonly channelService: ChannelService,
+        private readonly authService: AuthService,
     ) {
         this.socketService = socketService;
     }
 
     ngOnInit(): void {
+        this.getPlayerName();
         this.channelService.availableChannels$.subscribe((channels) => {
-            console.log('Component received available channels:', channels);
             this.availableChannels = channels;
         });
 
         this.channelService.joinedChannels$.subscribe((channels) => {
-            console.log('Component received joined channels:', channels);
             this.joinedChannels = channels;
         });
 
@@ -57,6 +59,12 @@ export class ChatroomComponent implements OnInit, OnDestroy {
                 this.loadChannelMessages(channel);
             }
         });
+
+        this.socketService.sendMessage(ChatEvents.JoinChatRoom, 'global');
+
+        if (this.isInGame && this.gameId) {
+            this.createAndJoinPartyChannel();
+        }
 
         this.messageSubscription = this.socketService.listen<Message[]>(ChatEvents.PreviousMessages).subscribe((messages: Message[]) => {
             this.messages = messages;
@@ -76,7 +84,6 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     sendMessage(): void {
         if (this.messageText.trim().length > 0 && this.messageText.trim().length <= 200) {
             const roomName = this.activeChannel || 'global';
-            console.log('Sending message to room:', roomName, 'Active channel:', this.activeChannel);
             const message: Message = {
                 author: this.playerName,
                 text: this.messageText,
@@ -86,6 +93,15 @@ export class ChatroomComponent implements OnInit, OnDestroy {
             this.socketService.sendMessage(ChatEvents.Message, { roomName, message });
             this.messageText = '';
             this.scrollToBottom();
+        }
+    }
+
+    async getPlayerName(): Promise<void> {
+        try {
+            const info = await this.authService.getUserInfo();
+            this.playerName = info?.user?.username || 'User';
+        } catch {
+            this.playerName = 'User';
         }
     }
 
@@ -170,12 +186,30 @@ export class ChatroomComponent implements OnInit, OnDestroy {
         this.closed.emit();
     }
 
+    createAndJoinPartyChannel(): void {
+        this.channelService.createPartyChannel(this.gameId, this.playerName);
+
+        const partyChannelName = `partie-${this.gameId}`;
+        this.channelService.joinChannel(partyChannelName);
+
+        this.channelService.setActiveChannel(partyChannelName);
+    }
+
     ngOnDestroy(): void {
+        if (this.isInGame && this.gameId) {
+            this.cleanupPartyChannel();
+        }
+
         if (this.messageSubscription) {
             this.messageSubscription.unsubscribe();
         }
         if (this.newMessageSubscription) {
             this.newMessageSubscription.unsubscribe();
         }
+    }
+
+    private cleanupPartyChannel(): void {
+        const partyChannelName = `partie-${this.gameId}`;
+        this.channelService.removePartyChannel(partyChannelName);
     }
 }
