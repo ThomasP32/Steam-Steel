@@ -5,7 +5,9 @@ import { Model } from 'mongoose';
 
 @Injectable()
 export class ChannelService {
-    constructor(@InjectModel('Channel') private readonly channelModel: Model<Channel>) {}
+    constructor(@InjectModel('Channel') private readonly channelModel: Model<Channel>) {
+        this.channelModel = channelModel;
+    }
 
     async createChannel(name: string, creator: string, isPublic: boolean = true) {
         const existing = await this.channelModel.findOne({ name });

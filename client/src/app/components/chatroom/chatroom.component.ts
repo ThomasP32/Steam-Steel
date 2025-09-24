@@ -41,6 +41,8 @@ export class ChatroomComponent implements OnInit, OnDestroy {
         private readonly authService: AuthService,
     ) {
         this.socketService = socketService;
+        this.channelService = channelService;
+        this.authService = authService;
     }
 
     ngOnInit(): void {
@@ -187,7 +189,7 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     }
 
     createAndJoinPartyChannel(): void {
-        this.channelService.createPartyChannel(this.gameId, this.playerName);
+        this.channelService.createPartyChannel(this.gameId);
 
         const partyChannelName = `partie-${this.gameId}`;
         this.channelService.joinChannel(partyChannelName);

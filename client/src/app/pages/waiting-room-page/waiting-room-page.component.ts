@@ -46,6 +46,7 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         this.route = route;
         this.router = router;
         this.mapConversionService = mapConversionService;
+        this.channelService = channelService;
     }
 
     waitingRoomCode: string;
@@ -91,7 +92,7 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         this.socketService.sendMessage(GameCreationEvents.GetGameData, this.waitingRoomCode);
         this.socketService.sendMessage(GameCreationEvents.GetPlayers, this.waitingRoomCode);
 
-        this.channelService.createPartyChannel(this.waitingRoomCode, this.playerName);
+        this.channelService.createPartyChannel(this.waitingRoomCode);
     }
 
     generateRandomNumber(): void {

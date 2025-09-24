@@ -3,7 +3,9 @@ import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/commo
 
 @Controller('channels')
 export class ChannelController {
-    constructor(private readonly channelService: ChannelService) {}
+    constructor(private readonly channelService: ChannelService) {
+        this.channelService = channelService;
+    }
 
     @Get()
     async listChannels() {

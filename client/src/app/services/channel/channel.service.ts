@@ -28,6 +28,9 @@ export class ChannelService {
         private socketService: SocketService,
         private communicationService: CommunicationMapService,
     ) {
+        this.socketService = socketService;
+        this.communicationService = communicationService;
+
         this.setupSocketListeners();
 
         this.joinedChannelsSubject.next([{ name: 'global', creator: 'system', isPublic: true }]);
@@ -41,7 +44,7 @@ export class ChannelService {
             this.updateAvailableChannels(channels);
         });
 
-        this.socketService.listen<Channel>(ChatEvents.ChannelCreated).subscribe((channel: Channel) => {
+        this.socketService.listen<Channel>(ChatEvents.ChannelCreated).subscribe(() => {
             this.loadChannels();
         });
 
@@ -203,7 +206,7 @@ export class ChannelService {
         return this.availableChannelsSubject.value;
     }
 
-    createPartyChannel(gameId: string, playerName: string): void {
+    createPartyChannel(gameId: string): void {
         const partyChannelName = `partie-${gameId}`;
         const partyChannel: Channel = {
             name: partyChannelName,
