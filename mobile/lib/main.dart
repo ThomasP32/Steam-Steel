@@ -131,21 +131,21 @@ class HomeScreen extends StatelessWidget {
                             children:
                                 loggedIn
                                     ? [
-                                      TextButton(
-                                        onPressed:
-                                            () => _showJoinModal(context),
-                                        child: const Text(
-                                          'Rejoindre une partie',
-                                        ),
-                                      ),
-                                      const SizedBox(width: 24),
-                                      TextButton(
-                                        onPressed:
-                                            () => context.go('/create-game'),
-                                        child: const Text(
-                                          'Commencer une nouvelle partie',
-                                        ),
-                                      ),
+                                      // TextButton(
+                                      //   onPressed:
+                                      //       () => _showJoinModal(context),
+                                      //   child: const Text(
+                                      //     'Rejoindre une partie',
+                                      //   ),
+                                      // ),
+                                      // const SizedBox(width: 24),
+                                      // TextButton(
+                                      //   onPressed:
+                                      //       () => context.go('/create-game'),
+                                      //   child: const Text(
+                                      //     'Commencer une nouvelle partie',
+                                      //   ),
+                                      // ),
                                       const SizedBox(width: 24),
                                       TextButton(
                                         onPressed: () => context.go('/auth'),
