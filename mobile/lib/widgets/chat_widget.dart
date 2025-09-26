@@ -611,270 +611,288 @@ class _ChatWidgetState extends State<ChatWidget>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        if (_visible)
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _toggle,
-              child: Container(color: Colors.black54),
+    return WillPopScope(
+      onWillPop: () async {
+        if (_visible) {
+          _toggle();
+          return false;
+        }
+        return true;
+      },
+      child: Stack(
+        children: [
+          if (_visible)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: _toggle,
+                child: Container(color: Colors.black54),
+              ),
             ),
-          ),
-        Center(
-          child: FadeTransition(
-            opacity: CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
-            child: ScaleTransition(
-              scale: CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack),
-              child: Material(
-                elevation: 24,
-                borderRadius: BorderRadius.circular(12),
-                color: const Color(0xFF3B3F46),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.95,
-                    maxHeight: MediaQuery.of(context).size.height * 0.85,
-                    minWidth: 300,
-                    minHeight: 200,
-                  ),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  const Text(
-                                    'Global chat',
-                                    style: TextStyle(
-                                      color: Color(0xFFC0C0C0),
-                                      fontWeight: FontWeight.bold,
+          Center(
+            child: FadeTransition(
+              opacity: CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+              child: ScaleTransition(
+                scale: CurvedAnimation(
+                  parent: _ctrl,
+                  curve: Curves.easeOutBack,
+                ),
+                child: Material(
+                  elevation: 24,
+                  borderRadius: BorderRadius.circular(12),
+                  color: const Color(0xFF3B3F46),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.95,
+                      maxHeight: MediaQuery.of(context).size.height * 0.85,
+                      minWidth: 300,
+                      minHeight: 200,
+                    ),
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    const Text(
+                                      'Global chat',
+                                      style: TextStyle(
+                                        color: Color(0xFFC0C0C0),
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Flexible(
-                                    child: SizedBox(
-                                      height: 32,
-                                      child: SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        child: Row(
-                                          children: List<
-                                            Widget
-                                          >.generate(CHAT_REACTIONS.length, (
-                                            idx,
-                                          ) {
-                                            final r = CHAT_REACTIONS[idx];
-                                            final selected =
-                                                idx == _selectedReactionIndex;
-                                            return GestureDetector(
-                                              onTap: () {
-                                                if (!mounted) return;
-                                                setState(
-                                                  () =>
-                                                      _selectedReactionIndex =
-                                                          idx,
-                                                );
-                                                _overlayEntry?.markNeedsBuild();
-                                              },
-                                              child: Container(
-                                                margin:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 4,
-                                                    ),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color:
-                                                      selected
-                                                          ? Colors.white24
-                                                          : Colors.transparent,
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                ),
-                                                child: Center(
-                                                  child: Text(
-                                                    r,
-                                                    style: const TextStyle(
-                                                      fontSize: 16,
+                                    const SizedBox(width: 12),
+                                    Flexible(
+                                      child: SizedBox(
+                                        height: 32,
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Row(
+                                            children: List<
+                                              Widget
+                                            >.generate(CHAT_REACTIONS.length, (
+                                              idx,
+                                            ) {
+                                              final r = CHAT_REACTIONS[idx];
+                                              final selected =
+                                                  idx == _selectedReactionIndex;
+                                              return GestureDetector(
+                                                onTap: () {
+                                                  if (!mounted) return;
+                                                  setState(
+                                                    () =>
+                                                        _selectedReactionIndex =
+                                                            idx,
+                                                  );
+                                                  _overlayEntry
+                                                      ?.markNeedsBuild();
+                                                },
+                                                child: Container(
+                                                  margin:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 4,
+                                                      ),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        selected
+                                                            ? Colors.white24
+                                                            : Colors
+                                                                .transparent,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
+                                                        ),
+                                                  ),
+                                                  child: Center(
+                                                    child: Text(
+                                                      r,
+                                                      style: const TextStyle(
+                                                        fontSize: 16,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
-                                              ),
-                                            );
-                                          }),
+                                              );
+                                            }),
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.close,
-                                color: Color(0xFFC0C0C0),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Color(0xFFC0C0C0),
+                                ),
+                                onPressed: _toggle,
                               ),
-                              onPressed: _toggle,
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child:
-                              _loading
-                                  ? const Center(
-                                    child: CircularProgressIndicator(),
-                                  )
-                                  : (_messages.isEmpty
-                                      ? const Center(
-                                        child: Text(
-                                          'Aucun message',
-                                          style: TextStyle(
-                                            color: Color(0xFFC0C0C0),
-                                          ),
-                                        ),
-                                      )
-                                      : ListView.builder(
-                                        itemCount: _messages.length,
-                                        itemBuilder: (ctx, i) {
-                                          final raw = _messages[i];
-                                          final m = chatService.ensureMessage(
-                                            raw,
-                                          );
-                                          final time =
-                                              '${m.timestamp.hour.toString().padLeft(2, '0')}:${m.timestamp.minute.toString().padLeft(2, '0')}';
-                                          final mine = m.author == _userName;
-                                          return Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 6,
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child:
+                                _loading
+                                    ? const Center(
+                                      child: CircularProgressIndicator(),
+                                    )
+                                    : (_messages.isEmpty
+                                        ? const Center(
+                                          child: Text(
+                                            'Aucun message',
+                                            style: TextStyle(
+                                              color: Color(0xFFC0C0C0),
                                             ),
-                                            child: Row(
-                                              mainAxisAlignment:
-                                                  mine
-                                                      ? MainAxisAlignment.end
-                                                      : MainAxisAlignment.start,
-                                              children: [
-                                                Flexible(
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                          10,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color:
-                                                          mine
-                                                              ? const Color(
-                                                                0xFF2E8B57,
-                                                              )
-                                                              : const Color(
-                                                                0xFF4A4F55,
-                                                              ),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            8,
+                                          ),
+                                        )
+                                        : ListView.builder(
+                                          itemCount: _messages.length,
+                                          itemBuilder: (ctx, i) {
+                                            final raw = _messages[i];
+                                            final m = chatService.ensureMessage(
+                                              raw,
+                                            );
+                                            final time =
+                                                '${m.timestamp.hour.toString().padLeft(2, '0')}:${m.timestamp.minute.toString().padLeft(2, '0')}';
+                                            final mine = m.author == _userName;
+                                            return Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 6,
+                                                  ),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    mine
+                                                        ? MainAxisAlignment.end
+                                                        : MainAxisAlignment
+                                                            .start,
+                                                children: [
+                                                  Flexible(
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                            10,
                                                           ),
-                                                    ),
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Text(
-                                                          '${m.author} • $time',
-                                                          style:
-                                                              const TextStyle(
-                                                                color: Color(
-                                                                  0xFFCCCCCC,
+                                                      decoration: BoxDecoration(
+                                                        color:
+                                                            mine
+                                                                ? const Color(
+                                                                  0xFF2E8B57,
+                                                                )
+                                                                : const Color(
+                                                                  0xFF4A4F55,
                                                                 ),
-                                                                fontSize: 12,
-                                                              ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 6,
-                                                        ),
-                                                        Text(
-                                                          m.text,
-                                                          style:
-                                                              const TextStyle(
-                                                                color: Color(
-                                                                  0xFFF1F1F1,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              8,
+                                                            ),
+                                                      ),
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Text(
+                                                            '${m.author} • $time',
+                                                            style:
+                                                                const TextStyle(
+                                                                  color: Color(
+                                                                    0xFFCCCCCC,
+                                                                  ),
+                                                                  fontSize: 12,
                                                                 ),
-                                                              ),
-                                                        ),
-                                                      ],
+                                                          ),
+                                                          const SizedBox(
+                                                            height: 6,
+                                                          ),
+                                                          Text(
+                                                            m.text,
+                                                            style:
+                                                                const TextStyle(
+                                                                  color: Color(
+                                                                    0xFFF1F1F1,
+                                                                  ),
+                                                                ),
+                                                          ),
+                                                        ],
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        },
-                                      )),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        )),
+                          ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _inputCtrl,
-                                decoration: const InputDecoration(
-                                  hintText: 'Message',
-                                  filled: true,
-                                  fillColor: Colors.white24,
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _inputCtrl,
+                                  decoration: const InputDecoration(
+                                    hintText: 'Message',
+                                    filled: true,
+                                    fillColor: Colors.white24,
+                                  ),
+                                  maxLength: 250,
                                 ),
-                                maxLength: 250,
                               ),
-                            ),
-                            IconButton(
-                              onPressed: _sendMessage,
-                              icon: const Icon(Icons.send),
-                            ),
-                          ],
+                              IconButton(
+                                onPressed: _sendMessage,
+                                icon: const Icon(Icons.send),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-        // Square button top-right
-        Positioned(
-          top: 12,
-          right: 12,
-          child: SizedBox(
-            width: 44,
-            height: 44,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2C3E50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
+          // Square button top-right
+          Positioned(
+            top: 12,
+            right: 12,
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2C3E50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  padding: EdgeInsets.zero,
                 ),
-                padding: EdgeInsets.zero,
-              ),
-              onPressed: _toggle,
-              child: const Icon(
-                Icons.chat_bubble_outline,
-                color: Color(0xFFC0C0C0),
+                onPressed: _toggle,
+                child: const Icon(
+                  Icons.chat_bubble_outline,
+                  color: Color(0xFFC0C0C0),
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

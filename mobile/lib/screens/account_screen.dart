@@ -293,14 +293,22 @@ class _AuthScreenState extends State<AuthScreen> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mon compte')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Expanded(child: SingleChildScrollView(child: pageContent)),
-          ],
+    return WillPopScope(
+      onWillPop: () async {
+        if (mounted) {
+          context.go('/');
+        }
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Mon compte')),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Expanded(child: SingleChildScrollView(child: pageContent)),
+            ],
+          ),
         ),
       ),
     );

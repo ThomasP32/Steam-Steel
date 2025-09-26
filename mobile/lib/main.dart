@@ -10,7 +10,6 @@ import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
-import 'package:mobile/widgets/mainpage/join_game_code.dart';
 import 'package:mobile/widgets/mainpage/main_page_footer.dart';
 
 Future<void> main() async {
@@ -84,16 +83,16 @@ class MobileApp extends StatelessWidget {
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  void _showJoinModal(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Entrez le code de la partie'),
-            content: JoinGameCode(onJoin: (code) {}),
-          ),
-    );
-  }
+  // void _showJoinModal(BuildContext context) {
+  //   showDialog<void>(
+  //     context: context,
+  //     builder:
+  //         (ctx) => AlertDialog(
+  //           title: const Text('Entrez le code de la partie'),
+  //           content: JoinGameCode(onJoin: (code) {}),
+  //         ),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
