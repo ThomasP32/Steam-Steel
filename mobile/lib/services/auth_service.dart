@@ -99,7 +99,43 @@ class AuthService {
         'avatarCustom': avatarCustomPayload,
       }),
     );
+    DebugLogger.log(
+      'Auth.register response status: ${r.statusCode}',
+      tag: 'AuthService',
+    );
+    DebugLogger.log(
+      'Auth.register response body: ${r.body}',
+      tag: 'AuthService',
+    );
     if (r.statusCode == 200 || r.statusCode == 201) return;
+
+    try {
+      final body = jsonDecode(r.body);
+      if (body is Map && body['message'] != null) {
+        throw Exception(body['message'].toString());
+      }
+      // some server errors may include an error object
+      if (body is Map && body['error'] != null) {
+        final err = body['error'];
+        if (err is Map && err['message'] != null) {
+          throw Exception(err['message'].toString());
+        }
+        throw Exception(err.toString());
+      }
+      // If it's a different shape but a string exists, use it
+      if (body is String && body.isNotEmpty) {
+        throw Exception(body);
+      }
+    } on FormatException catch (_) {
+      // Not JSON — surface raw body if available
+      final raw = r.body.toString();
+      if (raw.isNotEmpty) throw Exception(raw);
+    } on Exception catch (e) {
+      // If our parsed body code already threw an Exception with a message,
+      // rethrow it so the UI shows it.
+      throw e;
+    }
+
     throw Exception('Register failed ${r.statusCode}');
   }
 

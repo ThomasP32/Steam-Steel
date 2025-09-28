@@ -6,7 +6,7 @@ import { SocketService } from '../communication-socket/communication-socket.serv
 @Injectable({ providedIn: 'root' })
 export class AuthService {
     private readonly apiUrl = 'auth';
-    private authStateSubject = new BehaviorSubject<boolean>(!!localStorage.getItem('authToken'));
+    private readonly authStateSubject = new BehaviorSubject<boolean>(!!localStorage.getItem('authToken'));
     public authState$ = this.authStateSubject.asObservable();
 
     constructor(

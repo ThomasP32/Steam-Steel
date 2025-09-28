@@ -6,7 +6,7 @@ import { User } from '../../model/schemas/user/user.schema';
 
 @Injectable()
 export class UserService {
-    private activeSessions: Map<string, string> = new Map();
+    private readonly activeSessions: Map<string, string> = new Map();
 
     constructor(@InjectModel(User.name) private readonly userModel: Model<User>) {
         this.userModel = userModel;
@@ -134,7 +134,7 @@ export class UserService {
         if (existingSession) {
             return {
                 success: false,
-                message: "Ce compte est déjà connecté ailleurs.",
+                message: 'Ce compte est déjà connecté ailleurs.',
             };
         }
 
@@ -158,11 +158,23 @@ export class UserService {
     }
 
     private validateInputs(email: string, password: string, username: string): string | null {
-        if (!email || !password || !username) {
+        // Normalize inputs and explicitly reject fields that are empty or
+        // contain only whitespace. Also reject any fields that contain
+        // whitespace characters (space, tab, newline) anywhere.
+        const emailRaw = email ?? '';
+        const passwordRaw = password ?? '';
+        const usernameRaw = username ?? '';
+
+        const emailTrim = emailRaw.trim();
+        const passwordTrim = passwordRaw.trim();
+        const usernameTrim = usernameRaw.trim();
+
+        if (emailTrim.length === 0 || passwordTrim.length === 0 || usernameTrim.length === 0) {
             return 'Tous les champs sont obligatoires';
         }
 
-        if (email.includes(' ') || password.includes(' ') || username.includes(' ')) {
+        const whitespaceRe = /\s/; // detects spaces, tabs, newlines
+        if (whitespaceRe.test(emailRaw) || whitespaceRe.test(passwordRaw) || whitespaceRe.test(usernameRaw)) {
             return "Les champs ne peuvent pas contenir d'espaces";
         }
 
