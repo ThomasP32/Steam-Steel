@@ -27,17 +27,27 @@ Future<void> main() async {
   } on Exception catch (e) {
     DebugLogger.log('Debug startup read failed: $e', tag: 'main');
   }
-  try {
-    await SocketService().connect();
-    DebugLogger.log('SocketService connected', tag: 'main');
-  } on Object catch (e) {
-    DebugLogger.log('SocketService.connect failed: $e', tag: 'main');
-  }
   // Fetch user info and join the global chat room so mobile mirrors web behavior
   try {
     await setupUserAndGlobalChat();
   } on Object catch (e) {
     DebugLogger.log('setupUserAndGlobalChat failed: $e', tag: 'main');
+  }
+  // Connect socket after user setup so a stored token is included in the
+  // initial handshake (auth at connect time).
+  try {
+    await SocketService().connect();
+    DebugLogger.log('SocketService connected', tag: 'main');
+    try {
+      SocketService().send('joinChatRoom', 'global');
+    } on Object catch (e) {
+      DebugLogger.log(
+        'Failed to send joinChatRoom after connect: $e',
+        tag: 'main',
+      );
+    }
+  } on Object catch (e) {
+    DebugLogger.log('SocketService.connect failed: $e', tag: 'main');
   }
   try {
     await SystemChrome.setPreferredOrientations([
@@ -57,12 +67,9 @@ Future<void> setupUserAndGlobalChat() async {
   } on Object catch (e) {
     DebugLogger.log('AuthService.fetchUser error: $e', tag: 'main');
   }
-
-  try {
-    SocketService().send('joinChatRoom', 'global');
-  } on Object catch (e) {
-    DebugLogger.log('Failed to send joinChatRoom: $e', tag: 'main');
-  }
+  // Note: do not send socket events here because the socket connection may
+  // not yet be established. Emission of 'joinChatRoom' is performed after the
+  // socket is connected in main().
 }
 
 class MobileApp extends StatelessWidget {
