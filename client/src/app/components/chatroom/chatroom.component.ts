@@ -30,6 +30,7 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     availableChannels: Channel[] = [];
     joinedChannels: Channel[] = [];
     activeChannel: string | null = null;
+    previousChannel: string | null = null;
     showAvailableChannels: boolean = false;
     showJoinedChannels: boolean = false;
     newChannelName: string = '';
@@ -55,17 +56,21 @@ export class ChatroomComponent implements OnInit, OnDestroy {
             this.joinedChannels = channels;
         });
 
+        if (this.isInGame && this.gameId) {
+            this.createAndJoinPartyChannel();
+        }
+
         this.channelService.activeChannel$.subscribe((channel) => {
+            this.previousChannel = this.activeChannel;
             this.activeChannel = channel;
             if (channel) {
+                this.messages = [];
                 this.loadChannelMessages(channel);
             }
         });
 
-        this.socketService.sendMessage(ChatEvents.JoinChatRoom, 'global');
-
-        if (this.isInGame && this.gameId) {
-            this.createAndJoinPartyChannel();
+        if (!this.isInGame) {
+            this.socketService.sendMessage(ChatEvents.JoinChatRoom, 'global');
         }
 
         this.messageSubscription = this.socketService.listen<Message[]>(ChatEvents.PreviousMessages).subscribe((messages: Message[]) => {
@@ -108,7 +113,10 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     }
 
     loadChannelMessages(channelName: string): void {
-        this.messages = [];
+        if (this.previousChannel && this.previousChannel !== channelName) {
+            this.socketService.sendMessage(ChatEvents.LeaveChannel, { channelName: this.previousChannel });
+        }
+
         this.socketService.sendMessage(ChatEvents.JoinChatRoom, channelName);
     }
 
@@ -190,11 +198,6 @@ export class ChatroomComponent implements OnInit, OnDestroy {
 
     createAndJoinPartyChannel(): void {
         this.channelService.createPartyChannel(this.gameId);
-
-        const partyChannelName = `partie-${this.gameId}`;
-        this.channelService.joinChannel(partyChannelName);
-
-        this.channelService.setActiveChannel(partyChannelName);
     }
 
     ngOnDestroy(): void {
