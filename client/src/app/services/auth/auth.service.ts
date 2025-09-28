@@ -22,14 +22,11 @@ export class AuthService {
         return !!localStorage.getItem('authToken');
     }
 
-    private setupAutoLogout(): void {
-        // Déconnexion automatique quand la page/app se ferme
-        window.addEventListener('beforeunload', () => {
-            this.logoutSync();
-        });
+    private isElectron = !!(window as any).require;
 
-        // Pour Electron spécifiquement
-        if ((window as any).require) {
+    private setupAutoLogout(): void {
+        if (this.isElectron) {
+            // Pour Electron, se déconnecter seulement à la fermeture de l'app
             try {
                 const { ipcRenderer } = (window as any).require('electron');
                 ipcRenderer.on('app-closing', () => {
@@ -131,20 +128,22 @@ export class AuthService {
 
     private logoutSync(): void {
         const token = localStorage.getItem('authToken');
+
+        this.socketService.disconnect();
+
         if (token) {
             try {
-                // Utiliser navigator.sendBeacon pour un appel synchrone lors de la fermeture
-                const url = `${this.communicationService['baseUrl']}/${this.apiUrl}/logout?token=${token}`;
-                const data = new Blob(['{}'], { type: 'application/json' });
-                navigator.sendBeacon(url, data);
+                if (this.isElectron) {
+                    const url = `${this.communicationService['baseUrl']}/${this.apiUrl}/logout?token=${token}`;
+                    const data = new Blob(['{}'], { type: 'application/json' });
+                    navigator.sendBeacon(url, data);
+                }
             } catch (error) {
                 console.log('Erreur lors de la déconnexion synchrone:', error);
             }
         }
 
         localStorage.removeItem('authToken');
-        this.socketService.disconnect();
-
         this.authStateSubject.next(false);
     }
 }
