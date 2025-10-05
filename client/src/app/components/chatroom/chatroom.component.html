@@ -65,7 +65,7 @@
         </div>
         <div id="messageArea" class="message-area">
             <ul id="messageList">
-                @for (message of messages; track message) {
+                @for (message of messages; track $index) {
                 <li class="message-item">
                     @if (message.author) {
                     <div class="message-content">
