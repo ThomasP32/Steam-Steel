@@ -5,4 +5,13 @@ export enum ChatEvents {
     NewMessage = 'newMessage',
     DeleteMessage = 'deleteMessage',
     MessageDeleted = 'messageDeleted',
+
+    CreateChannel = 'createChannel',
+    ChannelCreated = 'channelCreated',
+    DeleteChannel = 'deleteChannel',
+    ChannelDeleted = 'channelDeleted',
+    JoinChannel = 'joinChannel',
+    LeaveChannel = 'leaveChannel',
+    ListChannels = 'listChannels',
+    ChannelsList = 'channelsList',
 }

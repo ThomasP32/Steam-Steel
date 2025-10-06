@@ -6,6 +6,8 @@ import { User } from '../../model/schemas/user/user.schema';
 
 @Injectable()
 export class UserService {
+    private readonly activeSessions: Map<string, string> = new Map();
+
     constructor(@InjectModel(User.name) private readonly userModel: Model<User>) {
         this.userModel = userModel;
     }
@@ -75,13 +77,11 @@ export class UserService {
         avatar?: Avatar,
         avatarCustom?: string,
     ): Promise<{ success: boolean; message?: string; user?: User }> {
-        if (!email || !password || !username) {
-            return { success: false, message: 'Email, mot de passe et pseudo sont obligatoires.' };
+        const validationError = this.validateInputs(email, password, username);
+        if (validationError) {
+            return { success: false, message: validationError };
         }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return { success: false, message: "Le format de l'email est invalide." };
-        }
+
         const existingEmail = await this.findByEmail(email);
         if (existingEmail) {
             return { success: false, message: 'Cet email est déjà utilisé.' };
@@ -115,5 +115,107 @@ export class UserService {
         }
         await this.updateById(String(user._id), email, username, avatar, avatarCustom);
         return { success: true, message: 'Compte mis à jour avec succès' };
+    }
+
+    async validateUserLogin(email: string, password: string): Promise<{ success: boolean; message?: string; user?: User }> {
+        const validationError = this.validateLoginInputs(email, password);
+        if (validationError) {
+            return { success: false, message: validationError };
+        }
+
+        const user = await this.validateUser(email, password);
+        if (!user) {
+            return { success: false, message: 'Email ou mot de passe incorrects.' };
+        }
+
+        const userId = String(user._id);
+        const existingSession = this.activeSessions.get(userId);
+
+        if (existingSession) {
+            return {
+                success: false,
+                message: 'Ce compte est déjà connecté ailleurs.',
+            };
+        }
+
+        return { success: true, user };
+    }
+
+    registerUserSession(userId: string, sessionToken: string): void {
+        this.activeSessions.set(userId, sessionToken);
+    }
+
+    removeUserSession(userId: string): void {
+        this.activeSessions.delete(userId);
+    }
+
+    getUserSession(userId: string): string | undefined {
+        return this.activeSessions.get(userId);
+    }
+
+    isUserConnected(userId: string): boolean {
+        return this.activeSessions.has(userId);
+    }
+
+    private validateInputs(email: string, password: string, username: string): string | null {
+        // Normalize inputs and explicitly reject fields that are empty or
+        // contain only whitespace. Also reject any fields that contain
+        // whitespace characters (space, tab, newline) anywhere.
+        const emailRaw = email ?? '';
+        const passwordRaw = password ?? '';
+        const usernameRaw = username ?? '';
+
+        const emailTrim = emailRaw.trim();
+        const passwordTrim = passwordRaw.trim();
+        const usernameTrim = usernameRaw.trim();
+
+        if (emailTrim.length === 0 || passwordTrim.length === 0 || usernameTrim.length === 0) {
+            return 'Tous les champs sont obligatoires';
+        }
+
+        const whitespaceRe = /\s/; // detects spaces, tabs, newlines
+        if (whitespaceRe.test(emailRaw) || whitespaceRe.test(passwordRaw) || whitespaceRe.test(usernameRaw)) {
+            return "Les champs ne peuvent pas contenir d'espaces";
+        }
+
+        if (email.length > 50) {
+            return "L'email ne peut pas dépasser 50 caractères";
+        }
+        if (password.length > 30) {
+            return 'Le mot de passe ne peut pas dépasser 30 caractères';
+        }
+        if (username.length > 20) {
+            return 'Le pseudonyme ne peut pas dépasser 20 caractères';
+        }
+
+        if (password.length < 6) {
+            return 'Le mot de passe doit contenir au moins 6 caractères';
+        }
+        if (username.length < 3) {
+            return 'Le pseudonyme doit contenir au moins 3 caractères';
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return "Format d'email invalide";
+        }
+
+        return null;
+    }
+
+    private validateLoginInputs(email: string, password: string): string | null {
+        if (!email || !password) {
+            return 'Tous les champs sont obligatoires';
+        }
+
+        if (email.includes(' ') || password.includes(' ')) {
+            return "Les champs ne peuvent pas contenir d'espaces";
+        }
+
+        if (email.length > 50 || password.length > 30) {
+            return 'Longueur des champs invalide';
+        }
+
+        return null;
     }
 }

@@ -1,3 +1,4 @@
+import { ChannelService } from '@app/http/services/channel/channel.service';
 import { ChatroomService } from '@app/services/chatroom/chatroom.service';
 import { ChatEvents } from '@common/events/chat.events';
 import { Message } from '@common/message';
@@ -10,12 +11,13 @@ export class ChatRoomGateway {
     @WebSocketServer() server: Server;
 
     @Inject(ChatroomService) private readonly chatroomService: ChatroomService;
+    @Inject(ChannelService) private readonly channelService: ChannelService;
 
     @SubscribeMessage(ChatEvents.JoinChatRoom)
     async handleJoinRoom(client: Socket, roomId: string) {
         client.join(roomId);
         const existingMessages = await this.chatroomService.getMessages(roomId);
-        this.server.to(roomId).emit(ChatEvents.PreviousMessages, existingMessages);
+        client.emit(ChatEvents.PreviousMessages, existingMessages);
     }
 
     @SubscribeMessage(ChatEvents.Message)
@@ -53,5 +55,44 @@ export class ChatRoomGateway {
                 });
             }
         }
+    }
+
+    @SubscribeMessage(ChatEvents.ListChannels)
+    async handleListChannels(client: Socket) {
+        try {
+            const channels = await this.channelService.listChannels();
+            client.emit(ChatEvents.ChannelsList, channels);
+        } catch (error) {
+            client.emit(ChatEvents.ChannelsList, []);
+        }
+    }
+
+    @SubscribeMessage(ChatEvents.CreateChannel)
+    async handleCreateChannel(client: Socket, data: { name: string; creator: string; isPublic?: boolean }) {
+        const { name, creator, isPublic = true } = data;
+        const channel = { name, creator, isPublic };
+        this.server.emit(ChatEvents.ChannelCreated, channel);
+    }
+
+    @SubscribeMessage(ChatEvents.DeleteChannel)
+    async handleDeleteChannel(client: Socket, data: { name: string }) {
+        const { name } = data;
+        this.server.emit(ChatEvents.ChannelDeleted, { name });
+    }
+
+    @SubscribeMessage(ChatEvents.JoinChannel)
+    async handleJoinChannel(client: Socket, data: { channelName: string }) {
+        const { channelName } = data;
+
+        client.join(channelName);
+
+        const existingMessages = await this.chatroomService.getMessages(channelName);
+        client.emit(ChatEvents.PreviousMessages, existingMessages);
+    }
+
+    @SubscribeMessage(ChatEvents.LeaveChannel)
+    async handleLeaveChannel(client: Socket, data: { channelName: string }) {
+        const { channelName } = data;
+        client.leave(channelName);
     }
 }

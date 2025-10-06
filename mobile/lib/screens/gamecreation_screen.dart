@@ -46,7 +46,6 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
         maps = result;
       });
     } on Exception catch (e) {
-      // Keep maps empty and show error in UI or logs
       DebugLogger.log('Failed to load maps: $e', tag: 'GameCreationScreen');
     } finally {
       setState(() {
@@ -90,13 +89,11 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
     }
     try {
       if (imagePreview.startsWith('data:image')) {
-        // data URI: data:image/png;base64,....
         final parts = imagePreview.split(',');
         final base64Str = parts.length > 1 ? parts[1] : parts[0];
         final bytes = base64Decode(base64Str);
         return Image.memory(Uint8List.fromList(bytes), fit: BoxFit.cover);
       }
-      // If it looks like raw base64
       final maybeBytes = base64Decode(imagePreview);
       return Image.memory(Uint8List.fromList(maybeBytes), fit: BoxFit.cover);
     } on Exception catch (e) {

@@ -65,20 +65,6 @@
             </div>
         </div>
     </div>
-    <div class="bottom-right-container">
-        <div class="toggle-container">
-            <button [class.active]="activeView === GamePageActiveView.Chat" (click)="toggleView(GamePageActiveView.Chat)">Clavardage</button>
-            <button [class.active]="activeView === GamePageActiveView.Journal" (click)="toggleView(GamePageActiveView.Journal)">Journal</button>
-        </div>
-        <div class="chat-and-journal-container">
-            <div class="game-chat" [class.hidden]="activeView !== GamePageActiveView.Chat">
-                <app-chatroom [playerName]="player.name" [gameId]="game.id"></app-chatroom>
-            </div>
-            <div class="journal" [class.hidden]="activeView !== GamePageActiveView.Journal">
-                <app-journal [player]="player"></app-journal>
-            </div>
-        </div>
-    </div>
     <div class="actions-container">
         <app-actions-component
             [player]="player"
@@ -93,8 +79,14 @@
         </div>
     </div>
 </div>
-
-@if(showExitModal) {
+<button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
+    <i class="fas fa-comments" aria-hidden="true"></i>
+</button>
+@if (isChatVisible) {
+<div class="global-chat-wrapper">
+    <app-chatroom [gameId]="this.game.id" [isInGame]="true" (closed)="isChatVisible = false"></app-chatroom>
+</div>
+} @if(showExitModal) {
 <div class="open-exit-confirmation-modal">
     <div class="popup-overlay">
         <div class="modal">

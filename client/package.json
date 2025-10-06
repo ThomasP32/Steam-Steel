@@ -11,8 +11,8 @@
         "coverage": "ng test --code-coverage --source-map=true",
         "lint": "ng lint --format stylish",
         "lint:fix": "npm run lint -- --fix",
-        "start:electron": "ng build --configuration=development --base-href ./ && electron .",
-        "build:electron": "ng build --base-href ./ && electron-packager . --asar --ignore=/node_modules --ignore=/.angular --ignore=/e2e --ignore=/src --overwrite --out=./build"
+        "start:electron": "ng build --configuration=electron --base-href ./ && electron .",
+        "build:electron": "ng build --configuration=electron --base-href ./ && electron-packager . --asar --ignore=/node_modules --ignore=/.angular --ignore=/e2e --ignore=/src --overwrite --out=./build"
     },
     "private": true,
     "dependencies": {

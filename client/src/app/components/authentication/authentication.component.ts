@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Avatar } from '@common/game';
 import { AuthService } from '../../services/auth/auth.service';
@@ -13,6 +13,8 @@ import { ProfilePictureComponent } from '../profile-picture/profile-picture.comp
     styleUrl: './authentication.component.scss',
 })
 export class AuthenticationComponent {
+    @Input() mode: 'login' | 'register' | 'both' = 'both';
+
     registerEmail = '';
     registerPassword = '';
     registerUsername = '';
@@ -32,38 +34,65 @@ export class AuthenticationComponent {
     async register() {
         const avatar = this.registerAvatar;
         const avatarCustom = this.registerCustomAvatarPreview;
-        this.registerMessage = await this.handleAuth(() =>
+        const result = await this.handleAuth(() =>
             this.authService.register(this.registerEmail, this.registerPassword, this.registerUsername, avatar, avatarCustom),
         );
-    }
-
-    async login() {
-        this.loginMessage = '';
-        try {
-            const response = await this.authService.login(this.loginEmail, this.loginPassword);
-            const body = typeof response?.body === 'string' ? JSON.parse(response.body) : response?.body;
-            this.loginMessage = body?.message || 'Connexion réussie !';
+        this.registerMessage = result.message;
+        if (result.success) {
             this.closed.emit();
-        } catch (e: any) {
-            this.loginMessage = e?.message || 'Erreur lors de la connexion.';
         }
     }
 
-    private async handleAuth(requestFn: () => Promise<any>): Promise<string> {
+    async login() {
+        const result = await this.handleAuth(() => this.authService.login(this.loginEmail, this.loginPassword));
+        this.loginMessage = result.message || (result.success ? 'Connexion réussie !' : 'Erreur lors de la connexion.');
+        if (result.success) {
+            this.closed.emit();
+        }
+    }
+
+    onInput(event: Event, fieldName: string): void {
+        const target = event.target as HTMLInputElement;
+        let value = target.value;
+
+        value = value.replace(/\s/g, '');
+
+        switch (fieldName) {
+            case 'registerEmail':
+                this.registerEmail = value;
+                break;
+            case 'registerPassword':
+                this.registerPassword = value;
+                break;
+            case 'registerUsername':
+                this.registerUsername = value;
+                break;
+            case 'loginEmail':
+                this.loginEmail = value;
+                break;
+            case 'loginPassword':
+                this.loginPassword = value;
+                break;
+        }
+
+        target.value = value;
+    }
+
+    private async handleAuth(requestFn: () => Promise<any>): Promise<{ success: boolean; message: string }> {
         try {
             const response = await requestFn();
             const body = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
-            return body?.message || '';
+            return { success: true, message: body?.message || '' };
         } catch (err: any) {
             if (err?.error) {
                 try {
                     const parsed = typeof err.error === 'string' ? JSON.parse(err.error) : err.error;
-                    return parsed?.message || '';
+                    return { success: false, message: parsed?.message || '' };
                 } catch {
-                    return err.error;
+                    return { success: false, message: err.error };
                 }
             }
-            return '';
+            return { success: false, message: err?.message || 'Erreur inconnue' };
         }
     }
 }

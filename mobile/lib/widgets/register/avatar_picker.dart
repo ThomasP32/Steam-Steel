@@ -37,7 +37,7 @@ class _AvatarPickerState extends State<AvatarPicker> {
   Future<void> _pickCustomAvatar() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
-      source: ImageSource.gallery,
+      source: ImageSource.camera,
       maxWidth: 800,
       maxHeight: 800,
     );

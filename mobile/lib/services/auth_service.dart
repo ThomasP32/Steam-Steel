@@ -99,7 +99,38 @@ class AuthService {
         'avatarCustom': avatarCustomPayload,
       }),
     );
+    DebugLogger.log(
+      'Auth.register response status: ${r.statusCode}',
+      tag: 'AuthService',
+    );
+    DebugLogger.log(
+      'Auth.register response body: ${r.body}',
+      tag: 'AuthService',
+    );
     if (r.statusCode == 200 || r.statusCode == 201) return;
+
+    try {
+      final body = jsonDecode(r.body);
+      if (body is Map && body['message'] != null) {
+        throw Exception(body['message'].toString());
+      }
+      if (body is Map && body['error'] != null) {
+        final err = body['error'];
+        if (err is Map && err['message'] != null) {
+          throw Exception(err['message'].toString());
+        }
+        throw Exception(err.toString());
+      }
+      if (body is String && body.isNotEmpty) {
+        throw Exception(body);
+      }
+    } on FormatException catch (_) {
+      final raw = r.body;
+      if (raw.isNotEmpty) throw Exception(raw);
+    } on Exception {
+      rethrow;
+    }
+
     throw Exception('Register failed ${r.statusCode}');
   }
 
@@ -107,7 +138,6 @@ class AuthService {
     final t = await token;
     DebugLogger.log('Fetch user with token: $t', tag: 'AuthService');
     if (t == null) return notifier.value = null;
-    // Try Authorization header first (standard), then fallback to query param for backward compatibility
     final headerUri = Uri.parse('${ApiClient.baseUrl}/api/auth/me');
     final headerResp = await _client.get(
       headerUri,
@@ -131,17 +161,11 @@ class AuthService {
             final userMap = Map<String, dynamic>.from(parsed['user'] as Map);
             notifier.value = User.fromJson(userMap);
             return;
-          } on Exception catch (_) {
-            // ignore and fallback
-          }
+          } on Exception catch (_) {}
         }
-        // otherwise continue to fallback
-      } on Exception catch (_) {
-        // ignore and fallback
-      }
+      } on Exception catch (_) {}
     }
 
-    // Fallback to query param
     final qpUri = Uri.parse('${ApiClient.baseUrl}/api/auth/me?token=$t');
     final qpResp = await _client.get(qpUri);
     DebugLogger.log(
@@ -162,18 +186,12 @@ class AuthService {
             final userMap = Map<String, dynamic>.from(parsed['user'] as Map);
             notifier.value = User.fromJson(userMap);
             return;
-          } on Exception catch (_) {
-            // ignore
-          }
+          } on Exception catch (_) {}
         }
-      } on Exception catch (_) {
-        // ignore
-      }
+      } on Exception catch (_) {}
     }
 
-    // if token invalid or not accepted, clear it
     await logout();
-    // Try to surface a meaningful message from server
     try {
       final body = jsonDecode(qpResp.body);
       final msg =

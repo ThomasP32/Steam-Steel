@@ -1,11 +1,13 @@
 import { Injectable } from '@angular/core';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { Avatar } from '@common/game';
-import { firstValueFrom } from 'rxjs';
+import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { SocketService } from '../communication-socket/communication-socket.service';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
     private readonly apiUrl = 'auth';
+    private readonly authStateSubject = new BehaviorSubject<boolean>(!!localStorage.getItem('authToken'));
+    public authState$ = this.authStateSubject.asObservable();
 
     constructor(
         private readonly communicationService: CommunicationMapService,
@@ -13,6 +15,27 @@ export class AuthService {
     ) {
         this.communicationService = communicationService;
         this.socketService = socketService;
+        this.setupAutoLogout();
+    }
+
+    isLoggedIn(): boolean {
+        return !!localStorage.getItem('authToken');
+    }
+
+    private isElectron = !!(window as any).require;
+
+    private setupAutoLogout(): void {
+        if (this.isElectron) {
+            // Pour Electron, se déconnecter seulement à la fermeture de l'app
+            try {
+                const { ipcRenderer } = (window as any).require('electron');
+                ipcRenderer.on('app-closing', () => {
+                    this.logoutSync();
+                });
+            } catch (e) {
+                // Ignore si pas dans Electron
+            }
+        }
     }
 
     async register(email: string, password: string, username: string, avatar: Avatar, avatarCustom?: string): Promise<any> {
@@ -33,6 +56,9 @@ export class AuthService {
         try {
             response = await firstValueFrom(this.communicationService.basicPost<any>(`${this.apiUrl}/login`, { email, password }));
             body = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
+            if (!body?.token) {
+                throw new Error(body?.message || "Erreur d'authentification.");
+            }
         } catch (err: any) {
             let errorMsg = "Erreur d'authentification.";
             if (err?.error) {
@@ -42,50 +68,17 @@ export class AuthService {
                 } catch {
                     errorMsg = err.error;
                 }
+            } else if (err?.message) {
+                errorMsg = err.message;
             }
             throw new Error(errorMsg);
         }
 
-        if (!body?.token) {
-            throw new Error(body?.message || "Erreur d'authentification.");
-        }
-
         localStorage.setItem('authToken', body.token);
-        return await new Promise((resolve, reject) => {
-            let resolved = false;
-            const timeoutId = setTimeout(() => {
-                if (!resolved) {
-                    resolved = true;
-                    resolve(response);
-                }
-            }, 1000);
-            try {
-                this.socketService.disconnect();
-                this.socketService.connect();
-                this.socketService.socket?.once('auth_error', (msg: string) => {
-                    if (!resolved) {
-                        resolved = true;
-                        clearTimeout(timeoutId);
-                        this.socketService.disconnect();
-                        try {
-                            const token = localStorage.getItem('authToken');
-                            const payload = token ? JSON.parse(atob(token.split('.')[1])) : null;
-                            if (payload && payload.userId === body.user?._id) {
-                                localStorage.removeItem('authToken');
-                            }
-                        } catch {
-                            reject(new Error(msg || 'Ce compte est déjà connecté ailleurs.'));
-                        }
-                    }
-                });
-            } catch (e) {
-                if (!resolved) {
-                    resolved = true;
-                    clearTimeout(timeoutId);
-                    resolve(response);
-                }
-            }
-        });
+        this.authStateSubject.next(true);
+        this.socketService.disconnect();
+        this.socketService.connect();
+        return response;
     }
 
     async getUserInfo(): Promise<any> {
@@ -115,5 +108,42 @@ export class AuthService {
     async updateStats(stats: { mode: string; isWin: boolean; duration: number }): Promise<any> {
         const token = localStorage.getItem('authToken');
         return firstValueFrom(this.communicationService.basicPatch<any>(`${this.apiUrl}/stats?token=${token}`, stats));
+    }
+
+    async logout(): Promise<void> {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            try {
+                await firstValueFrom(this.communicationService.basicPost<any>(`${this.apiUrl}/logout?token=${token}`, {}));
+            } catch (error) {
+                console.log('Erreur lors de la déconnexion côté serveur:', error);
+            }
+        }
+
+        localStorage.removeItem('authToken');
+        this.socketService.disconnect();
+
+        this.authStateSubject.next(false);
+    }
+
+    private logoutSync(): void {
+        const token = localStorage.getItem('authToken');
+
+        this.socketService.disconnect();
+
+        if (token) {
+            try {
+                if (this.isElectron) {
+                    const url = `${this.communicationService['baseUrl']}/${this.apiUrl}/logout?token=${token}`;
+                    const data = new Blob(['{}'], { type: 'application/json' });
+                    navigator.sendBeacon(url, data);
+                }
+            } catch (error) {
+                console.log('Erreur lors de la déconnexion synchrone:', error);
+            }
+        }
+
+        localStorage.removeItem('authToken');
+        this.authStateSubject.next(false);
     }
 }

@@ -1,31 +1,79 @@
-<div
-    class="chat-container"
-    [class.retracted]="isChatRetracted"
-    [class.waiting-room-chat]="isWaitingRoom"
-    [class.game-page-chat]="isGamePage"
-    [class.endgame-chat]="isEndGame"
->
-    @if (isWaitingRoom) {
+<div class="chat-container" [class.retracted]="isChatRetracted">
     <div class="chat-header" (click)="toggleChat()">
-        <strong>Clavardage</strong>
-        <span class="toggle-icon">
-            <i [ngClass]="isChatRetracted ? 'fas fa-comments' : 'fas fa-comment-dots'"></i>
-        </span>
+        <div class="header-left">
+            <strong>Clavardage</strong>
+            <span class="toggle-icon">
+                <i [ngClass]="isChatRetracted ? 'fas fa-comments' : 'fas fa-comment-dots'"></i>
+            </span>
+        </div>
+        <button class="close-button" (click)="closeChat(); $event.stopPropagation()">×</button>
     </div>
-    } @if (!isChatRetracted) {
+    @if (!isChatRetracted) {
+    <div class="channel-controls">
+        <button class="channel-button" (click)="toggleAvailableChannels()">
+            Salons disponibles
+            <i [ngClass]="showAvailableChannels ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+        </button>
+        <button class="channel-button" (click)="toggleJoinedChannels()">
+            Salons rejoints
+            <i [ngClass]="showJoinedChannels ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+        </button>
+    </div>
+
+    @if (showAvailableChannels) {
+    <div class="channel-panel">
+        <div class="search-channel">
+            <input [(ngModel)]="channelSearchText" placeholder="Rechercher un salon..." maxlength="50" class="search-input" />
+        </div>
+        <div class="create-channel">
+            <input [(ngModel)]="newChannelName" placeholder="Nom du nouveau salon" maxlength="20" (keydown.enter)="createChannel()" />
+            <button class="create-btn" (click)="createChannel()">Créer</button>
+        </div>
+        <div class="channel-list">
+            @for (channel of getFilteredAvailableChannels(); track channel.name) {
+            <div class="channel-item">
+                <span class="channel-name">{{ channel.name }}</span>
+                <div class="channel-actions">
+                    <button class="join-btn" (click)="joinChannel(channel)">Rejoindre</button>
+                    <button class="delete-btn" (click)="deleteChannel(channel.name)">Supprimer</button>
+                </div>
+            </div>
+            }
+        </div>
+    </div>
+    } @if (showJoinedChannels) {
+    <div class="channel-panel">
+        <div class="channel-list">
+            @for (channel of joinedChannels; track channel.name) {
+            <div class="channel-item" [class.active]="channel.name === activeChannel">
+                <span class="channel-name" (click)="selectActiveChannel(channel.name)">{{ channel.name }}</span>
+                <div class="channel-actions">
+                    @if (channel.name !== 'global') {
+                    <button class="leave-btn" (click)="leaveChannel(channel.name)">Quitter</button>
+                    }
+                </div>
+            </div>
+            }
+        </div>
+    </div>
+    } }
     <section class="chat-section">
-        <strong class="player-name">{{ playerName }}</strong>
+        <div class="chat-header-info">
+            @if (activeChannel) {
+            <span class="active-channel">Salon actuel: {{ activeChannel }}</span>
+            }
+        </div>
         <div id="messageArea" class="message-area">
             <ul id="messageList">
-                @for (message of messages; track message) {
-                <li>
+                @for (message of messages; track $index) {
+                <li class="message-item">
                     @if (message.author) {
-                    <div class="author">
-                        <strong>{{ message.author }}</strong>
-                    </div>
-                    <div class="message">{{ message.text }}</div>
-                    <div class="timestamp">
-                        <span>{{ message.timestamp | date: 'HH:mm:ss' }}</span>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="author">{{ message.author }}</span>
+                            <span class="timestamp">{{ message.timestamp | date: 'HH:mm:ss' }}</span>
+                        </div>
+                        <div class="message-text">{{ message.text }}</div>
                     </div>
                     }
                 </li>
@@ -45,5 +93,4 @@
             <div class="send-message-button" (click)="sendMessage()"><img src="assets/icons/arrow.png" alt="Trophée" class="icon" /></div>
         </div>
     </section>
-    }
 </div>

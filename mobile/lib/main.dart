@@ -16,7 +16,6 @@ import 'package:mobile/widgets/mainpage/main_page_footer.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
-  // Debug: log the resolved API base URL and any persisted auth token
   try {
     DebugLogger.log('Resolved API baseUrl: ${ApiClient.baseUrl}', tag: 'main');
     const storage = FlutterSecureStorage();
@@ -29,16 +28,24 @@ Future<void> main() async {
     DebugLogger.log('Debug startup read failed: $e', tag: 'main');
   }
   try {
-    await SocketService().connect();
-    DebugLogger.log('SocketService connected', tag: 'main');
-  } on Object catch (e) {
-    DebugLogger.log('SocketService.connect failed: $e', tag: 'main');
-  }
-  // Fetch user info and join the global chat room so mobile mirrors web behavior
-  try {
     await setupUserAndGlobalChat();
   } on Object catch (e) {
     DebugLogger.log('setupUserAndGlobalChat failed: $e', tag: 'main');
+  }
+
+  try {
+    await SocketService().connect();
+    DebugLogger.log('SocketService connected', tag: 'main');
+    try {
+      SocketService().send('joinChatRoom', 'global');
+    } on Object catch (e) {
+      DebugLogger.log(
+        'Failed to send joinChatRoom after connect: $e',
+        tag: 'main',
+      );
+    }
+  } on Object catch (e) {
+    DebugLogger.log('SocketService.connect failed: $e', tag: 'main');
   }
   try {
     await SystemChrome.setPreferredOrientations([
@@ -57,12 +64,6 @@ Future<void> setupUserAndGlobalChat() async {
     await AuthService().fetchUser();
   } on Object catch (e) {
     DebugLogger.log('AuthService.fetchUser error: $e', tag: 'main');
-  }
-
-  try {
-    SocketService().send('joinChatRoom', 'global');
-  } on Object catch (e) {
-    DebugLogger.log('Failed to send joinChatRoom: $e', tag: 'main');
   }
 }
 

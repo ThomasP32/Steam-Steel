@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { MapConversionService } from '@app/services/map-conversion/map-conversion.service';
 import { TIME_LIMIT_DELAY } from '@common/constants';
@@ -11,7 +12,7 @@ import { firstValueFrom } from 'rxjs';
     standalone: true,
     templateUrl: './game-choice-page.component.html',
     styleUrls: ['./game-choice-page.component.scss'],
-    imports: [CommonModule],
+    imports: [CommonModule, ChatroomComponent],
 })
 export class GameChoicePageComponent implements OnInit {
     map: Map;
@@ -21,6 +22,7 @@ export class GameChoicePageComponent implements OnInit {
         userError: false,
         gameChoiceError: false,
     };
+    isChatVisible: boolean = false;
 
     private readonly router: Router = inject(Router);
 
