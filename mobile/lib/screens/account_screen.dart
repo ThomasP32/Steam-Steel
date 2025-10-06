@@ -261,19 +261,19 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
           Text('${user.stats.avgTime.toStringAsFixed(0)}s'),
           const SizedBox(height: 12),
-          // ElevatedButton(
-          //   onPressed: () async {
-          //     if (mounted) context.go('/');
-          //   },
-          //   child: const Text('Modifier mon compte (TODO)'),
-          // ),
-          // const SizedBox(height: 8),
-          // ElevatedButton(
-          //   onPressed: () async {
-          //     if (mounted) context.go('/');
-          //   },
-          //   child: const Text('Supprimer mon compte (TODO)'),
-          // ),
+          ElevatedButton(
+            onPressed: () async {
+              if (mounted) context.go('/');
+            },
+            child: const Text('Modifier mon compte (TODO)'),
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: () async {
+              if (mounted) context.go('/');
+            },
+            child: const Text('Supprimer mon compte (TODO)'),
+          ),
           const SizedBox(height: 8),
           ElevatedButton(
             onPressed: () async {

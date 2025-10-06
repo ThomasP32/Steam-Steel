@@ -10,12 +10,12 @@ import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
+import 'package:mobile/widgets/mainpage/join_game_code.dart';
 import 'package:mobile/widgets/mainpage/main_page_footer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
-  // Debug: log the resolved API base URL and any persisted auth token
   try {
     DebugLogger.log('Resolved API baseUrl: ${ApiClient.baseUrl}', tag: 'main');
     const storage = FlutterSecureStorage();
@@ -27,14 +27,12 @@ Future<void> main() async {
   } on Exception catch (e) {
     DebugLogger.log('Debug startup read failed: $e', tag: 'main');
   }
-  // Fetch user info and join the global chat room so mobile mirrors web behavior
   try {
     await setupUserAndGlobalChat();
   } on Object catch (e) {
     DebugLogger.log('setupUserAndGlobalChat failed: $e', tag: 'main');
   }
-  // Connect socket after user setup so a stored token is included in the
-  // initial handshake (auth at connect time).
+
   try {
     await SocketService().connect();
     DebugLogger.log('SocketService connected', tag: 'main');
@@ -67,9 +65,6 @@ Future<void> setupUserAndGlobalChat() async {
   } on Object catch (e) {
     DebugLogger.log('AuthService.fetchUser error: $e', tag: 'main');
   }
-  // Note: do not send socket events here because the socket connection may
-  // not yet be established. Emission of 'joinChatRoom' is performed after the
-  // socket is connected in main().
 }
 
 class MobileApp extends StatelessWidget {
@@ -90,16 +85,16 @@ class MobileApp extends StatelessWidget {
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  // void _showJoinModal(BuildContext context) {
-  //   showDialog<void>(
-  //     context: context,
-  //     builder:
-  //         (ctx) => AlertDialog(
-  //           title: const Text('Entrez le code de la partie'),
-  //           content: JoinGameCode(onJoin: (code) {}),
-  //         ),
-  //   );
-  // }
+  void _showJoinModal(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Entrez le code de la partie'),
+            content: JoinGameCode(onJoin: (code) {}),
+          ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,21 +132,21 @@ class HomeScreen extends StatelessWidget {
                             children:
                                 loggedIn
                                     ? [
-                                      // TextButton(
-                                      //   onPressed:
-                                      //       () => _showJoinModal(context),
-                                      //   child: const Text(
-                                      //     'Rejoindre une partie',
-                                      //   ),
-                                      // ),
-                                      // const SizedBox(width: 24),
-                                      // TextButton(
-                                      //   onPressed:
-                                      //       () => context.go('/create-game'),
-                                      //   child: const Text(
-                                      //     'Commencer une nouvelle partie',
-                                      //   ),
-                                      // ),
+                                      TextButton(
+                                        onPressed:
+                                            () => _showJoinModal(context),
+                                        child: const Text(
+                                          'Rejoindre une partie',
+                                        ),
+                                      ),
+                                      const SizedBox(width: 24),
+                                      TextButton(
+                                        onPressed:
+                                            () => context.go('/create-game'),
+                                        child: const Text(
+                                          'Commencer une nouvelle partie',
+                                        ),
+                                      ),
                                       const SizedBox(width: 24),
                                       TextButton(
                                         onPressed: () => context.go('/auth'),

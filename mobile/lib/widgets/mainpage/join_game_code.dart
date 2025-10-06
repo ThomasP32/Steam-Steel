@@ -6,7 +6,6 @@ import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
-// no keyboard-specific imports needed for mobile
 
 typedef OnJoin = void Function(String code);
 
@@ -29,8 +28,6 @@ class _JoinGameCodeState extends State<JoinGameCode> {
     super.initState();
     _controllers = List.generate(widget.length, (_) => TextEditingController());
     _focusNodes = List.generate(widget.length, (_) => FocusNode());
-    // Use the shared app-level SocketService. It should be connected at app
-    // startup (in main) so widgets only subscribe to events.
     _socketService = SocketService();
     _subs
       ..add(
@@ -140,7 +137,6 @@ class _JoinGameCodeState extends State<JoinGameCode> {
                   onChanged: (v) {
                     if (_isLoading) return;
                     if (v.isEmpty) {
-                      // user deleted; move focus to previous and clear it
                       if (i > 0) {
                         _focusNodes[i - 1].requestFocus();
                         _controllers[i - 1].clear();
@@ -148,7 +144,6 @@ class _JoinGameCodeState extends State<JoinGameCode> {
                       return;
                     }
 
-                    // Only keep first character (handle pastes)
                     final ch = v[0];
                     _controllers[i].text = ch;
                     _controllers[i].selection = const TextSelection.collapsed(
@@ -158,13 +153,11 @@ class _JoinGameCodeState extends State<JoinGameCode> {
                       _focusNodes[i + 1].requestFocus();
                     } else {
                       final code = _controllers.map((c) => c.text).join();
-                      // Emit accessGame event (lowercase) to server. Server expects
-                      // the gameId as a plain string.
+
                       setState(() {
                         _isLoading = true;
                       });
                       _socketService?.send('accessGame', code);
-                      // waiting for server to emit GameAccessed / GameNotFound / GameLocked
                     }
                   },
                 ),
