@@ -48,9 +48,9 @@ export class AuthController {
         description: 'Return UNAUTHORIZED http status when login fails',
     })
     @Post('login')
-    async login(@Body('email') email: string, @Body('password') password: string, @Res() response: Response) {
+    async login(@Body('username') username: string, @Body('password') password: string, @Res() response: Response) {
         try {
-            const result = await this.userService.validateUserLogin(email, password);
+            const result = await this.userService.validateUserLogin(username, password);
             if (!result.success) {
                 const status = result.message === 'Email ou mot de passe incorrects.' ? HttpStatus.UNAUTHORIZED : HttpStatus.BAD_REQUEST;
                 return response.status(status).json(result);

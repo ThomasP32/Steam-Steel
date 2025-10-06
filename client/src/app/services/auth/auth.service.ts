@@ -50,11 +50,11 @@ export class AuthService {
         );
     }
 
-    async login(email: string, password: string): Promise<any> {
+    async login(username: string, password: string): Promise<any> {
         let response: any;
         let body: any;
         try {
-            response = await firstValueFrom(this.communicationService.basicPost<any>(`${this.apiUrl}/login`, { email, password }));
+            response = await firstValueFrom(this.communicationService.basicPost<any>(`${this.apiUrl}/login`, { username, password }));
             body = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
             if (!body?.token) {
                 throw new Error(body?.message || "Erreur d'authentification.");

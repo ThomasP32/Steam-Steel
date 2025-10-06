@@ -21,20 +21,20 @@ export class UserService {
         return this.userModel.findOne({ email }).exec();
     }
 
-    async validateUser(email: string, password: string): Promise<User | null> {
-        const user = await this.findByEmail(email);
-        if (user && user.password === password) {
-            return user;
-        }
-        return null;
-    }
-
     async findByUsername(username: string): Promise<User | null> {
         return this.userModel.findOne({ username }).exec();
     }
 
     async findById(id: string): Promise<User | null> {
         return this.userModel.findById(id).select('-password');
+    }
+
+    async validateUser(username: string, password: string): Promise<User | null> {
+        const user = await this.findByUsername(username);
+        if (user && user.password === password) {
+            return user;
+        }
+        return null;
     }
 
     async deleteById(id: string): Promise<{ deleted: boolean; message?: string }> {
@@ -117,15 +117,15 @@ export class UserService {
         return { success: true, message: 'Compte mis à jour avec succès' };
     }
 
-    async validateUserLogin(email: string, password: string): Promise<{ success: boolean; message?: string; user?: User }> {
-        const validationError = this.validateLoginInputs(email, password);
+    async validateUserLogin(username: string, password: string): Promise<{ success: boolean; message?: string; user?: User }> {
+        const validationError = this.validateLoginInputs(username, password);
         if (validationError) {
             return { success: false, message: validationError };
         }
 
-        const user = await this.validateUser(email, password);
+        const user = await this.validateUser(username, password);
         if (!user) {
-            return { success: false, message: 'Email ou mot de passe incorrects.' };
+            return { success: false, message: 'Email ou mot de passe incorrect.' };
         }
 
         const userId = String(user._id);
@@ -203,16 +203,16 @@ export class UserService {
         return null;
     }
 
-    private validateLoginInputs(email: string, password: string): string | null {
-        if (!email || !password) {
+    private validateLoginInputs(username: string, password: string): string | null {
+        if (!username || !password) {
             return 'Tous les champs sont obligatoires';
         }
 
-        if (email.includes(' ') || password.includes(' ')) {
+        if (username.includes(' ') || password.includes(' ')) {
             return "Les champs ne peuvent pas contenir d'espaces";
         }
 
-        if (email.length > 50 || password.length > 30) {
+        if (username.length > 50 || password.length > 30) {
             return 'Longueur des champs invalide';
         }
 
