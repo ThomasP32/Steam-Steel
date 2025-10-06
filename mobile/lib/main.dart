@@ -34,15 +34,24 @@ Future<void> main() async {
   }
 
   try {
-    await SocketService().connect();
-    DebugLogger.log('SocketService connected', tag: 'main');
-    try {
-      SocketService().send('joinChatRoom', 'global');
-    } on Object catch (e) {
+    // Only connect sockets if we have an auth token; the server requires a JWT at socket handshake
+    final token = await AuthService().token;
+    if (token == null) {
       DebugLogger.log(
-        'Failed to send joinChatRoom after connect: $e',
+        'No auth token found; skipping SocketService.connect',
         tag: 'main',
       );
+    } else {
+      await SocketService().connect();
+      DebugLogger.log('SocketService connected', tag: 'main');
+      try {
+        SocketService().send('joinChatRoom', 'global');
+      } on Object catch (e) {
+        DebugLogger.log(
+          'Failed to send joinChatRoom after connect: $e',
+          tag: 'main',
+        );
+      }
     }
   } on Object catch (e) {
     DebugLogger.log('SocketService.connect failed: $e', tag: 'main');

@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/user.dart';
 import 'package:mobile/services/api_client.dart';
+import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 
 class AuthService {
@@ -45,6 +46,17 @@ class AuthService {
           tag: 'AuthService',
         );
         await fetchUser();
+        // Connect socket after successful login so socket handshake includes token
+        try {
+          await SocketService().connect();
+          // join global chat room by default
+          SocketService().send('joinChatRoom', 'global');
+        } on Object catch (e) {
+          DebugLogger.log(
+            'SocketService.connect after login failed: $e',
+            tag: 'AuthService',
+          );
+        }
         return;
       }
     }
@@ -205,6 +217,10 @@ class AuthService {
   }
 
   Future<void> logout() async {
+    // Disconnect sockets on logout to avoid using stale token
+    try {
+      SocketService().disconnect();
+    } on Object catch (_) {}
     await _storage.delete(key: _tokenKey);
     notifier.value = null;
   }

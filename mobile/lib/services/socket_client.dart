@@ -20,6 +20,11 @@ class SocketClient {
       'SocketClient.connect using token: ${token == null ? 'null' : '${token.substring(0, 8)}...'}',
       tag: 'SocketClient',
     );
+    // Log the final URI and options so we can diagnose emulator/network issues
+    DebugLogger.log(
+      'SocketClient.connect using uri: $uri',
+      tag: 'SocketClient',
+    );
     final opts = <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
@@ -27,6 +32,7 @@ class SocketClient {
     if (token != null) {
       opts['auth'] = {'token': token};
     }
+    DebugLogger.log('SocketClient.connect options: $opts', tag: 'SocketClient');
     socket = io.io(uri, opts);
     socket!.on(
       'connect',
