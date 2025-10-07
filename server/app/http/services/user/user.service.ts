@@ -110,7 +110,7 @@ export class UserService {
         if (username && username !== user.username) {
             const existingPseudo = await this.findByUsername(username);
             if (existingPseudo && String(existingPseudo._id) !== String(user._id)) {
-                return { success: false, message: 'Ce username est déjà utilisé.' };
+                return { success: false, message: 'Ce pseudo est déjà utilisé.' };
             }
         }
         await this.updateById(String(user._id), email, username, avatar, avatarCustom);
@@ -125,7 +125,7 @@ export class UserService {
 
         const user = await this.validateUser(username, password);
         if (!user) {
-            return { success: false, message: 'Email ou mot de passe incorrect.' };
+            return { success: false, message: 'Pseudo ou mot de passe incorrect.' };
         }
 
         const userId = String(user._id);
