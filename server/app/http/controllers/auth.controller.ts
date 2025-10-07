@@ -52,7 +52,7 @@ export class AuthController {
         try {
             const result = await this.userService.validateUserLogin(username, password);
             if (!result.success) {
-                const status = result.message === 'Pseudo ou mot de passe incorrects.' ? HttpStatus.UNAUTHORIZED : HttpStatus.BAD_REQUEST;
+                const status = result.message === 'Pseudo ou mot de passe incorrect.' ? HttpStatus.UNAUTHORIZED : HttpStatus.BAD_REQUEST;
                 return response.status(status).json(result);
             }
 
