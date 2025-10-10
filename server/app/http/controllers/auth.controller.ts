@@ -4,12 +4,14 @@ import { Body, Controller, Delete, Get, HttpStatus, Inject, Patch, Post, Req, Re
 import { ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import * as jwt from 'jsonwebtoken';
+import { AdminService } from '../services/admin/admin.service';
 import { UserService } from '../services/user/user.service';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
     @Inject(UserService) private readonly userService: UserService;
+    @Inject(AdminService) private readonly adminService: AdminService;
 
     @ApiCreatedResponse({
         description: 'Register a new user',
@@ -92,6 +94,9 @@ export class AuthController {
         if (!user) return { success: false, message: 'Utilisateur non trouvé' };
 
         this.userService.removeUserSession(userId);
+
+        // Supprimer toutes les cartes créées par cet utilisateur
+        await this.adminService.deleteAllMapsByCreator(user.username);
 
         await this.userService.deleteById(userId);
         return { success: true, message: 'Compte supprimé avec succès' };

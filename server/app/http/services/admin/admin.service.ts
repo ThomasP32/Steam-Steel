@@ -88,6 +88,14 @@ export class AdminService {
         }
     }
 
+    async deleteAllMapsByCreator(username: string): Promise<void> {
+        try {
+            await this.mapModel.deleteMany({ creator: username });
+        } catch (error) {
+            throw new BadRequestException('La suppression des cartes a échoué');
+        }
+    }
+
     async modifyMap(mapId: string, updateMapDto: MapDto, username?: string): Promise<DetailedMap> {
         const existingMap = await this.mapModel.findById(mapId);
 
