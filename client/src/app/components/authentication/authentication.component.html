@@ -37,12 +37,12 @@
     </div>
     <div class="auth-container auth-login" *ngIf="mode === 'login' || mode === 'both'">
         <h2>Connexion</h2>
-        <input name="loginEmail" 
-        [(ngModel)]="loginEmail" 
-        placeholder="Email" 
+        <input name="loginUsername" 
+        [(ngModel)]="loginUsername" 
+        placeholder="Pseudo"
         maxlength="50" 
         (keydown.enter)="login()"
-        (input)="onInput($event, 'loginEmail')" />
+        (input)="onInput($event, 'loginUsername')" />
         <input
             name="loginPassword"
             [(ngModel)]="loginPassword"
