@@ -5,10 +5,10 @@ import { Body, Controller, Delete, Get, HttpStatus, Inject, Param, Patch, Post, 
 import { ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 
-@ApiTags('Admin') 
+@ApiTags('Admin')
 @Controller('admin')
 export class AdminController {
-    @Inject(AdminService) private readonly adminService: AdminService; 
+    @Inject(AdminService) private readonly adminService: AdminService;
 
     @ApiOkResponse({
         description: 'Returns all maps',
@@ -54,6 +54,7 @@ export class AdminController {
     @Post('/creation')
     async addMap(@Body() mapDto: MapDto, @Res() response: Response) {
         try {
+            console.log('MapDto reçu:', mapDto);
             await this.adminService.addMap(mapDto);
             response.status(HttpStatus.CREATED).send();
         } catch (error) {
@@ -72,9 +73,11 @@ export class AdminController {
         description: 'Return NOT_FOUND http status when request fails',
     })
     @Put('/edition/:mapId')
-    async modifyMap(@Param('mapId') mapId: string, @Body() mapDto: MapDto, @Res() response: Response) {
+    async modifyMap(@Param('mapId') mapId: string, @Body() body: { mapDto: MapDto; username: string }, @Res() response: Response) {
         try {
-            const updatedMap = await this.adminService.modifyMap(mapId, mapDto);
+            const { mapDto, username } = body;
+            console.log('Modify map - mapId:', mapId, 'creator:', mapDto.creator, 'current user:', username);
+            const updatedMap = await this.adminService.modifyMap(mapId, mapDto, username);
             response.status(HttpStatus.OK).json(updatedMap);
         } catch (error) {
             return response.status(error.status || HttpStatus.BAD_REQUEST).json({
@@ -108,14 +111,16 @@ export class AdminController {
         description: 'Return NOT_FOUND http status when request fails',
     })
     @Delete('/:mapId')
-    async deleteCourse(@Param('mapId') mapId: string, @Res() response: Response) {
+    async deleteMap(@Param('mapId') mapId: string, @Body() body: { mapDto: MapDto; username: string }, @Res() response: Response) {
         try {
-            await this.adminService.deleteMap(mapId);
+            const { mapDto, username } = body;
+            console.log('Delete map - mapId:', mapId, 'creator:', mapDto.creator, 'current user:', username);
+            await this.adminService.deleteMap(mapId, username);
             response.status(HttpStatus.OK).send();
         } catch (error) {
             return response.status(error.status || HttpStatus.BAD_REQUEST).json({
                 status: error.status || HttpStatus.BAD_REQUEST,
-                message: error.message || 'La supression du jeu a échoué',
+                message: error.message || 'La suppression de la carte a échoué',
             });
         }
     }

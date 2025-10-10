@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MapService } from '@app/services/map/map.service';
 import { TIME_LIMIT_DELAY } from '@common/constants';
+import { MapState } from '@common/map.types';
 
 @Component({
     selector: 'app-map-control-bar',
@@ -26,21 +27,28 @@ export class MapControlBarComponent implements OnInit {
         this.router = router;
     }
 
-    ngOnInit(): void {
+    async ngOnInit(): Promise<void> {
         if (this.route.snapshot.params['mode']) {
             this.title = '';
             this.description = '';
+            this.mapState = MapState.Public;
         } else {
             this.getUrlId();
             this.editMode = false;
             this.title = this.mapService.map.name;
             this.description = this.mapService.map.description;
+            this.mapState = this.mapService.map.state;
+            
+            this.creator = this.mapService.map.creator || 'Tu est le créateur';
         }
     }
 
     title: string = '';
     description: string = '';
     editMode: boolean = true;
+    mapState: MapState = MapState.Public;
+    creator: string = '';
+    MapState = MapState;
 
     toggleEditing() {
         this.editMode = !this.editMode;
@@ -65,6 +73,8 @@ export class MapControlBarComponent implements OnInit {
 
         this.mapService.map.name = this.title;
         this.mapService.map.description = this.description;
+        this.mapService.map.state = this.mapState;
+
         this.mapService.generateMap();
     }
 

@@ -4,6 +4,7 @@ import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { CreateMapModalComponent } from '@app/components/create-map-modal/create-map-modal.component';
 import { ErrorMessageComponent } from '@app/components/error-message-component/error-message.component';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
+import { MapService } from '@app/services/map/map.service';
 import { DetailedMap } from '@common/map.types';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -14,7 +15,7 @@ import { Subject, takeUntil } from 'rxjs';
     styleUrls: ['./admin-page.component.scss'],
     imports: [ErrorMessageComponent, CreateMapModalComponent, ChatroomComponent],
 })
-export class AdminPageComponent implements OnInit, OnDestroy{
+export class AdminPageComponent implements OnInit, OnDestroy {
     @Input() mapId: string = '';
     @Output() importError = new EventEmitter<string>();
     @ViewChild(CreateMapModalComponent, { static: false }) createMapModalComponent!: CreateMapModalComponent;
@@ -25,15 +26,17 @@ export class AdminPageComponent implements OnInit, OnDestroy{
     showDeleteModal = false;
     isCreateMapModalVisible = false;
     isChatVisible: boolean = false;
-    
+
     private readonly unsubscribe$ = new Subject<void>();
 
     constructor(
         private readonly router: Router,
         private readonly communicationMapService: CommunicationMapService,
+        private readonly mapService: MapService,
     ) {
         this.router = router;
         this.communicationMapService = communicationMapService;
+        this.mapService = mapService;
     }
 
     navigateToMain(): void {
@@ -59,18 +62,22 @@ export class AdminPageComponent implements OnInit, OnDestroy{
         this.router.navigate([`/edition/${map._id}`]);
     }
 
-    deleteMap(mapId: string): void {
-        this.communicationMapService
-            .basicDelete(`admin/${mapId}`)
-            .pipe(takeUntil(this.unsubscribe$))
-            .subscribe({
-                next: () => {
-                    this.updateDisplay();
-                },
-                error: (err) => {
-                    this.errorMessageModal.open(JSON.parse(err.error).message);
-                },
-            });
+    async deleteMap(mapId: string): Promise<void> {
+        try {
+            await this.mapService.deleteMap(mapId);
+            this.updateDisplay();
+        } catch (error: any) {
+            let errorMessage = 'Erreur lors de la suppression de la carte';
+            if (error.error) {
+                try {
+                    const errorObj = JSON.parse(error.error);
+                    errorMessage = errorObj.message || errorMessage;
+                } catch (e) {
+                    // Ignore parsing error, use default message
+                }
+            }
+            this.errorMessageModal.open(errorMessage);
+        }
     }
 
     openConfirmationModal(map: DetailedMap): void {
@@ -89,13 +96,19 @@ export class AdminPageComponent implements OnInit, OnDestroy{
     }
 
     updateDisplay(): void {
-        this.communicationMapService.basicGet<DetailedMap[]>('admin').pipe(takeUntil(this.unsubscribe$)).subscribe((maps: DetailedMap[]) => {
-            this.maps = maps;
-        });
+        this.communicationMapService
+            .basicGet<DetailedMap[]>('admin')
+            .pipe(takeUntil(this.unsubscribe$))
+            .subscribe((maps: DetailedMap[]) => {
+                this.maps = maps;
+            });
     }
 
     toggleVisibility(mapId: string): void {
-        this.communicationMapService.basicPatch(`admin/${mapId}`).pipe(takeUntil(this.unsubscribe$)).subscribe(() => this.updateDisplay());
+        this.communicationMapService
+            .basicPatch(`admin/${mapId}`)
+            .pipe(takeUntil(this.unsubscribe$))
+            .subscribe(() => this.updateDisplay());
     }
 
     formatDate(lastModified: Date): string {

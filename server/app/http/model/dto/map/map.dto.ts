@@ -1,10 +1,10 @@
-import { Mode } from '@common/map.types';
-import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { ArrayNotEmpty, IsArray, IsEnum, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 import { CoordinateDto, StartTileDto } from '@app/http/model/dto/map/coordinate.dto';
 import { DoorTileDto } from '@app/http/model/dto/map/door.dto';
 import { ItemDto, TileDto } from '@app/http/model/dto/map/tiles.dto';
+import { MapState, Mode } from '@common/map.types';
+import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { ArrayNotEmpty, IsArray, IsEnum, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 
 export class MapDto {
     @ApiProperty()
@@ -54,4 +54,13 @@ export class MapDto {
     @ValidateNested({ each: true })
     @Type(() => DoorTileDto)
     doorTiles: DoorTileDto[];
+
+    @ApiProperty({ enum: MapState })
+    @IsEnum(MapState, { message: "L'état de la carte doit être public, privé ou partagé" })
+    state: MapState;
+
+    @ApiProperty()
+    @IsString()
+    @IsNotEmpty({ message: 'Le créateur de la carte est obligatoire' })
+    creator: string;
 }

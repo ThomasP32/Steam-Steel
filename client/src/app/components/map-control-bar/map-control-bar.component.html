@@ -28,6 +28,24 @@
                 <p>{{ description }}</p>
                 }
             </div>
+
+            <div class="creator-area">
+                <h3>Créateur</h3>
+                <p>{{ creator || 'Non défini' }}</p>
+            </div>
+
+            <div class="state-area">
+                <h3>Visibilité</h3>
+                @if(editMode) {
+                <select [(ngModel)]="mapState">
+                    <option [value]="MapState.Public">Public</option>
+                    <option [value]="MapState.Private">Privé</option>
+                    <option [value]="MapState.Share">Partagé</option>
+                </select>
+                } @else {
+                <p>{{ mapState === MapState.Public ? 'Public' : mapState === MapState.Private ? 'Privé' : 'Partagé' }}</p>
+                }
+            </div>
         </div>
         @if(editMode) {
         <button (click)="toggleEditing()" class="save-button">Sauvegarder</button>
