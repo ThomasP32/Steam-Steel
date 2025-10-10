@@ -56,11 +56,9 @@ export class AdminService {
 
     async addMap(map: MapDto): Promise<void> {
         await this.verifyMap(map);
-        console.log(map);
         try {
             await this.mapModel.create(map);
         } catch (error) {
-            console.error(error);
             throw new Error('La création du jeu a échoué');
         }
     }
@@ -99,6 +97,10 @@ export class AdminService {
 
         if (!this.canModifyMap(existingMap, username)) {
             throw new ForbiddenException("Vous n'avez pas la permission de modifier cette carte");
+        }
+
+        if (updateMapDto.state !== existingMap.state && existingMap.creator !== username) {
+            throw new ForbiddenException("Seul le créateur peut modifier l'état de la carte");
         }
 
         const mapWithCreator = {

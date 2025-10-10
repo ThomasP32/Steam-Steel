@@ -189,13 +189,16 @@ export class MapService {
     }
 
     async deleteMap(mapId: string): Promise<void> {
-        const userInfo = await this.authService.getUserInfo();
+        try {
+            const userInfo = await this.authService.getUserInfo();
 
-        const payload = {
-            mapDto: this.map,
-            username: userInfo.user.username,
-        };
+            const payload = {
+                username: userInfo.user.username,
+            };
 
-        await firstValueFrom(this.communicationMapService.basicDeleteWithBody(`admin/${mapId}`, payload));
+            await firstValueFrom(this.communicationMapService.basicDeleteWithBody(`admin/${mapId}`, payload));
+        } catch (error) {
+            throw error;
+        }
     }
 }

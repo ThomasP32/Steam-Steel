@@ -5,7 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MapService } from '@app/services/map/map.service';
 import { TIME_LIMIT_DELAY } from '@common/constants';
 import { MapState } from '@common/map.types';
-
+import { AuthService } from '@app/services/auth/auth.service';
 @Component({
     selector: 'app-map-control-bar',
     standalone: true,
@@ -21,10 +21,12 @@ export class MapControlBarComponent implements OnInit {
         private readonly route: ActivatedRoute,
         private readonly mapService: MapService,
         private readonly router: Router,
+        private readonly authService: AuthService,
     ) {
         this.route = route;
         this.mapService = mapService;
         this.router = router;
+        this.authService = authService;
     }
 
     async ngOnInit(): Promise<void> {
@@ -38,8 +40,8 @@ export class MapControlBarComponent implements OnInit {
             this.title = this.mapService.map.name;
             this.description = this.mapService.map.description;
             this.mapState = this.mapService.map.state;
-            
-            this.creator = this.mapService.map.creator || 'Tu est le créateur';
+            const info = await this.authService.getUserInfo();
+            this.creator = this.mapService.map.creator || info?.user?.username || 'Créateur inconnu';
         }
     }
 

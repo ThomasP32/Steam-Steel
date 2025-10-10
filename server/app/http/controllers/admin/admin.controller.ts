@@ -54,7 +54,6 @@ export class AdminController {
     @Post('/creation')
     async addMap(@Body() mapDto: MapDto, @Res() response: Response) {
         try {
-            console.log('MapDto reçu:', mapDto);
             await this.adminService.addMap(mapDto);
             response.status(HttpStatus.CREATED).send();
         } catch (error) {
@@ -111,11 +110,10 @@ export class AdminController {
         description: 'Return NOT_FOUND http status when request fails',
     })
     @Delete('/:mapId')
-    async deleteMap(@Param('mapId') mapId: string, @Body() body: { mapDto: MapDto; username: string }, @Res() response: Response) {
+    async deleteMap(@Param('mapId') mapId: string, @Body() body: { username: string }, @Res() response: Response) {
         try {
-            const { mapDto, username } = body;
-            console.log('Delete map - mapId:', mapId, 'creator:', mapDto.creator, 'current user:', username);
-            await this.adminService.deleteMap(mapId, username);
+
+            await this.adminService.deleteMap(mapId, body.username);
             response.status(HttpStatus.OK).send();
         } catch (error) {
             return response.status(error.status || HttpStatus.BAD_REQUEST).json({
