@@ -108,6 +108,11 @@ class _AuthScreenState extends State<AuthScreen> {
               ? raw.substring('Exception: '.length)
               : raw;
       DebugLogger.log('Login error: $msg', tag: 'AuthScreen');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

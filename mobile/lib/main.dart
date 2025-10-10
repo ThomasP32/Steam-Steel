@@ -34,7 +34,6 @@ Future<void> main() async {
   }
 
   try {
-    // Only connect sockets if we have an auth token; the server requires a JWT at socket handshake
     final token = await AuthService().token;
     if (token == null) {
       DebugLogger.log(

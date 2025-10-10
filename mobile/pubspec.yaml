@@ -16,7 +16,6 @@ dependencies:
     go_router: ^8.0.5
     http: ^1.5.0
     image_picker: ^1.2.0
-    sensors_plus: ^3.0.0
     socket_io_client: ^3.1.2
     top_snackbar_flutter: ^3.1.0
 
