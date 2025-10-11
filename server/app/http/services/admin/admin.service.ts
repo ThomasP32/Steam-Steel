@@ -3,7 +3,7 @@ import { DoorTileDto } from '@app/http/model/dto/map/door.dto';
 import { MapDto } from '@app/http/model/dto/map/map.dto';
 import { ItemDto, TileDto } from '@app/http/model/dto/map/tiles.dto';
 import { MapDocument } from '@app/http/model/schemas/map/map.schema';
-import { UserService } from '@app/http/services/user/user.service';
+import { AdminGateway } from '@app/socket/game/gateways/admin/admin.gateway';
 import { HALF, MapConfig, MapSize } from '@common/constants';
 import { DIRECTIONS } from '@common/directions';
 import { Coordinate, DetailedMap, ItemCategory, Map, MapState, Mode, TileCategory } from '@common/map.types';
@@ -15,7 +15,7 @@ import { Model, Types } from 'mongoose';
 export class AdminService {
     @InjectModel(Map.name) public mapModel: Model<MapDocument>;
 
-    constructor(private readonly userService: UserService) {}
+    constructor(private readonly adminGateway: AdminGateway) {}
 
     async getAllMaps(): Promise<Map[]> {
         return await this.mapModel.find({});
@@ -58,6 +58,7 @@ export class AdminService {
         await this.verifyMap(map);
         try {
             await this.mapModel.create(map);
+            this.adminGateway.notifyMapListUpdate();
         } catch (error) {
             throw new Error('La création du jeu a échoué');
         }
@@ -80,6 +81,7 @@ export class AdminService {
             if (response.deletedCount === 0) {
                 throw new NotFoundException("Le jeu n'a pas été trouvé");
             }
+            this.adminGateway.notifyMapListUpdate();
         } catch (err) {
             if (err instanceof NotFoundException || err instanceof ForbiddenException) {
                 throw err;
@@ -91,6 +93,7 @@ export class AdminService {
     async deleteAllMapsByCreator(username: string): Promise<void> {
         try {
             await this.mapModel.deleteMany({ creator: username });
+            this.adminGateway.notifyMapListUpdate();
         } catch (error) {
             throw new BadRequestException('La suppression des cartes a échoué');
         }
@@ -132,6 +135,7 @@ export class AdminService {
 
         try {
             const duplicatedMap = await this.mapModel.create(duplicatedMapData);
+            this.adminGateway.notifyMapListUpdate();
             return duplicatedMap;
         } catch (error) {
             throw new BadRequestException('La duplication du jeu a échoué');
@@ -164,7 +168,9 @@ export class AdminService {
             existingMap.set(mapWithCreator);
             existingMap.isVisible = false;
             existingMap.lastModified = new Date();
-            return await existingMap.save();
+            const updatedMap = await existingMap.save();
+            this.adminGateway.notifyMapListUpdate();
+            return updatedMap;
         } catch (error) {
             throw new Error("Le jeu n'a pas pu être modifié");
         }
@@ -201,13 +207,15 @@ export class AdminService {
 
     async visibilityToggle(mapId: string) {
         const map = await this.getMapById(mapId);
-        return await this.mapModel.findByIdAndUpdate(
+        const updatedMap = await this.mapModel.findByIdAndUpdate(
             map._id,
             { isVisible: !map.isVisible },
             {
                 new: true,
             },
         );
+        this.adminGateway.notifyMapListUpdate();
+        return updatedMap;
     }
 
     private async isUnique(mapName: string): Promise<boolean> {

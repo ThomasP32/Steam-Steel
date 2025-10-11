@@ -180,6 +180,14 @@ export class MapService {
         }
     }
 
+    async toggleMapVisibility(mapId: string): Promise<void> {
+        try {
+            await firstValueFrom(this.communicationMapService.basicPatch<any>(`admin/${mapId}`));
+        } catch (error) {
+            throw error;
+        }
+    }
+
     private handleHttpError(error: any): string {
         if (error instanceof HttpErrorResponse) {
             let errorMessage = 'Erreur inattendue, veuillez réessayer plus tard...';

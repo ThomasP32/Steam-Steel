@@ -26,6 +26,7 @@ import { ItemsManagerService } from './services/items-manager/items-manager.serv
 import { UserSocketService } from './services/user-socket/user-socket.service';
 import { VirtualGameManagerService } from './services/virtual-game-manager/virtual-game-manager.service';
 import { AccountGateway } from './socket/game/gateways/account/account.gateway';
+import { AdminGateway } from './socket/game/gateways/admin/admin.gateway';
 import { CombatGateway } from './socket/game/gateways/combat/combat.gateway';
 import { GameManagerGateway } from './socket/game/gateways/game-manager/game-manager.gateway';
 @Module({
@@ -69,6 +70,7 @@ import { GameManagerGateway } from './socket/game/gateways/game-manager/game-man
         UserService,
         UserSocketService,
         AccountGateway,
+        AdminGateway,
     ],
 })
 export class AppModule {}

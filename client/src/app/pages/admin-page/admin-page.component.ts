@@ -3,8 +3,12 @@ import { Router } from '@angular/router';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { CreateMapModalComponent } from '@app/components/create-map-modal/create-map-modal.component';
 import { ErrorMessageComponent } from '@app/components/error-message-component/error-message.component';
+import { MapListComponent } from '@app/components/map-list/map-list.component';
+import { AuthService } from '@app/services/auth/auth.service';
+import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
-import { MapService } from '@app/services/map/map.service';
+import { AdminEvents } from '@common/events/admin.events';
+
 import { DetailedMap, MapState } from '@common/map.types';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -13,7 +17,7 @@ import { Subject, takeUntil } from 'rxjs';
     standalone: true,
     templateUrl: './admin-page.component.html',
     styleUrls: ['./admin-page.component.scss'],
-    imports: [ErrorMessageComponent, CreateMapModalComponent, ChatroomComponent],
+    imports: [ErrorMessageComponent, CreateMapModalComponent, ChatroomComponent, MapListComponent],
 })
 export class AdminPageComponent implements OnInit, OnDestroy {
     @Input() mapId: string = '';
@@ -22,32 +26,52 @@ export class AdminPageComponent implements OnInit, OnDestroy {
     @ViewChild(ErrorMessageComponent, { static: false }) errorMessageModal: ErrorMessageComponent;
 
     maps: DetailedMap[] = [];
-    currentMapId: string | null = null;
-    showDeleteModal = false;
+    myMaps: DetailedMap[] = [];
+    publicMaps: DetailedMap[] = [];
     isCreateMapModalVisible = false;
     isChatVisible: boolean = false;
+    currentUsername: string = '';
 
     private readonly unsubscribe$ = new Subject<void>();
 
     constructor(
         private readonly router: Router,
         private readonly communicationMapService: CommunicationMapService,
-        private readonly mapService: MapService,
+        private readonly authService: AuthService,
+        private readonly socketService: SocketService,
     ) {
         this.router = router;
         this.communicationMapService = communicationMapService;
-        this.mapService = mapService;
+        this.authService = authService;
+        this.socketService = socketService;
     }
 
     navigateToMain(): void {
         this.router.navigate(['/main-menu']);
     }
 
-    ngOnInit(): void {
+    async ngOnInit(): Promise<void> {
+        try {
+            const userInfo = await this.authService.getUserInfo();
+            this.currentUsername = userInfo.user.username;
+        } catch (error) {
+            console.error('Erreur lors de la récupération des informations utilisateur:', error);
+        }
+
         this.communicationMapService
             .basicGet<DetailedMap[]>('admin')
             .pipe(takeUntil(this.unsubscribe$))
-            .subscribe((maps: DetailedMap[]) => (this.maps = maps));
+            .subscribe((maps: DetailedMap[]) => {
+                this.maps = maps;
+                this.separateMaps();
+            });
+
+        this.socketService
+            .listen<void>(AdminEvents.MapListUpdated)
+            .pipe(takeUntil(this.unsubscribe$))
+            .subscribe(() => {
+                this.updateDisplay();
+            });
     }
 
     toggleGameCreationModalVisibility(): void {
@@ -58,99 +82,19 @@ export class AdminPageComponent implements OnInit, OnDestroy {
         this.isCreateMapModalVisible = false;
     }
 
-    editMap(map: DetailedMap): void {
-        this.router.navigate([`/edition/${map._id}`]);
-    }
-
-    async deleteMap(mapId: string): Promise<void> {
-        try {
-            await this.mapService.deleteMap(mapId);
-            this.updateDisplay();
-        } catch (error: any) {
-            let errorMessage = 'Erreur lors de la suppression de la carte';
-            if (error.error) {
-                try {
-                    const errorObj = typeof error.error === 'string' ? JSON.parse(error.error) : error.error;
-                    errorMessage = errorObj.message || errorMessage;
-                } catch (e) {
-                    // Ignore parsing error, use default message
-                }
-            }
-            this.errorMessageModal.open(errorMessage);
-        }
-    }
-
-    async duplicateMap(map: DetailedMap): Promise<void> {
-        try {
-            await this.mapService.duplicateMap(map._id.toString());
-            this.updateDisplay();
-        } catch (error: any) {
-            let errorMessage = 'Erreur lors de la duplication du jeu';
-            if (error.error) {
-                try {
-                    const errorObj = typeof error.error === 'string' ? JSON.parse(error.error) : error.error;
-                    errorMessage = errorObj.message || errorMessage;
-                } catch (e) {
-                    // Ignore parsing error, use default message
-                }
-            }
-            this.errorMessageModal.open(errorMessage);
-        }
-    }
-
-    openConfirmationModal(map: DetailedMap): void {
-        this.currentMapId = map._id.toString();
-        this.showDeleteModal = true;
-    }
-
-    closeDeleteModal(): void {
-        this.showDeleteModal = false;
-        this.currentMapId = null;
-    }
-
-    confirmDelete(mapId: string): void {
-        this.deleteMap(mapId);
-        this.closeDeleteModal();
-    }
-
     updateDisplay(): void {
         this.communicationMapService
             .basicGet<DetailedMap[]>('admin')
             .pipe(takeUntil(this.unsubscribe$))
             .subscribe((maps: DetailedMap[]) => {
                 this.maps = maps;
+                this.separateMaps();
             });
     }
 
-    toggleVisibility(mapId: string): void {
-        this.communicationMapService
-            .basicPatch(`admin/${mapId}`)
-            .pipe(takeUntil(this.unsubscribe$))
-            .subscribe(() => this.updateDisplay());
-    }
-
-    formatDate(lastModified: Date): string {
-        const date = new Date(lastModified);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-
-        return `${year}-${month}-${day} ${hours}:${minutes}`;
-    }
-
-    stateInFrench(state: MapState): string {
-        switch (state) {
-            case MapState.Public:
-                return 'Publique';
-            case MapState.Private:
-                return 'Privée';
-            case MapState.Share:
-                return 'Privé-Partagé';
-            default:
-                return '';
-        }
+    private separateMaps(): void {
+        this.myMaps = this.maps.filter((map) => map.creator === this.currentUsername);
+        this.publicMaps = this.maps.filter((map) => map.state === MapState.Public && map.creator !== this.currentUsername);
     }
 
     ngOnDestroy(): void {
