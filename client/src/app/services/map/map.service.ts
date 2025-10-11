@@ -154,7 +154,7 @@ export class MapService {
         return 'Votre jeu a été sauvegardé avec succès!';
     }
 
-    async updateMap(mapId: string): Promise<string> {
+    async updateMap(mapId: string): Promise<void> {
         try {
             const userInfo = await this.authService.getUserInfo();
 
@@ -165,27 +165,8 @@ export class MapService {
 
             await firstValueFrom(this.communicationMapService.basicPut<any>(`admin/edition/${mapId}`, payload));
         } catch (error) {
-            if (error instanceof HttpErrorResponse) {
-                let errorMessage = 'Erreur inattendue, veuillez réessayer plus tard...';
-                if (error.error) {
-                    try {
-                        const errorObj = JSON.parse(error.error);
-                        if (typeof errorObj.message === 'string') {
-                            errorMessage = errorObj.message;
-                        } else {
-                            const message: string = errorObj.message.join(' ');
-                            errorMessage = message;
-                        }
-                    } catch (e) {
-                        return errorMessage;
-                    }
-                }
-                return errorMessage;
-            } else {
-                return 'Erreur inconnue, veuillez réessayer plus tard...';
-            }
+            throw error;
         }
-        return 'Votre jeu a été sauvegardé avec succès!';
     }
 
     async deleteMap(mapId: string): Promise<void> {
@@ -197,6 +178,20 @@ export class MapService {
             };
 
             await firstValueFrom(this.communicationMapService.basicDeleteWithBody(`admin/${mapId}`, payload));
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async duplicateMap(mapId: string): Promise<void> {
+        try {
+            const userInfo = await this.authService.getUserInfo();
+
+            const payload = {
+                username: userInfo.user.username,
+            };
+
+            await firstValueFrom(this.communicationMapService.basicPost<any>(`admin/duplicate/${mapId}`, payload));
         } catch (error) {
             throw error;
         }

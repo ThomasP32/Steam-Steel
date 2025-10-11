@@ -112,13 +112,32 @@ export class AdminController {
     @Delete('/:mapId')
     async deleteMap(@Param('mapId') mapId: string, @Body() body: { username: string }, @Res() response: Response) {
         try {
-
             await this.adminService.deleteMap(mapId, body.username);
             response.status(HttpStatus.OK).send();
         } catch (error) {
             return response.status(error.status || HttpStatus.BAD_REQUEST).json({
                 status: error.status || HttpStatus.BAD_REQUEST,
                 message: error.message || 'La suppression de la carte a échoué',
+            });
+        }
+    }
+
+    @ApiCreatedResponse({
+        description: 'Duplicate a public map',
+        type: Map,
+    })
+    @ApiNotFoundResponse({
+        description: 'Return NOT_FOUND http status when request fails',
+    })
+    @Post('/duplicate/:mapId')
+    async duplicateMap(@Param('mapId') mapId: string, @Body() body: { username: string }, @Res() response: Response) {
+        try {
+            const duplicatedMap = await this.adminService.duplicateMap(mapId, body.username);
+            response.status(HttpStatus.CREATED).json(duplicatedMap);
+        } catch (error) {
+            return response.status(error.status || HttpStatus.BAD_REQUEST).json({
+                status: error.status || HttpStatus.BAD_REQUEST,
+                message: error.message || 'La duplication du jeu a échoué',
             });
         }
     }

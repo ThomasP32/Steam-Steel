@@ -95,7 +95,6 @@ export class AuthController {
 
         this.userService.removeUserSession(userId);
 
-        // Supprimer toutes les cartes créées par cet utilisateur
         await this.adminService.deleteAllMapsByCreator(user.username);
 
         await this.userService.deleteById(userId);

@@ -32,7 +32,6 @@
         flex-grow: 1;
         font-size: 30px;
         text-align: center;
-        
     }
 
     .return-button {
@@ -65,8 +64,7 @@
         font-size: 14px;
         font-family: 'Press Start 2P';
     }
-    
-    
+
     .return-button:hover {
         background-color: #3b3f46;
     }
@@ -226,7 +224,8 @@
         gap: 15px;
 
         .edit-button,
-        .map-delete {
+        .map-delete,
+        .duplicate-button {
             flex: 1;
             display: flex;
             align-items: center;
@@ -251,6 +250,9 @@
             background-color: #3b3f46;
         }
 
+        .duplicate-button:hover {
+            background-color: #2980b9;
+        }
     }
 }
 

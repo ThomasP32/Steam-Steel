@@ -64,8 +64,12 @@ export class GameCreationPageComponent implements OnInit, OnDestroy {
                 this.mapAreaComponent.generateMap();
                 if (this.route.snapshot.params['id']) {
                     const id = this.route.snapshot.params['id'];
-                    const errorMessage = await this.mapService.updateMap(id);
-                    this.mapControlBarComponent.showError(errorMessage);
+                    try {
+                        await this.mapService.updateMap(id);
+                    } catch (error) {
+                        const errorMessage = 'Erreur lors de la sauvegarde du jeu';
+                        this.mapControlBarComponent.showError(errorMessage|| error as string);
+                    }
                 } else {
                     const errorMessage = await this.mapService.saveNewMap();
                     this.mapControlBarComponent.showError(errorMessage);

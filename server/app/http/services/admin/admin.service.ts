@@ -96,6 +96,48 @@ export class AdminService {
         }
     }
 
+    async duplicateMap(mapId: string, username: string): Promise<DetailedMap> {
+        const existingMap = await this.mapModel.findById(mapId);
+
+        if (!existingMap) {
+            throw new NotFoundException("Le jeu n'a pas été trouvé");
+        }
+
+        if (existingMap.state !== MapState.Public) {
+            throw new ForbiddenException('Seuls les jeux publics peuvent être dupliqués');
+        }
+
+        const baseName = existingMap.name + '_copie';
+        let duplicatedName = baseName;
+        let counter = 1;
+
+        while (!(await this.isUnique(duplicatedName))) {
+            duplicatedName = `${baseName}_${counter}`;
+            counter++;
+        }
+
+        const duplicatedMapData = {
+            name: duplicatedName,
+            description: existingMap.description,
+            imagePreview: existingMap.imagePreview,
+            mapSize: existingMap.mapSize,
+            tiles: existingMap.tiles,
+            doorTiles: existingMap.doorTiles,
+            startTiles: existingMap.startTiles,
+            items: existingMap.items,
+            mode: existingMap.mode,
+            state: MapState.Private,
+            creator: username,
+        };
+
+        try {
+            const duplicatedMap = await this.mapModel.create(duplicatedMapData);
+            return duplicatedMap;
+        } catch (error) {
+            throw new BadRequestException('La duplication du jeu a échoué');
+        }
+    }
+
     async modifyMap(mapId: string, updateMapDto: MapDto, username?: string): Promise<DetailedMap> {
         const existingMap = await this.mapModel.findById(mapId);
 

@@ -63,6 +63,11 @@
                             <button class="edit-button" (click)="editMap(map)">
                                 <i class="fas fa-pencil-alt"></i>
                             </button>
+                            @if (map.state === 'public') {
+                            <button class="duplicate-button" (click)="duplicateMap(map)" title="Dupliquer">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            }
                             <button class="map-delete" (click)="openConfirmationModal(map)">
                                 <i class="fas fa-trash"></i>
                             </button>

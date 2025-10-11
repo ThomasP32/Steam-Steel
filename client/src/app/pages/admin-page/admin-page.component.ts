@@ -80,6 +80,24 @@ export class AdminPageComponent implements OnInit, OnDestroy {
         }
     }
 
+    async duplicateMap(map: DetailedMap): Promise<void> {
+        try {
+            await this.mapService.duplicateMap(map._id.toString());
+            this.updateDisplay();
+        } catch (error: any) {
+            let errorMessage = 'Erreur lors de la duplication du jeu';
+            if (error.error) {
+                try {
+                    const errorObj = JSON.parse(error.error);
+                    errorMessage = errorObj.message || errorMessage;
+                } catch (e) {
+                    // Ignore parsing error, use default message
+                }
+            }
+            this.errorMessageModal.open(errorMessage);
+        }
+    }
+
     openConfirmationModal(map: DetailedMap): void {
         this.currentMapId = map._id.toString();
         this.showDeleteModal = true;
