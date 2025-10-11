@@ -14,15 +14,15 @@
                 <p class="size">Taille : {{ map.mapSize.x }} x {{ map.mapSize.y }}</p>
                 <p class="creator">Créateur : {{ map.creator }}</p>
                 <p class="state">État : {{ stateInFrench(map.state) }}</p>
-                 <p class="visibility" (click)="onToggleVisibility(map._id!.toString())">
-                                Visibilité : @if(map.isVisible) {
-                                <span> Public </span>
-                                <i class="fas fa-eye"></i>
-                                } @else {
-                                <span> Caché </span>
-                                <i class="fas fa-eye-slash"></i>
-                                }
-                            </p>
+                <p class="visibility" (click)="onToggleVisibility(map._id!.toString())">
+                    @if(map.isVisible) {
+                    <span> Visible </span>
+                    <i class="fas fa-eye"></i>
+                    } @else {
+                    <span> Caché </span>
+                    <i class="fas fa-eye-slash"></i>
+                    }
+                </p>
             </div>
             <div class="map-actions">
                 <button class="edit-button" (click)="onEditMap(map)">
@@ -48,8 +48,10 @@
     <div class="modal">
         <h2>Confirmer la suppression</h2>
         <p>Êtes-vous sûr de vouloir supprimer ce jeu ?</p>
-        <button class="modal-button" (click)="onConfirmDelete(currentMapId)">Oui</button>
-        <button class="modal-button" (click)="onCloseDeleteModal()">Non</button>
+        <div class="modal-buttons">
+            <button class="modal-button" (click)="onConfirmDelete(currentMapId)">Oui</button>
+            <button class="modal-button" (click)="onCloseDeleteModal()">Non</button>
+        </div>
     </div>
 </div>
 }

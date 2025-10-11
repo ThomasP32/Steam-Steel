@@ -23,7 +23,10 @@ export class MapListComponent implements OnDestroy {
     constructor(
         private readonly router: Router,
         private readonly mapService: MapService,
-    ) {}
+    ) {
+        this.router = router;
+        this.mapService = mapService;
+    }
 
     onEditMap(map: DetailedMap): void {
         this.router.navigate([`/edition/${map._id}`]);

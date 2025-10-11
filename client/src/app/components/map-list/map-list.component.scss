@@ -32,7 +32,7 @@
     position: relative;
     flex: 0 0 auto;
     width: 24vw;
-    height: calc(85vh - 40px);
+    height: calc(87vh - 40px);
     display: flex;
     overflow: hidden;
     flex-direction: column;
@@ -91,6 +91,7 @@
         .size,
         .creator,
         .state {
+            font-size: 0.9rem;
             margin: 5px 0;
             text-align: center;
             overflow: visible;
@@ -100,6 +101,7 @@
         }
 
         .visibility {
+            font-size: 0.9rem;
             margin: 5px 0;
             text-align: center;
             overflow: visible;
@@ -116,7 +118,6 @@
 
         .lastModified {
             font-size: 0.5rem;
-            margin: 5px 0;
             text-align: center;
             overflow: visible;
             white-space: normal;
@@ -295,6 +296,11 @@
     border: none;
 }
 
+.modal-buttons {
+    display: flex;
+    justify-content: center;
+}
+
 .modal-button {
     display: flex;
     align-items: center;
@@ -304,7 +310,6 @@
     border: 3px solid #202020;
     color: white;
     cursor: pointer;
-    margin-top: 20px;
     font-family: 'Press Start 2P', sans-serif;
     transition: background-color 0.3s ease;
 }

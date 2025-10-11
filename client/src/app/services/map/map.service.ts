@@ -153,39 +153,27 @@ export class MapService {
     }
 
     async deleteMap(mapId: string): Promise<void> {
-        try {
-            const userInfo = await this.authService.getUserInfo();
+        const userInfo = await this.authService.getUserInfo();
 
-            const payload = {
-                username: userInfo.user.username,
-            };
+        const payload = {
+            username: userInfo.user.username,
+        };
 
-            await firstValueFrom(this.communicationMapService.basicDeleteWithBody(`admin/${mapId}`, payload));
-        } catch (error) {
-            throw error;
-        }
+        await firstValueFrom(this.communicationMapService.basicDeleteWithBody(`admin/${mapId}`, payload));
     }
 
     async duplicateMap(mapId: string): Promise<void> {
-        try {
-            const userInfo = await this.authService.getUserInfo();
+        const userInfo = await this.authService.getUserInfo();
 
-            const payload = {
-                username: userInfo.user.username,
-            };
+        const payload = {
+            username: userInfo.user.username,
+        };
 
-            await firstValueFrom(this.communicationMapService.basicPost<any>(`admin/duplicate/${mapId}`, payload));
-        } catch (error) {
-            throw error;
-        }
+        await firstValueFrom(this.communicationMapService.basicPost<any>(`admin/duplicate/${mapId}`, payload));
     }
 
     async toggleMapVisibility(mapId: string): Promise<void> {
-        try {
-            await firstValueFrom(this.communicationMapService.basicPatch<any>(`admin/${mapId}`));
-        } catch (error) {
-            throw error;
-        }
+        await firstValueFrom(this.communicationMapService.basicPatch<any>(`admin/${mapId}`));
     }
 
     private handleHttpError(error: any): string {

@@ -15,7 +15,9 @@ import { Model, Types } from 'mongoose';
 export class AdminService {
     @InjectModel(Map.name) public mapModel: Model<MapDocument>;
 
-    constructor(private readonly adminGateway: AdminGateway) {}
+    constructor(private readonly adminGateway: AdminGateway) {
+        this.adminGateway = adminGateway;
+    }
 
     async getAllMaps(): Promise<Map[]> {
         return await this.mapModel.find({});

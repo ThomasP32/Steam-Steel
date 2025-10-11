@@ -1,12 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
+import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { MapConversionService } from '@app/services/map-conversion/map-conversion.service';
-import { TIME_LIMIT_DELAY } from '@common/constants';
+import { AdminEvents } from '@common/events/admin.events';
 import { Map } from '@common/map.types';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 @Component({
     selector: 'app-game-choice-page',
     standalone: true,
@@ -14,7 +15,7 @@ import { firstValueFrom } from 'rxjs';
     styleUrls: ['./game-choice-page.component.scss'],
     imports: [CommonModule, ChatroomComponent],
 })
-export class GameChoicePageComponent implements OnInit {
+export class GameChoicePageComponent implements OnInit, OnDestroy {
     map: Map;
     maps: Map[] = [];
     selectedMap: string | undefined = undefined;
@@ -25,16 +26,31 @@ export class GameChoicePageComponent implements OnInit {
     isChatVisible: boolean = false;
 
     private readonly router: Router = inject(Router);
+    private readonly unsubscribe$ = new Subject<void>();
 
     constructor(
         private readonly communicationMapService: CommunicationMapService,
         private readonly mapConversionService: MapConversionService,
+        private readonly socketService: SocketService,
     ) {
         this.communicationMapService = communicationMapService;
         this.mapConversionService = mapConversionService;
+        this.socketService = socketService;
     }
 
     async ngOnInit(): Promise<void> {
+        await this.loadMaps();
+
+        // Écouter les mises à jour des maps via WebSocket
+        this.socketService
+            .listen<void>(AdminEvents.MapListUpdated)
+            .pipe(takeUntil(this.unsubscribe$))
+            .subscribe(() => {
+                this.loadMaps();
+            });
+    }
+
+    private async loadMaps(): Promise<void> {
         this.maps = await firstValueFrom(this.communicationMapService.basicGet<Map[]>('map'));
     }
 
@@ -48,15 +64,7 @@ export class GameChoicePageComponent implements OnInit {
 
     async next() {
         if (this.selectedMap) {
-            const chosenMap = await firstValueFrom(this.communicationMapService.basicGet<Map>(`map/${this.selectedMap}`));
-            if (!chosenMap) {
-                this.showErrorMessage.gameChoiceError = true;
-                setTimeout(() => {
-                    this.router.navigate(['/']);
-                }, TIME_LIMIT_DELAY);
-            } else {
-                this.router.navigate([`create-game/${this.selectedMap}/create-character`]);
-            }
+            this.router.navigate([`create-game/${this.selectedMap}/create-character`]);
         } else {
             this.showErrorMessage.userError = true;
         }
@@ -64,5 +72,10 @@ export class GameChoicePageComponent implements OnInit {
 
     onReturn() {
         this.router.navigate(['/']);
+    }
+
+    ngOnDestroy(): void {
+        this.unsubscribe$.next();
+        this.unsubscribe$.complete();
     }
 }
