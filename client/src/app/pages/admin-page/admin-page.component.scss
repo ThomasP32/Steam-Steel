@@ -182,17 +182,18 @@
         }
 
         .mode,
-        .size {
-            font-size: 0.7rem;
+        .size,
+        .creator,
+        .state {
             margin: 5px 0;
             text-align: center;
             overflow: visible;
             white-space: normal;
             width: 100%;
+            font-style: italic;
         }
 
         .visibility {
-            font-size: 0.7rem;
             margin: 5px 0;
             text-align: center;
             overflow: visible;
@@ -200,7 +201,7 @@
             width: 100%;
             cursor: pointer;
             z-index: 3;
-
+            font-style: italic;
             &:hover {
                 color: #ffffff;
                 transform: scale(1.1);

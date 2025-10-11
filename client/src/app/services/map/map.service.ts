@@ -131,30 +131,12 @@ export class MapService {
 
             await firstValueFrom(this.communicationMapService.basicPost<any>('admin/creation', this.map));
         } catch (error) {
-            if (error instanceof HttpErrorResponse) {
-                let errorMessage = 'Erreur inattendue, veuillez réessayer plus tard...';
-                if (error.error) {
-                    try {
-                        const errorObj = JSON.parse(error.error);
-                        if (typeof errorObj.message === 'string') {
-                            errorMessage = errorObj.message;
-                        } else {
-                            const message: string = errorObj.message.join(' ');
-                            errorMessage = message;
-                        }
-                    } catch (e) {
-                        return errorMessage;
-                    }
-                }
-                return errorMessage;
-            } else {
-                return 'Erreur inconnue, veuillez réessayer plus tard...';
-            }
+            return this.handleHttpError(error);
         }
         return 'Votre jeu a été sauvegardé avec succès!';
     }
 
-    async updateMap(mapId: string): Promise<void> {
+    async updateMap(mapId: string): Promise<string> {
         try {
             const userInfo = await this.authService.getUserInfo();
 
@@ -165,8 +147,9 @@ export class MapService {
 
             await firstValueFrom(this.communicationMapService.basicPut<any>(`admin/edition/${mapId}`, payload));
         } catch (error) {
-            throw error;
+            return this.handleHttpError(error);
         }
+        return 'Votre jeu a été sauvegardé avec succès!';
     }
 
     async deleteMap(mapId: string): Promise<void> {
@@ -194,6 +177,28 @@ export class MapService {
             await firstValueFrom(this.communicationMapService.basicPost<any>(`admin/duplicate/${mapId}`, payload));
         } catch (error) {
             throw error;
+        }
+    }
+
+    private handleHttpError(error: any): string {
+        if (error instanceof HttpErrorResponse) {
+            let errorMessage = 'Erreur inattendue, veuillez réessayer plus tard...';
+            if (error.error) {
+                try {
+                    const errorObj = JSON.parse(error.error);
+                    if (typeof errorObj.message === 'string') {
+                        errorMessage = errorObj.message;
+                    } else {
+                        const message: string = errorObj.message.join(' ');
+                        errorMessage = message;
+                    }
+                } catch (e) {
+                    return errorMessage;
+                }
+            }
+            return errorMessage;
+        } else {
+            return 'Erreur inconnue, veuillez réessayer plus tard...';
         }
     }
 }

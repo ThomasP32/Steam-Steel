@@ -5,7 +5,7 @@ import { CreateMapModalComponent } from '@app/components/create-map-modal/create
 import { ErrorMessageComponent } from '@app/components/error-message-component/error-message.component';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { MapService } from '@app/services/map/map.service';
-import { DetailedMap } from '@common/map.types';
+import { DetailedMap, MapState } from '@common/map.types';
 import { Subject, takeUntil } from 'rxjs';
 
 @Component({
@@ -70,7 +70,7 @@ export class AdminPageComponent implements OnInit, OnDestroy {
             let errorMessage = 'Erreur lors de la suppression de la carte';
             if (error.error) {
                 try {
-                    const errorObj = JSON.parse(error.error);
+                    const errorObj = typeof error.error === 'string' ? JSON.parse(error.error) : error.error;
                     errorMessage = errorObj.message || errorMessage;
                 } catch (e) {
                     // Ignore parsing error, use default message
@@ -88,7 +88,7 @@ export class AdminPageComponent implements OnInit, OnDestroy {
             let errorMessage = 'Erreur lors de la duplication du jeu';
             if (error.error) {
                 try {
-                    const errorObj = JSON.parse(error.error);
+                    const errorObj = typeof error.error === 'string' ? JSON.parse(error.error) : error.error;
                     errorMessage = errorObj.message || errorMessage;
                 } catch (e) {
                     // Ignore parsing error, use default message
@@ -138,6 +138,19 @@ export class AdminPageComponent implements OnInit, OnDestroy {
         const minutes = String(date.getMinutes()).padStart(2, '0');
 
         return `${year}-${month}-${day} ${hours}:${minutes}`;
+    }
+
+    stateInFrench(state: MapState): string {
+        switch (state) {
+            case MapState.Public:
+                return 'Publique';
+            case MapState.Private:
+                return 'Privée';
+            case MapState.Share:
+                return 'Privé-Partagé';
+            default:
+                return '';
+        }
     }
 
     ngOnDestroy(): void {

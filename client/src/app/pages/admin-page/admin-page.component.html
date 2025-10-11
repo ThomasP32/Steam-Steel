@@ -48,7 +48,7 @@
                             <h2 class="name">{{ map.name }}</h2>
                             <p class="size">Taille : {{ map.mapSize.x }} x {{ map.mapSize.y }}</p>
                             <p class="creator">Créateur : {{ map.creator }}</p>
-                            <p class="state">État : {{ map.state }}</p>
+                            <p class="state">État : {{ stateInFrench(map.state) }}</p>
                             <p class="visibility" (click)="toggleVisibility(map._id!.toString())">
                                 Visibilité : @if(map.isVisible) {
                                 <span> Public </span>
