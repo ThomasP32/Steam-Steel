@@ -24,7 +24,9 @@ h2 {
         1px 1px 0 #000;
 }
 .title-area,
-.description-area {
+.description-area,
+.creator-area,
+.state-area {
     display: flex;
     flex-direction: column;
     gap: 5px;
@@ -66,7 +68,8 @@ textarea {
         -1px 1px 0 #000,
         1px 1px 0 #000;
 }
-input {
+input,
+select {
     font-size: 1rem;
     background-color: #2c3e50;
     color: white;
@@ -76,6 +79,16 @@ input {
         1px -1px 0 #000,
         -1px 1px 0 #000,
         1px 1px 0 #000;
+}
+
+select {
+    padding: 5px;
+    cursor: pointer;
+}
+
+select option {
+    background-color: #2c3e50;
+    color: white;
 }
 
 .edit-button {

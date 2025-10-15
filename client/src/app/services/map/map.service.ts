@@ -1,9 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService } from '@app/services/auth/auth.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { Cell } from '@common/map-cell';
-import { DetailedMap, ItemCategory, Map, Mode, TileCategory } from '@common/map.types';
+import { DetailedMap, ItemCategory, Map, MapState, Mode, TileCategory } from '@common/map.types';
 import { BehaviorSubject, Subject, firstValueFrom } from 'rxjs';
 
 @Injectable({
@@ -29,9 +30,11 @@ export class MapService {
     constructor(
         private readonly communicationMapService: CommunicationMapService,
         private readonly router: Router,
+        private readonly authService: AuthService,
     ) {
         this.communicationMapService = communicationMapService;
         this.router = router;
+        this.authService = authService;
     }
 
     async getMap(id: string): Promise<void> {
@@ -58,6 +61,8 @@ export class MapService {
             items: [],
             doorTiles: [],
             tiles: [],
+            state: MapState.Public,
+            creator: '',
         };
     }
 
@@ -120,55 +125,76 @@ export class MapService {
 
     async saveNewMap(): Promise<string> {
         try {
-            await firstValueFrom(this.communicationMapService.basicPost<Map>('admin/creation', this.map));
+            const userInfo = await this.authService.getUserInfo();
+
+            this.map.creator = userInfo.user.username;
+
+            await firstValueFrom(this.communicationMapService.basicPost<any>('admin/creation', this.map));
         } catch (error) {
-            if (error instanceof HttpErrorResponse) {
-                let errorMessage = 'Erreur inattendue, veuillez réessayer plus tard...';
-                if (error.error) {
-                    try {
-                        const errorObj = JSON.parse(error.error);
-                        if (typeof errorObj.message === 'string') {
-                            errorMessage = errorObj.message;
-                        } else {
-                            const message: string = errorObj.message.join(' ');
-                            errorMessage = message;
-                        }
-                    } catch (e) {
-                        return errorMessage;
-                    }
-                }
-                return errorMessage;
-            } else {
-                return 'Erreur inconnue, veuillez réessayer plus tard...';
-            }
+            return this.handleHttpError(error);
         }
         return 'Votre jeu a été sauvegardé avec succès!';
     }
 
     async updateMap(mapId: string): Promise<string> {
         try {
-            await firstValueFrom(this.communicationMapService.basicPut<Map>(`admin/edition/${mapId}`, this.map));
+            const userInfo = await this.authService.getUserInfo();
+
+            const payload = {
+                mapDto: this.map,
+                username: userInfo.user.username,
+            };
+
+            await firstValueFrom(this.communicationMapService.basicPut<any>(`admin/edition/${mapId}`, payload));
         } catch (error) {
-            if (error instanceof HttpErrorResponse) {
-                let errorMessage = 'Erreur inattendue, veuillez réessayer plus tard...';
-                if (error.error) {
-                    try {
-                        const errorObj = JSON.parse(error.error);
-                        if (typeof errorObj.message === 'string') {
-                            errorMessage = errorObj.message;
-                        } else {
-                            const message: string = errorObj.message.join(' ');
-                            errorMessage = message;
-                        }
-                    } catch (e) {
-                        return errorMessage;
-                    }
-                }
-                return errorMessage;
-            } else {
-                return 'Erreur inconnue, veuillez réessayer plus tard...';
-            }
+            return this.handleHttpError(error);
         }
         return 'Votre jeu a été sauvegardé avec succès!';
+    }
+
+    async deleteMap(mapId: string): Promise<void> {
+        const userInfo = await this.authService.getUserInfo();
+
+        const payload = {
+            username: userInfo.user.username,
+        };
+
+        await firstValueFrom(this.communicationMapService.basicDeleteWithBody(`admin/${mapId}`, payload));
+    }
+
+    async duplicateMap(mapId: string): Promise<void> {
+        const userInfo = await this.authService.getUserInfo();
+
+        const payload = {
+            username: userInfo.user.username,
+        };
+
+        await firstValueFrom(this.communicationMapService.basicPost<any>(`admin/duplicate/${mapId}`, payload));
+    }
+
+    async toggleMapVisibility(mapId: string): Promise<void> {
+        await firstValueFrom(this.communicationMapService.basicPatch<any>(`admin/${mapId}`));
+    }
+
+    private handleHttpError(error: any): string {
+        if (error instanceof HttpErrorResponse) {
+            let errorMessage = 'Erreur inattendue, veuillez réessayer plus tard...';
+            if (error.error) {
+                try {
+                    const errorObj = JSON.parse(error.error);
+                    if (typeof errorObj.message === 'string') {
+                        errorMessage = errorObj.message;
+                    } else {
+                        const message: string = errorObj.message.join(' ');
+                        errorMessage = message;
+                    }
+                } catch (e) {
+                    return errorMessage;
+                }
+            }
+            return errorMessage;
+        } else {
+            return 'Erreur inconnue, veuillez réessayer plus tard...';
+        }
     }
 }
