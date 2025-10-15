@@ -2,11 +2,6 @@
     <div class="info-section">
         <div class="header-section">
             <h2>Informations sur le jeu</h2>
-            @if(!editMode) {
-            <button (click)="toggleEditing()" class="edit-button">
-                <i class="fas fa-pencil-alt"></i>
-            </button>
-            }
         </div>
         <div class="input-section">
             <div class="title-area">
@@ -40,14 +35,18 @@
                 <select [(ngModel)]="mapState">
                     <option [value]="MapState.Public">Public</option>
                     <option [value]="MapState.Private">Privé</option>
-                    <option [value]="MapState.Share">Partagé</option>
+                    <option [value]="MapState.Share">Privé-Partagé</option>
                 </select>
                 } @else {
                 <p>{{ mapState === MapState.Public ? 'Public' : mapState === MapState.Private ? 'Privé' : 'Partagé' }}</p>
                 }
             </div>
         </div>
-        @if(editMode) {
+        @if(!editMode) {
+        <button (click)="toggleEditing()" class="edit-button">
+            <i class="fas fa-pencil-alt"></i>
+        </button>
+        } @if(editMode) {
         <button (click)="toggleEditing()" class="save-button">Sauvegarder</button>
         }
     </div>
