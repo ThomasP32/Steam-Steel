@@ -24,12 +24,12 @@ class AuthService {
 
   final http.Client _client = http.Client();
 
-  Future<void> login(String email, String password) async {
+  Future<void> login(String username, String password) async {
     final uri = Uri.parse('${ApiClient.baseUrl}/api/auth/login');
     final r = await _client.post(
       uri,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
+      body: jsonEncode({'username': username, 'password': password}),
     );
     DebugLogger.log(
       'Auth.login response status: ${r.statusCode}',

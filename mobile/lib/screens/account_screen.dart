@@ -95,7 +95,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _login() async {
     if (mounted) setState(() => _loading = true);
     try {
-      await _authService.login(_emailCtrl.text, _passCtrl.text);
+      await _authService.login(_usernameCtrl.text, _passCtrl.text);
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -172,8 +172,8 @@ class _AuthScreenState extends State<AuthScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
-              controller: _emailCtrl,
-              decoration: const InputDecoration(labelText: 'Email'),
+              controller: _usernameCtrl,
+              decoration: const InputDecoration(labelText: 'Pseudonyme'),
             ),
             TextField(
               controller: _passCtrl,
