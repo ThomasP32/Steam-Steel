@@ -57,6 +57,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
     activeView: GamePageActiveView = GamePageActiveView.Chat;
     activePlayers: Player[];
     opponent: Player;
+    combatPlayer: Player;
     possibleOpponents: Player[];
     doorActionAvailable: boolean = false;
 
@@ -137,6 +138,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
 
             this.listenForEndOfGame();
             this.listenForOpponent();
+            this.listenForCombatPlayer();
             this.listenForStartTurnDelay();
             this.listenForFalling();
             this.listenForCountDown();
@@ -302,6 +304,12 @@ export class GamePageComponent implements OnInit, OnDestroy {
     private listenForOpponent() {
         this.combatService.opponent$.subscribe((opponent) => {
             this.opponent = opponent;
+        });
+    }
+
+    private listenForCombatPlayer() {
+        this.combatService.combatPlayer$.subscribe((combatPlayer) => {
+            this.combatPlayer = combatPlayer;
         });
     }
 

@@ -31,6 +31,7 @@
         <p>{{ combatMessage }}</p>
     </div>
 
+    @if(!isObserver) {
     <div class="button-container">
         @if(attacking) {
         <p class="dice">{{ attackTotal }}</p>
@@ -46,6 +47,7 @@
         <p class="dice">{{ attackTotal }}</p>
         }
     </div>
+    }
 
     <div class="turn-messages">
         <p>{{ turnMessage }}</p>

@@ -4,7 +4,8 @@
         class="player"
         [ngClass]="{
             'active-player': player.name === currentPlayerTurn,
-            'player-left': !isPlayerActive(player)
+            'player-left': !isPlayerActive(player),
+            'observation-mode': player.isObservationMode
         }"
     >
         <div class="turn-arrow" *ngIf="player.name === currentPlayerTurn"><img src="assets/icons/arrow.png" alt="Trophée" class="icon" /></div>

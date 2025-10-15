@@ -51,6 +51,11 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         const game = this.gameCreationService.getGameById(data.gameId);
         if (game) {
             const player = game.players.find((player) => player.turn === game.currentTurn);
+
+            if (player?.isObservationMode || data.opponent?.isObservationMode) {
+                return;
+            }
+    
             const combat = this.combatService.createCombat(data.gameId, player, data.opponent);
             this.itemsManagerService.checkForAmulet(player, data.opponent);
             await client.join(combat.id);
@@ -65,6 +70,16 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                 }
             }
             if (opponentSocket) {
+                // Add observers to combat room
+                const observers = game.players.filter((p) => p.isObservationMode);
+                const sockets = await this.server.in(data.gameId).fetchSockets();
+                for (const observer of observers) {
+                    const observerSocket = sockets.find((socket) => socket.id === observer.socketId);
+                    if (observerSocket) {
+                        await observerSocket.join(combat.id);
+                    }
+                }
+
                 const combatStartedData: CombatStartedData = {
                     challenger: player,
                     opponent: data.opponent,
@@ -109,6 +124,11 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                     this.journalService.logMessage(gameId, `Fin de combat. ${evadingPlayer.name} s'est évadé.`, [evadingPlayer.name]);
                     this.combatCountdownService.deleteCountdown(gameId);
                     setTimeout(async () => {
+                        const game = this.gameCreationService.getGameById(gameId);
+                        if (!game) {
+                            console.warn(`[CombatGateway] startEvasion setTimeout: Game ${gameId} not found (likely already ended)`);
+                            return;
+                        }
                         const combatFinishedByEvasionData: CombatFinishedByEvasionData = { updatedGame: game, evadingPlayer: evadingPlayer };
                         this.server.to(gameId).emit(CombatEvents.CombatFinishedByEvasion, combatFinishedByEvasionData);
                         this.gameCountdownService.resumeCountdown(gameId);
@@ -153,7 +173,6 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             if (defendingPlayer.specs.life === 0) {
                 this.handleCombatLost(defendingPlayer, attackingPlayer, gameId, combat.id);
             } else {
-                this.combatCountdownService.resetTimerSubscription(gameId);
                 this.prepareNextTurn(gameId);
             }
         }
@@ -162,15 +181,21 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     handleCombatLost(defendingPlayer: Player, attackingPlayer: Player, gameId: string, combatId: string) {
         const game = this.gameCreationService.getGameById(gameId);
         this.combatService.combatWinStatsUpdate(attackingPlayer, gameId);
-        
-        const isElimination = game.settings.isFastElimination;
-        console.log('The game is in elimination mode?: ' + isElimination);
+                
         if(game.settings.isFastElimination){
             defendingPlayer.isObservationMode = true;
-        }
+            // Also update the player in game.players array
+            const playerInGame = game.players.find(p => p.socketId === defendingPlayer.socketId);
+            if (playerInGame) {
+                playerInGame.isObservationMode = true;
+            }
+            console.log(`[ELIMINATION DEBUG] Player ${defendingPlayer.name} set to observation mode (isObservationMode: ${defendingPlayer.isObservationMode})`);
+        } 
 
         this.itemsManagerService.dropInventory(defendingPlayer, gameId);
-        this.combatService.sendBackToInitPos(defendingPlayer, game);
+        if (!game.settings.isFastElimination){
+            this.combatService.sendBackToInitPos(defendingPlayer, game);
+        }
         this.combatService.updatePlayersInGame(game);
 
         this.server.to(combatId).emit(CombatEvents.CombatFinishedNormally, attackingPlayer);
@@ -188,18 +213,41 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
 
         this.combatCountdownService.deleteCountdown(gameId);
         setTimeout(() => {
+            const game = this.gameCreationService.getGameById(gameId);
+            if (!game) {
+                console.warn(`[CombatGateway] handleCombatLost setTimeout: Game ${gameId} not found (likely already ended)`);
+                return;
+            }
             const combatFinishedData: CombatFinishedData = { updatedGame: game, winner: attackingPlayer, loser: defendingPlayer };
             this.server.to(gameId).emit(CombatEvents.CombatFinished, combatFinishedData);
+            
             if (this.combatService.checkForGameWinner(game.id, attackingPlayer)) {
                 this.combatService.markClassicGameWinners(game.id, game);
 
                 this.server.to(gameId).emit(CombatEvents.GameFinished, { updatedGame: game });
                 this.server.to(gameId).emit(CombatEvents.GameFinishedPlayerWon, attackingPlayer);
+                
+                // Clean up combat resources before ending
+                this.combatService.deleteCombat(game.id);
+                this.cleanupCombatRoom(combatId);
                 return;
+            } else {
+                if(game.settings.isFastElimination){
+                    const observationModeData: PlayerEnteredObservationModeData = {
+                        player: defendingPlayer,
+                        message: 'Vous avez perdu le combat et êtes maintenant en mode observation.'
+                    };
+                    this.server.to(defendingPlayer.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
+                }
             }
             if (game.currentTurn === attackingPlayer.turn) {
                 this.gameCountdownService.resumeCountdown(gameId);
-                this.server.to(attackingPlayer.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
+                if (attackingPlayer.socketId.includes('virtual')) {
+                    // Virtual player won and can continue their turn
+                    this.virtualGameManager.executeVirtualPlayerBehavior(attackingPlayer, game);
+                } else {
+                    this.server.to(attackingPlayer.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
+                }
             } else {
                 this.gameCountdownService.emit(CountdownEvents.Timeout, gameId);
             }
@@ -224,28 +272,31 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             const currentPlayer = combat.currentTurnSocketId === combat.challenger.socketId ? combat.challenger : combat.opponent;
             const otherPlayer = combat.currentTurnSocketId === combat.challenger.socketId ? combat.opponent : combat.challenger;
             this.server.to(otherPlayer.socketId).emit(CombatEvents.PlayerTurnCombat);
-            this.combatCountdownService.startTurnCounter(game, currentPlayer.specs.evasions === 0 ? false : true);
 
             if (combat.currentTurnSocketId.includes('virtual')) {
                 setTimeout(() => {
                     const isCombatFinishedByEvasion = this.virtualGameManager.handleVirtualPlayerCombat(currentPlayer, otherPlayer, game.id, combat);
                     if (otherPlayer.specs.life === 0) {
                         this.handleCombatLost(otherPlayer, currentPlayer, game.id, combat.id);
-                        this.virtualGameManager.executeVirtualPlayerBehavior(currentPlayer, game);
+                        // Don't execute virtual player behavior here - it will be handled in handleCombatLost after checking for game winner
                     } else if (isCombatFinishedByEvasion) {
                         setTimeout(async () => {
+                            const game = this.gameCreationService.getGameById(gameId);
+                            if (!game) {
+                                console.warn(`[CombatGateway] startCombatTurns virtual evasion setTimeout: Game ${gameId} not found (likely already ended)`);
+                                return;
+                            }
                             const combatFinishedByEvasionData: CombatFinishedByEvasionData = { updatedGame: game, evadingPlayer: currentPlayer };
                             this.server.to(gameId).emit(CombatEvents.CombatFinishedByEvasion, combatFinishedByEvasionData);
                             this.gameCountdownService.resumeCountdown(gameId);
                             this.cleanupCombatRoom(combat.id);
                             this.combatService.deleteCombat(gameId);
 
-                            if (this.gameCreationService.getGameById(gameId).currentTurn === currentPlayer.turn) {
+                            if (this.gameCreationService.getGameById(gameId)?.currentTurn === currentPlayer.turn) {
                                 await this.virtualGameManager.executeVirtualPlayerBehavior(currentPlayer, game);
                             }
                         }, TIME_LIMIT_DELAY);
                     } else {
-                        this.combatCountdownService.resetTimerSubscription(gameId);
                         this.prepareNextTurn(gameId);
                     }
                 }, TIME_LIMIT_DELAY);
@@ -313,8 +364,15 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         const winner = client.id === combat.challenger.socketId ? combat.opponent : combat.challenger;
         disconnectedPlayer.isActive = false;
         
+        
         if(updatedGame.settings.isFastElimination) {
             disconnectedPlayer.isObservationMode = true;
+            // Also update the player in game.players array
+            const playerInGame = updatedGame.players.find(p => p.socketId === disconnectedPlayer.socketId);
+            if (playerInGame) {
+                playerInGame.isObservationMode = true;
+            }
+            console.log(`[ELIMINATION DEBUG] Disconnected player ${disconnectedPlayer.name} set to observation mode via disconnection`);
         }
 
         this.combatService.combatWinStatsUpdate(winner, updatedGame.id);
@@ -329,24 +387,43 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             this.server.to(disconnectedPlayer.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
         }       
 
+
+        if(updatedGame.settings.isFastElimination) {
+            const observationModeData: PlayerEnteredObservationModeData = {
+                player: disconnectedPlayer,
+                message: 'Vous avez perdu le combat par déconnexion et êtes maintenant en mode observation.'
+            };
+            this.server.to(disconnectedPlayer.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
+        }       
+
         this.combatCountdownService.deleteCountdown(updatedGame.id);
 
         setTimeout(() => {
-            const combatFinishedData: CombatFinishedData = { updatedGame: updatedGame, winner: winner, loser: disconnectedPlayer };
-            this.server.to(updatedGame.id).emit(CombatEvents.CombatFinished, combatFinishedData);
+            const game = this.gameCreationService.getGameById(updatedGame.id);
+            if (!game) {
+                console.warn(`[CombatGateway] handleCombatDisconnection setTimeout: Game ${updatedGame.id} not found (likely already ended)`);
+                return;
+            }
+            const combatFinishedData: CombatFinishedData = { updatedGame: game, winner: winner, loser: disconnectedPlayer };
+            this.server.to(game.id).emit(CombatEvents.CombatFinished, combatFinishedData);
 
-            if (this.combatService.checkForGameWinner(updatedGame.id, winner)) {
-                this.combatService.markClassicGameWinners(updatedGame.id, updatedGame);
-                this.server.to(updatedGame.id).emit(CombatEvents.GameFinishedPlayerWon, winner);
+            if (this.combatService.checkForGameWinner(game.id, winner)) {
+                this.combatService.markClassicGameWinners(game.id, game);
+                this.server.to(game.id).emit(CombatEvents.GameFinishedPlayerWon, winner);
+                
+                // Clean up combat resources before ending
+                this.combatService.deleteCombat(game.id);
+                this.cleanupCombatRoom(combat.id);
                 return;
             }
 
-            if (updatedGame.currentTurn === winner.turn) {
-                this.gameCountdownService.resumeCountdown(updatedGame.id);
+            if (game.currentTurn === winner.turn) {
+                this.gameCountdownService.resumeCountdown(game.id);
             } else {
-                this.gameCountdownService.emit(CountdownEvents.Timeout, updatedGame.id);
+                this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
             }
 
+            this.combatService.deleteCombat(game.id);
             this.cleanupCombatRoom(combat.id);
         }, TIME_LIMIT_DELAY);
     }

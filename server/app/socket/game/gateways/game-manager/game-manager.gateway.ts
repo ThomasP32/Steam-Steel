@@ -185,6 +185,11 @@ export class GameManagerGateway implements OnGatewayInit {
     }
 
     prepareNextTurn(gameId: string): void {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[GameManagerGateway] prepareNextTurn: Game ${gameId} not found (likely already ended)`);
+            return;
+        }
         this.gameCountdownService.resetTimerSubscription(gameId);
         this.gameManagerService.updateTurnCounter(gameId);
 
@@ -193,6 +198,10 @@ export class GameManagerGateway implements OnGatewayInit {
 
     startTurn(gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[GameManagerGateway] startTurn: Game ${gameId} not found (likely already ended)`);
+            return;
+        }
         if (!this.gameManagerService.isGameResumable(gameId)) {
             this.gameCreationService.deleteRoom(gameId);
             this.gameCountdownService.resetTimerSubscription(gameId);
@@ -201,8 +210,11 @@ export class GameManagerGateway implements OnGatewayInit {
         }
         const activePlayer = game.players.find((player) => player.turn === game.currentTurn);
         const involvedPlayers = game.players.map((player) => player.name);
-        if (!activePlayer?.isActive) {
+        if (!activePlayer?.isActive || activePlayer?.isObservationMode) {
             game.currentTurn++;
+            if (game.currentTurn >= game.players.length) {
+                game.currentTurn = 0;
+            }
             this.startTurn(gameId);
             return;
         }
@@ -252,12 +264,17 @@ export class GameManagerGateway implements OnGatewayInit {
             this.server.to(game.id).emit(GameManagerEvents.PositionToUpdate, { game: game, player: player });
             await new Promise((resolve) => setTimeout(resolve, TIME_FOR_POSITION_UPDATE));
             if (this.gameManagerService.checkForWinnerCtf(player, game.id)) {
-                this.gameManagerService.markCtfGameWinners(game.id, game);
-                this.server.to(game.id).emit(CombatEvents.GameFinished, { updatedGame: game });
-                this.server.to(game.id).emit(CombatEvents.GameFinishedPlayerWon, player);
-                return true;
+                return this.finishCtfGame(game,player);
             }
         }
         return false;
+    }
+
+    private finishCtfGame(game: Game, player: Player): boolean {
+        this.gameManagerService.markCtfGameWinners(game.id, game);
+        this.server.to(game.id).emit(CombatEvents.GameFinished, { updatedGame: game });
+        // TODO est-ce que l'event est envoye a tout le monde??
+        this.server.to(game.id).emit(CombatEvents.GameFinishedPlayerWon, player);
+        return true;
     }
 }

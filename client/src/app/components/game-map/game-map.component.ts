@@ -91,7 +91,7 @@ export class GameMapComponent implements OnInit, OnChanges {
         });
 
         loadedMap.players.forEach((player) => {
-            if (player.isActive) {
+            if (player.isActive && !player.isObservationMode) {
                 this.map[player.position.x][player.position.y].player = player;
             }
         });

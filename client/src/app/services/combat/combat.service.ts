@@ -50,6 +50,9 @@ export class CombatService {
     private readonly opponent = new BehaviorSubject<Player>(this.defaultPlayer);
     public opponent$ = this.opponent.asObservable();
 
+    private readonly combatPlayer = new BehaviorSubject<Player>(this.defaultPlayer);
+    public combatPlayer$ = this.combatPlayer.asObservable();
+
     private readonly showObservationModeModal = new BehaviorSubject<boolean>(false);
     public showObservationModeModal$ = this.showObservationModeModal.asObservable();
 
@@ -67,12 +70,27 @@ export class CombatService {
     listenCombatStart() {
         this.socketSubscription.add(
             this.socketService.listen<CombatStartedData>(CombatEvents.CombatStarted).subscribe((data) => {
-                if (this.playerService.player.socketId === data.challenger.socketId) {
+                const currentPlayer = this.playerService.player;
+                
+                // Check if this player is actually in the combat or just observing
+                const isParticipant = currentPlayer.socketId === data.challenger.socketId || 
+                                     currentPlayer.socketId === data.opponent.socketId;
+                
+                
+                if (isParticipant) {
+                    // Player is in the combat
+                    if (currentPlayer.socketId === data.challenger.socketId) {
+                        this.opponent.next(data.opponent);
+                    } else {
+                        this.opponent.next(data.challenger);
+                    }
+                    this.isCombatModalOpen.next(true);
+                } else if (currentPlayer.isObservationMode) {
+                    // Player is observing - set both combatants
+                    this.combatPlayer.next(data.challenger);
                     this.opponent.next(data.opponent);
-                } else {
-                    this.opponent.next(data.challenger);
+                    this.isCombatModalOpen.next(true);
                 }
-                this.isCombatModalOpen.next(true);
             }),
         );
     }

@@ -11,6 +11,7 @@
     "outDir": "out",
     "baseUrl": "./",
     "incremental": true,
+    "inlineSources": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
     "noImplicitAny": false,

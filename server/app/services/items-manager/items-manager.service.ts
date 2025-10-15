@@ -31,13 +31,17 @@ export class ItemsManagerService {
 
     pickUpItem(pos: Coordinate, gameId: string, player: Player): void {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[ItemsManagerService] pickUpItem: Game ${gameId} not found (likely already ended)`);
+            return;
+        }
         const itemIndex = game.items.findIndex((item) => item.coordinate.x === pos.x && item.coordinate.y === pos.y);
         if (itemIndex !== -1) {
             const item = game.items[itemIndex].category;
             player.inventory.push(item);
             player.specs.nItemsUsed++;
             if (item === ItemCategory.Flag) {
-                if (game.mode === Mode.Ctf) {
+                if (game && game.mode === Mode.Ctf) {
                     (game as GameCtf).nPlayersCtf.push(player);
                 }
             }
@@ -53,6 +57,10 @@ export class ItemsManagerService {
 
     dropItem(itemDropping: ItemCategory, gameId: string, player: Player, coordinates: Coordinate): void {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[ItemsManagerService] dropItem: Game ${gameId} not found (likely already ended)`);
+            return;
+        }
         const itemIndex = player.inventory.findIndex((item) => item === itemDropping);
         if (itemIndex !== -1) {
             const item = player.inventory[itemIndex];
@@ -99,9 +107,12 @@ export class ItemsManagerService {
     }
 
     onItem(player: Player, gameId: string): boolean {
-        return this.gameCreationService
-            .getGameById(gameId)
-            .items.some((item) => item.coordinate.x === player.position.x && item.coordinate.y === player.position.y);
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[ItemsManagerService] onItem: Game ${gameId} not found (likely already ended)`);
+            return false;
+        }
+        return game.items.some((item) => item.coordinate.x === player.position.x && item.coordinate.y === player.position.y);
     }
 
     checkForAmulet(challenger: Player, opponent: Player): void {

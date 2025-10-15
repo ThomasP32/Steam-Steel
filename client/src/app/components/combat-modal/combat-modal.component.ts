@@ -16,6 +16,7 @@ import { Subscription } from 'rxjs';
 export class CombatModalComponent implements OnInit, OnDestroy {
     @Input() player: Player;
     @Input() opponent: Player;
+    @Input() isObserver: boolean = false;
 
     countdown: number;
     combatMessage: string;
@@ -46,6 +47,9 @@ export class CombatModalComponent implements OnInit, OnDestroy {
     }
 
     get turnMessage(): string {
+        if (this.isObserver) {
+            return `Combat en cours...`;
+        }
         if (this.isYourTurn) {
             return `C'est à votre tour de jouer!`;
         } else {
@@ -77,20 +81,31 @@ export class CombatModalComponent implements OnInit, OnDestroy {
                 if (playerAttacked.socketId === this.opponent.socketId) this.opponent = playerAttacked;
                 else if (playerAttacked.socketId === this.player.socketId) this.player = playerAttacked;
 
-                if (playerAttacked.socketId === this.opponent.socketId) {
-                    this.combatMessage = `Vous avez attaqué ${this.opponent.name}`;
+                if (this.isObserver) {
+                    // Neutral message for observers
+                    const attacker = playerAttacked.socketId === this.opponent.socketId ? this.player.name : this.opponent.name;
+                    this.combatMessage = `${attacker} a attaqué ${playerAttacked.name}`;
                 } else {
-                    this.combatMessage = `${this.opponent.name} vous a attaqué`;
+                    if (playerAttacked.socketId === this.opponent.socketId) {
+                        this.combatMessage = `Vous avez attaqué ${this.opponent.name}`;
+                    } else {
+                        this.combatMessage = `${this.opponent.name} vous a attaqué`;
+                    }
                 }
             }),
         );
 
         this.socketSubscription.add(
             this.socketService.listen<Player>(CombatEvents.AttackFailure).subscribe((playerAttacked) => {
-                if (playerAttacked.socketId === this.opponent.socketId) {
-                    this.combatMessage = `${playerAttacked.name} a survécu à votre attaque`;
+                if (this.isObserver) {
+                    // Neutral message for observers
+                    this.combatMessage = `${playerAttacked.name} a survécu à une attaque`;
                 } else {
-                    this.combatMessage = `Vous avez survécu à une attaque`;
+                    if (playerAttacked.socketId === this.opponent.socketId) {
+                        this.combatMessage = `${playerAttacked.name} a survécu à votre attaque`;
+                    } else {
+                        this.combatMessage = `Vous avez survécu à une attaque`;
+                    }
                 }
             }),
         );
@@ -134,9 +149,11 @@ export class CombatModalComponent implements OnInit, OnDestroy {
     }
 
     listenForCountdown() {
-        this.combatCountDownService.combatCountdown$.subscribe((timeLeft: number) => {
-            this.countdown = timeLeft;
-        });
+        this.socketSubscription.add(
+            this.combatCountDownService.combatCountdown$.subscribe((timeLeft: number) => {
+                this.countdown = timeLeft;
+            }),
+        );
     }
 
     ngOnDestroy() {

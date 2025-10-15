@@ -57,7 +57,7 @@ export class VirtualGameManagerService extends EventEmitter {
         const possibleMoves = this.gameManagerService.getMoves(game.id, player.socketId);
         const hasSkates = player.inventory.includes(ItemCategory.IceSkates);
         const finalPath: Coordinate[] = [];
-        if (possibleMoves.length === MINIMUM_MOVES) {
+        if (possibleMoves.length <= MINIMUM_MOVES) {
             this.emit(VirtualPlayerEvents.VirtualPlayerFinishedMoving, game.id);
             return [];
         }
@@ -77,6 +77,10 @@ export class VirtualGameManagerService extends EventEmitter {
 
     async updateVirtualPlayerPosition(player: Player, gameId: string): Promise<boolean> {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[VirtualGameManagerService] updateVirtualPlayerPosition: Game ${gameId} not found (likely already ended)`);
+            return false;
+        }
         let wasOnIceTile = false;
         if (this.gameManagerService.onIceTile(player, game.id)) wasOnIceTile = true;
         if (player) {
@@ -89,6 +93,10 @@ export class VirtualGameManagerService extends EventEmitter {
 
     async updatePosition(player: Player, path: Coordinate[], gameId: string, wasOnIceTile: boolean) {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[VirtualGameManagerService] updatePosition: Game ${gameId} not found (likely already ended)`);
+            return;
+        }
         for (const move of path) {
             this.gameManagerService.updatePosition(game.id, player.socketId, [move]);
             const onItem = this.itemsManagerService.onItem(player, game.id);
@@ -163,7 +171,7 @@ export class VirtualGameManagerService extends EventEmitter {
     }
 
     getPlayersInArea(area: Coordinate[], players: Player[], activePlayer: Player): Player[] {
-        const filteredPlayers = players.filter((player) => player !== activePlayer);
+        const filteredPlayers = players.filter((player) => player !== activePlayer && player.isActive && !player.isObservationMode);
         return filteredPlayers.filter((player) =>
             area.some((coordinate) => coordinate.x === player.position.x && coordinate.y === player.position.y),
         );
@@ -196,10 +204,26 @@ export class VirtualGameManagerService extends EventEmitter {
         const opponentSocket = sockets.find((socket) => socket.id === combat.opponent.socketId);
 
         if (combat.challenger.socketId.includes('virtual') && combat.opponent.socketId.includes('virtual')) {
+            // Add observers to combat room
+            const observers = game.players.filter((p) => p.isObservationMode);
+            for (const observer of observers) {
+                const observerSocket = sockets.find((socket) => socket.id === observer.socketId);
+                if (observerSocket) {
+                    await observerSocket.join(combat.id);
+                }
+            }
             this.startRegularCombat(combat, game);
             return true;
         } else if (opponentSocket) {
             await opponentSocket.join(combat.id);
+            // Add observers to combat room
+            const observers = game.players.filter((p) => p.isObservationMode);
+            for (const observer of observers) {
+                const observerSocket = sockets.find((socket) => socket.id === observer.socketId);
+                if (observerSocket) {
+                    await observerSocket.join(combat.id);
+                }
+            }
             this.startRegularCombat(combat, game);
             return true;
         }
@@ -273,6 +297,10 @@ export class VirtualGameManagerService extends EventEmitter {
         const evasionSuccess = Math.random() < EVASION_SUCCESS_RATE;
         if (evasionSuccess) {
             const game = this.gameCreationService.getGameById(gameId);
+            if (!game) {
+                console.warn(`[VirtualGameManagerService] attemptEvasion: Game ${gameId} not found (likely already ended)`);
+                return false;
+            }
             this.combatService.updatePlayersInGame(game);
             this.server.to(combat.id).emit(CombatEvents.EvasionSuccess, player);
             this.journalService.logMessage(gameId, `Fin de combat. ${player.name} s'est évadé.`, [player.name]);
@@ -288,6 +316,10 @@ export class VirtualGameManagerService extends EventEmitter {
     startCombatTurns(gameId: string): void {
         const combat = this.combatService.getCombatByGameId(gameId);
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[VirtualGameManagerService] startCombatTurns: Game ${gameId} not found (likely already ended)`);
+            return;
+        }
         if (combat) {
             this.server.to(combat.currentTurnSocketId).emit(CombatEvents.YourTurnCombat);
             const currentPlayer = combat.currentTurnSocketId === combat.challenger.socketId ? combat.challenger : combat.opponent;
