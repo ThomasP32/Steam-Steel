@@ -406,7 +406,7 @@ class _ChatWidgetState extends State<ChatWidget>
                               final raw = _messages[i];
                               final m = chatService.ensureMessage(raw);
                               final time =
-                                  '${m.timestamp.hour.toString().padLeft(2, '0')}:${m.timestamp.minute.toString().padLeft(2, '0')}';
+                                  '${m.timestamp.hour.toString().padLeft(2, '0')}:${m.timestamp.minute.toString().padLeft(2, '0')}:${m.timestamp.second.toString().padLeft(2, '0')}';
                               final mine = m.author == _userName;
                               final Widget messageCard = Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -488,6 +488,7 @@ class _ChatWidgetState extends State<ChatWidget>
                 Expanded(
                   child: TextField(
                     controller: _inputCtrl,
+                    focusNode: _inputFocusNode,
                     decoration: const InputDecoration(
                       hintText: 'Message',
                       filled: true,
@@ -692,6 +693,7 @@ class _ChatWidgetState extends State<ChatWidget>
                               Expanded(
                                 child: TextField(
                                   controller: _inputCtrl,
+                                  focusNode: _inputFocusNode,
                                   decoration: const InputDecoration(
                                     hintText: 'Message',
                                     filled: true,
