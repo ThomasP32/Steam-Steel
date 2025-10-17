@@ -40,7 +40,6 @@ class _ChatWidgetState extends State<ChatWidget>
   @override
   void initState() {
     super.initState();
-    // ensure scroll controller exists before listeners add messages
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 320),
@@ -50,21 +49,39 @@ class _ChatWidgetState extends State<ChatWidget>
       _prevSub = SocketService()
           .listen<List<dynamic>>('previousMessages')
           .listen((List<dynamic> data) {
-            DebugLogger.log(
-              'previousMessages received: ${data.length} items',
-              tag: 'ChatWidget',
-            );
             final msgs =
                 data
                     .whereType<Map<String, dynamic>>()
                     .map<Message>(chatService.messageFromMap)
-                    .toList();
+                    .toList()
+                  ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
             if (!mounted) return;
             setState(() {
+              final serverList = msgs;
+              final serverIds = <String>{};
+              for (final m in serverList) {
+                serverIds.add(
+                  m.id ?? m.timestamp.millisecondsSinceEpoch.toString(),
+                );
+              }
+
+              final existing =
+                  _messages.map((r) => chatService.ensureMessage(r)).toList();
+
+              final localOnly =
+                  existing.where((e) {
+                    final key =
+                        e.id ?? e.timestamp.millisecondsSinceEpoch.toString();
+                    return !serverIds.contains(key);
+                  }).toList();
+
+              final toAppend = localOnly;
               _messages
                 ..clear()
-                ..addAll(msgs);
+                ..addAll(serverList)
+                ..addAll(toAppend);
+
               _loading = false;
             });
             WidgetsBinding.instance.addPostFrameCallback(
@@ -87,7 +104,20 @@ class _ChatWidgetState extends State<ChatWidget>
               DebugLogger.log('newMessage received: $m', tag: 'ChatWidget');
               final msg = chatService.messageFromMap(m);
               if (!mounted) return;
-              setState(() => _messages.add(msg));
+              setState(() {
+                _messages
+                  ..removeWhere((raw) {
+                    final cand = chatService.ensureMessage(raw);
+                    final candId =
+                        cand.id ??
+                        cand.timestamp.millisecondsSinceEpoch.toString();
+                    final msgId =
+                        msg.id ??
+                        msg.timestamp.millisecondsSinceEpoch.toString();
+                    return candId == msgId;
+                  })
+                  ..add(msg);
+              });
               _overlayEntry?.markNeedsBuild();
               WidgetsBinding.instance.addPostFrameCallback(
                 (_) => _scrollToBottom(),
