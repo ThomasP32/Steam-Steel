@@ -12,7 +12,9 @@ import { ThemeService } from '@app/services/theme/theme.service';
 export class AppComponent {
     @HostBinding('class') themeClass: string = 'theme-dark';
     
-    constructor( private themeService: ThemeService) {}
+    constructor( private readonly themeService: ThemeService) {
+        this.themeService = themeService
+    }
 
     async toggleTheme() {
         const next = this.themeClass === 'theme-dark' ? 'theme-light' : 'theme-dark';

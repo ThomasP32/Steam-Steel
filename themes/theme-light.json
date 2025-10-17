@@ -1,7 +1,7 @@
 {
   "name": "theme-2",
   "images": {
-    "home_bg": "light-homepage2",
+    "home_bg": "light-homepage",
     "city_bg": "citybackground",
     "edition_bg": "light-gameedition"
   },
@@ -22,31 +22,32 @@
     "map_grad_to": "#444b55",
     "map_border_brown": "#c6843e",
 
-    "game_info_bg": "rgba(180,188,199,0.35)",
-    "info_item_bg": "rgba(180,188,199,0.35)",
-    "game_info_border_orange": "#d0724c"
+    "info_item_bg": "rgba(180,188,199,0.35)"
   },
   "selectors": {
     "home": ".homePage-container",
     "create": ".create-game-component",
-    "character": ".character-page-container",
+    "character": ".character-selection-container",
     "waiting": ".waiting-room-container",
     "game": ".game-page-container",
     "admin": ".adminPage-container",
-    "edition": ".game-creation-page",
+    "edition": ".center-area",
+    "combat_modal": ".combat-interface",
 
     "buttons_all": ".button, button, .btn, .homePage-container .button, .homePage-container button, .homePage-container .btn, .create-game-component .button, .character-page-container .button, .waiting-room-container .button, .game-page-container .button",
     "chat_toggle": ".chat-toggle-button",
     "player_count_bar": ".player-count-bar",
     "player_stats": ".player-stats",
+    "players_list": ".players-list",
 
     "game_map": ".game-map",
     "game_code": ".game-code",
-
-    "game_info": ".game-info",
-    "info_item": ".info-item"
+    "gamemode_bar": ".gamemode-bar",
+    
+    "info_item": ".info-item",
+    "inventory_slot": ".inventory-slot"
   },
   "background_groups": {
-    "city_pages": ".create-game-component, .character-page-container, .waiting-room-container, .game-page-container, .adminPage-container"
+    "city_pages": ".create-game-component, .waiting-room-container, .game-page-container, .adminPage-container, .character-selection-container, .combat-interface"
   }
 }
