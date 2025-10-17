@@ -4,9 +4,6 @@
 
 export const environment = {
     production: false,
-    // During local development the dev-server proxy should forward these paths.
-    // If the proxy is misconfigured or you run into ECONNREFUSED, use the full
-    // backend address so the client connects directly to the server.
     serverUrl: 'http://localhost:3000/api',
     socketUrl: 'http://localhost:3000/game',
 };
