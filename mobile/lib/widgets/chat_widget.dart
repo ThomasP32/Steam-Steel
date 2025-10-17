@@ -1,16 +1,12 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/message.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/chat_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/delete_confirm_dialog.dart';
-import 'package:sensors_plus/sensors_plus.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
@@ -28,10 +24,9 @@ class _ChatWidgetState extends State<ChatWidget>
   late final AnimationController _ctrl;
   final List<dynamic> _messages = [];
   final TextEditingController _inputCtrl = TextEditingController();
-  StreamSubscription<AccelerometerEvent>? _accelSub;
-  int _selectedReactionIndex = 0;
-  String? _lastUserMessage;
-  DateTime _lastAutoSend = DateTime.fromMillisecondsSinceEpoch(0);
+  final ScrollController _listController = ScrollController();
+  final FocusNode _inputFocusNode = FocusNode();
+
   StreamSubscription<dynamic>? _prevSub;
   StreamSubscription<dynamic>? _newSub;
   StreamSubscription<dynamic>? _deletedSub;
@@ -54,29 +49,44 @@ class _ChatWidgetState extends State<ChatWidget>
       _prevSub = SocketService()
           .listen<List<dynamic>>('previousMessages')
           .listen((List<dynamic> data) {
-            DebugLogger.log(
-              'previousMessages received: ${data.length} items',
-              tag: 'ChatWidget',
-            );
             final msgs =
                 data
                     .whereType<Map<String, dynamic>>()
                     .map<Message>(chatService.messageFromMap)
-                    .toList();
-            for (var i = msgs.length - 1; i >= 0; i--) {
-              final m = msgs[i];
-              if (m.author == _userName && (m.text.trim().isNotEmpty)) {
-                _lastUserMessage = m.text;
-                break;
-              }
-            }
+                    .toList()
+                  ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
             if (!mounted) return;
             setState(() {
+              final serverList = msgs;
+              final serverIds = <String>{};
+              for (final m in serverList) {
+                serverIds.add(
+                  m.id ?? m.timestamp.millisecondsSinceEpoch.toString(),
+                );
+              }
+
+              final existing =
+                  _messages.map((r) => chatService.ensureMessage(r)).toList();
+
+              final localOnly =
+                  existing.where((e) {
+                    final key =
+                        e.id ?? e.timestamp.millisecondsSinceEpoch.toString();
+                    return !serverIds.contains(key);
+                  }).toList();
+
+              final toAppend = localOnly;
               _messages
                 ..clear()
-                ..addAll(msgs);
+                ..addAll(serverList)
+                ..addAll(toAppend);
+
               _loading = false;
             });
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _scrollToBottom(),
+            );
             _overlayEntry?.markNeedsBuild();
           });
     } on Object catch (e) {
@@ -94,11 +104,24 @@ class _ChatWidgetState extends State<ChatWidget>
               DebugLogger.log('newMessage received: $m', tag: 'ChatWidget');
               final msg = chatService.messageFromMap(m);
               if (!mounted) return;
-              setState(() => _messages.add(msg));
+              setState(() {
+                _messages
+                  ..removeWhere((raw) {
+                    final cand = chatService.ensureMessage(raw);
+                    final candId =
+                        cand.id ??
+                        cand.timestamp.millisecondsSinceEpoch.toString();
+                    final msgId =
+                        msg.id ??
+                        msg.timestamp.millisecondsSinceEpoch.toString();
+                    return candId == msgId;
+                  })
+                  ..add(msg);
+              });
               _overlayEntry?.markNeedsBuild();
-              if (msg.author == _userName && (msg.text.trim().isNotEmpty)) {
-                _lastUserMessage = msg.text;
-              }
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => _scrollToBottom(),
+              );
             } on Object catch (e) {
               DebugLogger.log('newMessage parse error: $e', tag: 'ChatWidget');
             }
@@ -168,28 +191,6 @@ class _ChatWidgetState extends State<ChatWidget>
       };
       AuthService().notifier.addListener(_authListener!);
     } on Object catch (_) {}
-
-    try {
-      if (!kIsWeb &&
-          (defaultTargetPlatform == TargetPlatform.android ||
-              defaultTargetPlatform == TargetPlatform.iOS)) {
-        _accelSub = accelerometerEvents
-            .handleError((e) {
-              DebugLogger.log(
-                'accelerometer stream error: $e',
-                tag: 'ChatWidget',
-              );
-            })
-            .listen(_handleAccel);
-      } else {
-        DebugLogger.log(
-          'accelerometer not initialized on this platform',
-          tag: 'ChatWidget',
-        );
-      }
-    } on Object catch (e) {
-      DebugLogger.log('accelerometer init error: $e', tag: 'ChatWidget');
-    }
   }
 
   void _sendMessage() {
@@ -214,8 +215,10 @@ class _ChatWidgetState extends State<ChatWidget>
     };
     try {
       SocketService().send('message', msg);
-      _lastUserMessage = text;
       _inputCtrl.clear();
+      try {
+        FocusScope.of(context).requestFocus(_inputFocusNode);
+      } on Object catch (_) {}
       _overlayEntry?.markNeedsBuild();
     } on Object catch (_) {}
   }
@@ -232,6 +235,21 @@ class _ChatWidgetState extends State<ChatWidget>
     }
   }
 
+  void _scrollToBottom() {
+    try {
+      if (_listController.hasClients) {
+        final max = _listController.position.maxScrollExtent;
+        _listController.animateTo(
+          max,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    } on Object catch (e) {
+      DebugLogger.log('scrollToBottom failed: $e', tag: 'ChatWidget');
+    }
+  }
+
   @override
   void dispose() {
     _prevSub?.cancel();
@@ -242,53 +260,19 @@ class _ChatWidgetState extends State<ChatWidget>
       } on Object catch (_) {}
     }
     _inputCtrl.dispose();
-    _accelSub?.cancel();
+    _listController.dispose();
+    _inputFocusNode.dispose();
     _deletedSub?.cancel();
     _ctrl.dispose();
     super.dispose();
   }
 
-  void _handleAccel(AccelerometerEvent e) {
-    const double threshold = 6;
-    final ax = e.x;
-    final ay = e.y;
-    final az = e.z;
-
-    final now = DateTime.now();
-    if (now.difference(_lastAutoSend).inMilliseconds < 600) return;
-
-    const thresholdSq = threshold * threshold;
-    final magSq = ax * ax + ay * ay + az * az;
-
-    if (magSq <= thresholdSq) return;
-
-    final absAx = ax.abs();
-    final absAy = ay.abs();
-    final absAz = az.abs();
-
-    if (absAy >= absAx && absAy >= absAz) {
-      final text = _lastUserMessage?.trim();
-      if (text != null && text.isNotEmpty) {
-        _inputCtrl.text = text;
-        _inputCtrl.selection = TextSelection.fromPosition(
-          TextPosition(offset: _inputCtrl.text.length),
-        );
-        _overlayEntry?.markNeedsBuild();
-        _lastAutoSend = now;
-      }
-    } else if (absAx >= absAy && absAx >= absAz) {
-      final emoji = CHAT_REACTIONS[_selectedReactionIndex];
-      _inputCtrl.text = emoji;
-      _inputCtrl.selection = TextSelection.fromPosition(
-        TextPosition(offset: emoji.length),
-      );
-      _overlayEntry?.markNeedsBuild();
-      _lastAutoSend = now;
-    }
-  }
-
   void _toggle() {
     if (!_visible) {
+      setState(() {
+        _messages.clear();
+        _loading = true;
+      });
       try {
         _overlayEntry = _createOverlayEntry();
         Overlay.of(context).insert(_overlayEntry!);
@@ -296,11 +280,30 @@ class _ChatWidgetState extends State<ChatWidget>
         DebugLogger.log('overlay insert failed: $e', tag: 'ChatWidget');
       }
       setState(() => _visible = true);
-      _ctrl.forward();
+      _ctrl.forward().then((_) {
+        try {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            try {
+              FocusScope.of(context).requestFocus(_inputFocusNode);
+            } on Object catch (e) {
+              DebugLogger.log('requestFocus failed: $e', tag: 'ChatWidget');
+            }
+          });
+        } on Object catch (e) {
+          DebugLogger.log(
+            'postFrame requestFocus failed: $e',
+            tag: 'ChatWidget',
+          );
+        }
+      });
       _getMessagesFromDB();
     } else {
       _ctrl.reverse().then((_) {
         try {
+          try {
+            _inputFocusNode.unfocus();
+          } on Object catch (_) {}
           _overlayEntry?.remove();
         } on Object catch (e) {
           DebugLogger.log('overlay remove failed: $e', tag: 'ChatWidget');
@@ -319,13 +322,6 @@ class _ChatWidgetState extends State<ChatWidget>
             color: Colors.black54,
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: GestureDetector(
-                    onTap: _toggle,
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(color: Colors.transparent),
-                  ),
-                ),
                 Center(
                   child: FadeTransition(
                     opacity: CurvedAnimation(
@@ -367,202 +363,137 @@ class _ChatWidgetState extends State<ChatWidget>
   }
 
   Widget _buildPopupContent(BuildContext ctx) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    const Text(
-                      'Global chat',
-                      style: TextStyle(
-                        color: Color(0xFFC0C0C0),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    if (_autoSendLabel != null)
-                      Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white24,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          _autoSendLabel!,
-                          style: const TextStyle(color: Colors.white),
+    // Add padding that responds to the keyboard (viewInsets) so the input
+    // field is not covered. Using AnimatedPadding provides a smooth transition.
+    return AnimatedPadding(
+      padding: MediaQuery.of(ctx).viewInsets,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Text(
+                        'Chat global',
+                        style: TextStyle(
+                          color: Color(0xFFC0C0C0),
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    Flexible(
-                      child: SizedBox(
-                        height: 32,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: List<Widget>.generate(
-                              CHAT_REACTIONS.length,
-                              (idx) {
-                                final r = CHAT_REACTIONS[idx];
-                                final selected = idx == _selectedReactionIndex;
-                                return GestureDetector(
-                                  onTap: () {
-                                    if (!mounted) return;
-                                    setState(
-                                      () => _selectedReactionIndex = idx,
-                                    );
-                                    // ensure overlay updates immediately
-                                    _overlayEntry?.markNeedsBuild();
-                                  },
-                                  child: Container(
-                                    margin: const EdgeInsets.symmetric(
-                                      horizontal: 4,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          selected
-                                              ? Colors.white24
-                                              : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        r,
-                                        style: const TextStyle(fontSize: 16),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                      const SizedBox(width: 12),
+                      if (_autoSendLabel != null)
+                        Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
                           ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Color(0xFFC0C0C0)),
-                onPressed: _toggle,
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child:
-                _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : (_messages.isEmpty
-                        ? const Center(
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                           child: Text(
-                            'Aucun message',
-                            style: TextStyle(color: Color(0xFFC0C0C0)),
+                            _autoSendLabel!,
+                            style: const TextStyle(color: Colors.white),
                           ),
-                        )
-                        : ListView.builder(
-                          itemCount: _messages.length,
-                          itemBuilder: (ctx, i) {
-                            final raw = _messages[i];
-                            final m = chatService.ensureMessage(raw);
-                            final time =
-                                '${m.timestamp.hour.toString().padLeft(2, '0')}:${m.timestamp.minute.toString().padLeft(2, '0')}';
-                            final mine = m.author == _userName;
-                            final Widget messageCard = Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 6),
-                              child: Row(
-                                mainAxisAlignment:
-                                    mine
-                                        ? MainAxisAlignment.end
-                                        : MainAxisAlignment.start,
-                                children: [
-                                  Flexible(
-                                    child: Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            mine
-                                                ? const Color(0xFF2E8B57)
-                                                : const Color(0xFF4A4F55),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            '${m.author} • $time',
-                                            style: const TextStyle(
-                                              color: Color(0xFFCCCCCC),
-                                              fontSize: 12,
-                                            ),
+                        ),
+                      const Flexible(
+                        child: SizedBox(
+                          height: 32,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Color(0xFFC0C0C0)),
+                  onPressed: _toggle,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child:
+                  _loading
+                      ? const Center(child: CircularProgressIndicator())
+                      : (_messages.isEmpty
+                          ? const Center(
+                            child: Text(
+                              'Aucun message',
+                              style: TextStyle(color: Color(0xFFC0C0C0)),
+                            ),
+                          )
+                          : ListView.builder(
+                            controller: _listController,
+                            itemCount: _messages.length,
+                            itemBuilder: (ctx, i) {
+                              final raw = _messages[i];
+                              final m = chatService.ensureMessage(raw);
+                              final time =
+                                  '${m.timestamp.hour.toString().padLeft(2, '0')}:${m.timestamp.minute.toString().padLeft(2, '0')}:${m.timestamp.second.toString().padLeft(2, '0')}';
+                              final mine = m.author == _userName;
+                              final Widget messageCard = Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 6,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      mine
+                                          ? MainAxisAlignment.end
+                                          : MainAxisAlignment.start,
+                                  children: [
+                                    Flexible(
+                                      child: Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              mine
+                                                  ? const Color(0xFF2E8B57)
+                                                  : const Color(0xFF4A4F55),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
                                           ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            m.text,
-                                            style: const TextStyle(
-                                              color: Color(0xFFF1F1F1),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '${m.author} • $time',
+                                              style: const TextStyle(
+                                                color: Color(0xFFCCCCCC),
+                                                fontSize: 12,
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              m.text,
+                                              style: const TextStyle(
+                                                color: Color(0xFFF1F1F1),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            );
-
-                            if (!mine) return messageCard;
-
-                            return Dismissible(
-                              key: Key(
-                                '${m.author}-${m.timestamp.millisecondsSinceEpoch}-${m.text.hashCode}',
-                              ),
-                              direction: DismissDirection.endToStart,
-                              confirmDismiss: (dir) async {
-                                final res = await showDeleteConfirmDialog(
-                                  context,
-                                );
-                                return res ?? false;
-                              },
-                              onDismissed: (dir) {
-                                setState(() => _messages.removeAt(i));
-                                try {
-                                  SocketService().send('deleteMessage', {
-                                    'author': m.author,
-                                    'text': m.text,
-                                    'timestamp': m.timestamp.toIso8601String(),
-                                  });
-                                } on Object catch (e) {
-                                  DebugLogger.log(
-                                    'deleteMessage emit failed: $e',
-                                    tag: 'ChatWidget',
-                                  );
-                                }
-                              },
-                              background: Container(
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.only(right: 16),
-                                color: Colors.redAccent,
-                                child: const Icon(
-                                  Icons.delete,
-                                  color: Colors.white,
+                                  ],
                                 ),
-                              ),
-                              child: GestureDetector(
+                              );
+
+                              if (!mine) return messageCard;
+
+                              return GestureDetector(
                                 onLongPress: () async {
                                   final res = await showDeleteConfirmDialog(
                                     context,
@@ -580,32 +511,36 @@ class _ChatWidgetState extends State<ChatWidget>
                                   }
                                 },
                                 child: messageCard,
-                              ),
-                            );
-                          },
-                        )),
+                              );
+                            },
+                          )),
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _inputCtrl,
-                  decoration: const InputDecoration(
-                    hintText: 'Message',
-                    filled: true,
-                    fillColor: Colors.white24,
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _inputCtrl,
+                    focusNode: _inputFocusNode,
+                    decoration: const InputDecoration(
+                      hintText: 'Message',
+                      filled: true,
+                      fillColor: Colors.white24,
+                    ),
+                    maxLength: 250,
                   ),
-                  maxLength: 250,
                 ),
-              ),
-              IconButton(onPressed: _sendMessage, icon: const Icon(Icons.send)),
-            ],
+                IconButton(
+                  onPressed: _sendMessage,
+                  icon: const Icon(Icons.send),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -657,75 +592,22 @@ class _ChatWidgetState extends State<ChatWidget>
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Expanded(
+                              const Expanded(
                                 child: Row(
                                   children: [
-                                    const Text(
-                                      'Global chat',
+                                    Text(
+                                      'Chat global',
                                       style: TextStyle(
                                         color: Color(0xFFC0C0C0),
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
+                                    SizedBox(width: 12),
                                     Flexible(
                                       child: SizedBox(
                                         height: 32,
                                         child: SingleChildScrollView(
                                           scrollDirection: Axis.horizontal,
-                                          child: Row(
-                                            children: List<
-                                              Widget
-                                            >.generate(CHAT_REACTIONS.length, (
-                                              idx,
-                                            ) {
-                                              final r = CHAT_REACTIONS[idx];
-                                              final selected =
-                                                  idx == _selectedReactionIndex;
-                                              return GestureDetector(
-                                                onTap: () {
-                                                  if (!mounted) return;
-                                                  setState(
-                                                    () =>
-                                                        _selectedReactionIndex =
-                                                            idx,
-                                                  );
-                                                  _overlayEntry
-                                                      ?.markNeedsBuild();
-                                                },
-                                                child: Container(
-                                                  margin:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 4,
-                                                      ),
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    color:
-                                                        selected
-                                                            ? Colors.white24
-                                                            : Colors
-                                                                .transparent,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          6,
-                                                        ),
-                                                  ),
-                                                  child: Center(
-                                                    child: Text(
-                                                      r,
-                                                      style: const TextStyle(
-                                                        fontSize: 16,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            }),
-                                          ),
                                         ),
                                       ),
                                     ),
@@ -846,6 +728,7 @@ class _ChatWidgetState extends State<ChatWidget>
                               Expanded(
                                 child: TextField(
                                   controller: _inputCtrl,
+                                  focusNode: _inputFocusNode,
                                   decoration: const InputDecoration(
                                     hintText: 'Message',
                                     filled: true,

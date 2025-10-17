@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "main": "main.js",
     "scripts": {
-        "start": "ng serve --open --proxy-config proxy.conf.json",
+        "start": "ng serve --open",
         "build": "ng build",
         "deploy": "ng build",
         "format": "prettier --config ../.prettierrc.yaml --ignore-path ../.prettierignore --write \"src/**/*\"",

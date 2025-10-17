@@ -62,14 +62,30 @@ class AuthService {
     }
     try {
       final body = jsonDecode(r.body);
-      final msg =
-          body is Map && body['message'] != null
-              ? body['message']
-              : 'Login failed ${r.statusCode}';
-      throw Exception(msg.toString());
-    } on Exception catch (_) {
-      throw Exception('Login failed ${r.statusCode}');
+      if (body is Map && body['message'] != null) {
+        throw Exception(body['message'].toString());
+      }
+      // some server errors may include an error object
+      if (body is Map && body['error'] != null) {
+        final err = body['error'];
+        if (err is Map && err['message'] != null) {
+          throw Exception(err['message'].toString());
+        }
+        throw Exception(err.toString());
+      }
+      // If it's a different shape but a string exists, use it
+      if (body is String && body.isNotEmpty) {
+        throw Exception(body);
+      }
+    } on FormatException catch (_) {
+      // Not JSON — surface raw body if available
+      final raw = r.body;
+      if (raw.isNotEmpty) throw Exception(raw);
+    } on Exception {
+      rethrow;
     }
+
+    throw Exception('Login failed ${r.statusCode}');
   }
 
   Future<void> register(
@@ -217,7 +233,27 @@ class AuthService {
   }
 
   Future<void> logout() async {
-    // Disconnect sockets on logout to avoid using stale token
+    final t = await token;
+    if (t != null) {
+      try {
+        final uri = Uri.parse('${ApiClient.baseUrl}/api/auth/logout?token=$t');
+        final r = await _client.post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({}),
+        );
+        DebugLogger.log(
+          'Auth.logout response status: ${r.statusCode}',
+          tag: 'AuthService',
+        );
+        DebugLogger.log(
+          'Auth.logout response body: ${r.body}',
+          tag: 'AuthService',
+        );
+      } on Object catch (e) {
+        DebugLogger.log('Auth.logout request failed: $e', tag: 'AuthService');
+      }
+    }
     try {
       SocketService().disconnect();
     } on Object catch (_) {}
