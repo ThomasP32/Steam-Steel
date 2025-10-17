@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/game.dart';
+import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/character_creation_service.dart';
 import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
@@ -32,6 +33,21 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   bool _isSubmitting = false;
   StreamSubscription<dynamic>? _youJoinedSub;
   final CharacterCreationService _creationService = CharacterCreationService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    final user = AuthService().notifier.value;
+    if (user != null && user.username.isNotEmpty) {
+      setState(() {
+        name = user.username;
+      });
+    }
+  }
 
   void toggleEditing() {
     setState(() {
@@ -296,46 +312,13 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        IconButton(
-                          onPressed:
-                              () => setState(
-                                () =>
-                                    selectedAvatar = (selectedAvatar - 1).clamp(
-                                      1,
-                                      12,
-                                    ),
-                              ),
-                          icon: const Icon(Icons.chevron_left),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child:
-                              isEditing
-                                  ? TextField(
-                                    autofocus: true,
-                                    onSubmitted: (_) => toggleEditing(),
-                                    onChanged: (v) => name = v,
-                                    decoration: const InputDecoration(
-                                      hintText: 'Choisis ton nom',
-                                    ),
-                                  )
-                                  : GestureDetector(
-                                    onTap: toggleEditing,
-                                    child: Text(
-                                      name.isEmpty ? 'Choisis ton nom' : name,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: toggleEditing,
-                          icon: Icon(isEditing ? Icons.save : Icons.edit),
-                        ),
-                      ],
+                    Text(
+                      name.isEmpty ? 'Aucun nom' : name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
                     ElevatedButton(

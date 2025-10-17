@@ -33,6 +33,7 @@ class _JoinGameCodeState extends State<JoinGameCode> {
       ..add(
         _socketService!.listen<void>('gameAccessed').listen((_) {
           // success
+          _accessTimeout?.cancel();
           if (!mounted) return;
           setState(() {
             _isLoading = false;
@@ -63,6 +64,7 @@ class _JoinGameCodeState extends State<JoinGameCode> {
       )
       ..add(
         _socketService!.listen<String>('gameNotFound').listen((reason) {
+          _accessTimeout?.cancel();
           setState(() {
             _isLoading = false;
           });
@@ -75,12 +77,13 @@ class _JoinGameCodeState extends State<JoinGameCode> {
       )
       ..add(
         _socketService!.listen<String>('gameLocked').listen((reason) {
+          _accessTimeout?.cancel();
           setState(() {
             _isLoading = false;
           });
           showTopSnackBar(
             Overlay.of(context),
-            CustomSnackBar.error(message: 'Partie verrouillée: $reason'),
+            CustomSnackBar.error(message: reason),
           );
           _resetInputs();
         }),
@@ -98,9 +101,11 @@ class _JoinGameCodeState extends State<JoinGameCode> {
 
   SocketService? _socketService;
   final List<StreamSubscription<dynamic>> _subs = [];
+  Timer? _accessTimeout;
 
   @override
   void dispose() {
+    _accessTimeout?.cancel();
     for (final c in _controllers) {
       c.dispose();
     }
@@ -158,6 +163,22 @@ class _JoinGameCodeState extends State<JoinGameCode> {
                         _isLoading = true;
                       });
                       _socketService?.send('accessGame', code);
+
+                      // Set timeout in case server doesn't respond
+                      _accessTimeout?.cancel();
+                      _accessTimeout = Timer(const Duration(seconds: 5), () {
+                        if (!mounted || !_isLoading) return;
+                        setState(() {
+                          _isLoading = false;
+                        });
+                        showTopSnackBar(
+                          Overlay.of(context),
+                          const CustomSnackBar.error(
+                            message: "Délai d'attente dépassé",
+                          ),
+                        );
+                        _resetInputs();
+                      });
                     }
                   },
                 ),

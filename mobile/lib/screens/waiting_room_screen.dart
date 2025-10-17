@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 class WaitingRoomScreen extends StatefulWidget {
   const WaitingRoomScreen({required this.gameId, super.key});
@@ -18,11 +20,13 @@ class WaitingRoomScreen extends StatefulWidget {
 class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   final List<Player> _players = [];
   bool _isLocked = false;
-  final String _mapLabel = 'CTF';
+  final String mapName = 'CTF';
 
   StreamSubscription<dynamic>? _playersSub;
   StreamSubscription<dynamic>? _lockedSub;
   StreamSubscription<dynamic>? _closedSub;
+  StreamSubscription<dynamic>? _gameInitializedSub;
+  StreamSubscription<dynamic>? _playerKickedSub;
 
   @override
   void initState() {
@@ -80,6 +84,49 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
         DebugLogger.log('navigate home failed: $e', tag: 'WaitingRoom');
       }
     });
+
+    _gameInitializedSub = SocketService()
+        .listen<dynamic>('gameInitialized')
+        .listen((data) {
+          if (!mounted) return;
+          DebugLogger.log(
+            'gameInitialized received, navigating away from waiting room',
+            tag: 'WaitingRoom',
+          );
+          try {
+            GoRouter.of(context).go('/game/${widget.gameId}/$mapName');
+          } on Exception catch (e) {
+            DebugLogger.log(
+              'navigate on gameInitialized failed: $e',
+              tag: 'WaitingRoom',
+            );
+          }
+        });
+
+    _playerKickedSub = SocketService().listen<dynamic>('playerKicked').listen((
+      _,
+    ) {
+      if (!mounted) return;
+      DebugLogger.log(
+        'playerKicked received, disconnecting and navigating to home',
+        tag: 'WaitingRoom',
+      );
+      try {
+        SocketService().disconnect();
+        GoRouter.of(context).go('/');
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.error(
+            message: 'Vous avez été expulsé de la partie',
+          ),
+        );
+      } on Exception catch (e) {
+        DebugLogger.log(
+          'navigate on playerKicked failed: $e',
+          tag: 'WaitingRoom',
+        );
+      }
+    });
   }
 
   Avatar _avatarFromRaw(dynamic raw) {
@@ -102,6 +149,8 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     _playersSub?.cancel();
     _lockedSub?.cancel();
     _closedSub?.cancel();
+    _gameInitializedSub?.cancel();
+    _playerKickedSub?.cancel();
     super.dispose();
   }
 
@@ -181,7 +230,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               Text(
-                                _mapLabel,
+                                mapName,
                                 style: const TextStyle(fontSize: 18),
                               ),
                             ],

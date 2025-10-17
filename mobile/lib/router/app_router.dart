@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/main.dart';
 import 'package:mobile/screens/account_screen.dart';
 import 'package:mobile/screens/character_creation_screen.dart';
+import 'package:mobile/screens/game_screen.dart';
 import 'package:mobile/screens/gamecreation_screen.dart';
 import 'package:mobile/screens/waiting_room_screen.dart';
 
@@ -41,6 +42,15 @@ class AppRouter {
         builder:
             (context, state) =>
                 AuthScreen(initialTab: state.queryParameters['tab']),
+      ),
+      GoRoute(
+        path: '/game/:gameId/:mapName',
+        name: 'game',
+        builder: (context, state) {
+          final gameId = state.pathParameters['gameId'] ?? '';
+          final mapName = state.pathParameters['mapName'] ?? '';
+          return GameScreen(gameId: gameId, mapName: mapName);
+        },
       ),
     ],
   );
