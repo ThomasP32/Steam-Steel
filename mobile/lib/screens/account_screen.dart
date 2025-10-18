@@ -243,29 +243,69 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       }
 
-      pageContent = Column(
+      final profileSection = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          avatarWidget,
-          const SizedBox(height: 8),
-          Text('Email: ${user.email}'),
-          Text('Pseudonyme: ${user.username}'),
-          const SizedBox(height: 8),
-          const Text('Statistiques:', style: TextStyle(fontSize: 18)),
-          const SizedBox(height: 4),
-          Text(
-            'Classique : ${user.stats.classique.gamesPlayed} parties jouées, ${user.stats.classique.gamesWon} parties gagnées',
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ElevatedButton(
+                onPressed: () async {
+                  if (mounted) context.go('/');
+                },
+                child: const Text('Retour'),
+              ),
+              const Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(left: 30),
+                  child: Text(
+                    'Mon compte',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
           ),
-          Text(
-            'CTF : ${user.stats.ctf.gamesPlayed} parties jouées, ${user.stats.ctf.gamesWon} parties gagnées',
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              avatarWidget,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Pseudonyme:'),
+                    Text(
+                      user.username,
+                      style: const TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Temps moyen par partie :',
-            style: TextStyle(color: Colors.grey[600]),
+          const SizedBox(height: 16),
+          const SizedBox(height: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Email:'),
+              Text(
+                user.email,
+                style: const TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-          Text('${user.stats.avgTime.toStringAsFixed(0)}s'),
-          const SizedBox(height: 12),
+          const SizedBox(height: 30),
           ElevatedButton(
             onPressed: () async {
               if (mounted) context.go('/');
@@ -282,18 +322,71 @@ class _AuthScreenState extends State<AuthScreen> {
           const SizedBox(height: 8),
           ElevatedButton(
             onPressed: () async {
-              if (mounted) context.go('/');
-            },
-            child: const Text("Retour à l'accueil"),
-          ),
-          const SizedBox(height: 8),
-          ElevatedButton(
-            onPressed: () async {
               await _authService.logout();
               if (mounted) context.go('/');
             },
             child: const Text('Déconnexion'),
           ),
+        ],
+      );
+
+      final statsSection = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Statistiques',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          _buildStatCard(
+            'Mode Classique',
+            user.stats.classique.gamesPlayed,
+            user.stats.classique.gamesWon,
+          ),
+          const SizedBox(height: 12),
+          _buildStatCard(
+            'Mode CTF',
+            user.stats.ctf.gamesPlayed,
+            user.stats.ctf.gamesWon,
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Temps moyen par partie',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${user.stats.avgTime.toStringAsFixed(0)}s',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+
+      pageContent = Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: profileSection),
+          const SizedBox(width: 24),
+          Expanded(child: statsSection),
         ],
       );
     }
@@ -306,7 +399,6 @@ class _AuthScreenState extends State<AuthScreen> {
         return false;
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Mon compte')),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -314,6 +406,48 @@ class _AuthScreenState extends State<AuthScreen> {
               Expanded(child: SingleChildScrollView(child: pageContent)),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, int played, int won) {
+    final winRate =
+        played > 0 ? ((won / played) * 100).toStringAsFixed(1) : '0.0';
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [Text('Jouées: $played'), Text('Gagnées: $won')],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text('Taux de victoire'),
+                    Text(
+                      '$winRate%',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
