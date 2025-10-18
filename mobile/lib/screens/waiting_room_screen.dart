@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/common/game.dart';
+import 'package:mobile/services/game_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
@@ -31,13 +32,23 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   @override
   void initState() {
     super.initState();
+    _requestPlayers();
+    _listenToCurrentPlayers();
+    _listenToGameLocked();
+    _listenToGameClosed();
+    _listenToGameInitialized();
+    _listenToPlayerKicked();
+  }
 
+  void _requestPlayers() {
     try {
       SocketService().send('getPlayers', widget.gameId);
     } on Exception catch (e) {
       DebugLogger.log('getPlayers emit failed: $e', tag: 'WaitingRoom');
     }
+  }
 
+  void _listenToCurrentPlayers() {
     _playersSub = SocketService().listen<dynamic>('currentPlayers').listen((
       data,
     ) {
@@ -64,18 +75,21 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
         DebugLogger.log('currentPlayers parse failed: $e', tag: 'WaitingRoom');
       }
     });
+  }
 
+  void _listenToGameLocked() {
     _lockedSub = SocketService().listen<dynamic>('gameLocked').listen((
       payload,
     ) {
-      //TODO: improve this we know what the payload should be
       final locked =
           (payload is bool && payload) ||
           (payload is String && payload.toLowerCase() == 'true');
       if (!mounted) return;
       setState(() => _isLocked = locked);
     });
+  }
 
+  void _listenToGameClosed() {
     _closedSub = SocketService().listen<dynamic>('gameClosed').listen((_) {
       if (!mounted) return;
       try {
@@ -84,7 +98,9 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
         DebugLogger.log('navigate home failed: $e', tag: 'WaitingRoom');
       }
     });
+  }
 
+  void _listenToGameInitialized() {
     _gameInitializedSub = SocketService()
         .listen<dynamic>('gameInitialized')
         .listen((data) {
@@ -93,6 +109,10 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
             'gameInitialized received, navigating away from waiting room',
             tag: 'WaitingRoom',
           );
+          // Store game data in GameService
+          if (data is Map<String, dynamic>) {
+            GameService().updateFromJson(data);
+          }
           try {
             GoRouter.of(context).go('/game/${widget.gameId}/$mapName');
           } on Exception catch (e) {
@@ -102,7 +122,9 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
             );
           }
         });
+  }
 
+  void _listenToPlayerKicked() {
     _playerKickedSub = SocketService().listen<dynamic>('playerKicked').listen((
       _,
     ) {

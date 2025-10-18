@@ -126,7 +126,6 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
       'profile': ProfileType.normal.value,
     };
 
-    // Build a typed Player instance to use as a fallback/local copy
     final localPlayer = Player(
       socketId: player['socketId']! as String,
       name: player['name']! as String,
@@ -154,8 +153,12 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
 
     final payload = {'gameId': widget.gameId, 'player': player};
 
-    // Listen for server confirmation (youJoined). On receipt, store server player
-    // or fallback to localPlayer, then navigate to waiting room.
+    _listenToYouJoined(localPlayer);
+    SocketService().send('joinGame', payload);
+    _setupJoinTimeout();
+  }
+
+  void _listenToYouJoined(Player localPlayer) {
     _youJoinedSub?.cancel();
     _youJoinedSub = SocketService().listen<dynamic>('youJoined').listen((data) {
       if (!mounted) return;
@@ -170,11 +173,9 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
       });
       GoRouter.of(context).go('/${widget.gameId}/waiting-room/player');
     });
+  }
 
-    // Emit join request to server
-    SocketService().send('joinGame', payload);
-
-    // Timeout: if server doesn't respond, re-enable submit and cancel listener
+  void _setupJoinTimeout() {
     Future.delayed(const Duration(seconds: 8), () {
       if (mounted) {
         _youJoinedSub?.cancel();

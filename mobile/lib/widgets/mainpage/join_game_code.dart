@@ -29,65 +29,75 @@ class _JoinGameCodeState extends State<JoinGameCode> {
     _controllers = List.generate(widget.length, (_) => TextEditingController());
     _focusNodes = List.generate(widget.length, (_) => FocusNode());
     _socketService = SocketService();
-    _subs
-      ..add(
-        _socketService!.listen<void>('gameAccessed').listen((_) {
-          // success
-          _accessTimeout?.cancel();
-          if (!mounted) return;
-          setState(() {
-            _isLoading = false;
-          });
-          final code = _controllers.map((c) => c.text).join();
+    _listenToGameAccessed();
+    _listenToGameNotFound();
+    _listenToGameLocked();
+  }
+
+  void _listenToGameAccessed() {
+    _subs.add(
+      _socketService!.listen<void>('gameAccessed').listen((_) {
+        _accessTimeout?.cancel();
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
+        final code = _controllers.map((c) => c.text).join();
+        DebugLogger.log(
+          'JoinGameCode: gameAccessed received, code=$code',
+          tag: 'JoinGameCode',
+        );
+
+        try {
+          GoRouter.of(context).go('/$code/choose-character');
+        } on Exception catch (e) {
           DebugLogger.log(
-            'JoinGameCode: gameAccessed received, code=$code',
+            'JoinGameCode: failed to navigate to /$code/choose-character: $e',
             tag: 'JoinGameCode',
           );
+        }
+        try {
+          Navigator.of(context, rootNavigator: true).pop();
+        } on Exception catch (e) {
+          DebugLogger.log(
+            'JoinGameCode: failed to pop dialog: $e',
+            tag: 'JoinGameCode',
+          );
+        }
+      }),
+    );
+  }
 
-          try {
-            GoRouter.of(context).go('/$code/choose-character');
-          } on Exception catch (e) {
-            DebugLogger.log(
-              'JoinGameCode: failed to navigate to /$code/choose-character: $e',
-              tag: 'JoinGameCode',
-            );
-          }
-          try {
-            Navigator.of(context, rootNavigator: true).pop();
-          } on Exception catch (e) {
-            DebugLogger.log(
-              'JoinGameCode: failed to pop dialog: $e',
-              tag: 'JoinGameCode',
-            );
-          }
-        }),
-      )
-      ..add(
-        _socketService!.listen<String>('gameNotFound').listen((reason) {
-          _accessTimeout?.cancel();
-          setState(() {
-            _isLoading = false;
-          });
-          showTopSnackBar(
-            Overlay.of(context),
-            const CustomSnackBar.info(message: 'Partie introuvable'),
-          );
-          _resetInputs();
-        }),
-      )
-      ..add(
-        _socketService!.listen<String>('gameLocked').listen((reason) {
-          _accessTimeout?.cancel();
-          setState(() {
-            _isLoading = false;
-          });
-          showTopSnackBar(
-            Overlay.of(context),
-            CustomSnackBar.error(message: reason),
-          );
-          _resetInputs();
-        }),
-      );
+  void _listenToGameNotFound() {
+    _subs.add(
+      _socketService!.listen<String>('gameNotFound').listen((reason) {
+        _accessTimeout?.cancel();
+        setState(() {
+          _isLoading = false;
+        });
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.info(message: 'Partie introuvable'),
+        );
+        _resetInputs();
+      }),
+    );
+  }
+
+  void _listenToGameLocked() {
+    _subs.add(
+      _socketService!.listen<String>('gameLocked').listen((reason) {
+        _accessTimeout?.cancel();
+        setState(() {
+          _isLoading = false;
+        });
+        showTopSnackBar(
+          Overlay.of(context),
+          CustomSnackBar.error(message: reason),
+        );
+        _resetInputs();
+      }),
+    );
   }
 
   void _resetInputs() {

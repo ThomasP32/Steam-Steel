@@ -11,7 +11,14 @@ import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 class ChatWidget extends StatefulWidget {
-  const ChatWidget({super.key});
+  const ChatWidget({
+    super.key,
+    this.initiallyVisible = false,
+    this.showToggleButton = true,
+  });
+
+  final bool initiallyVisible;
+  final bool showToggleButton;
 
   @override
   State<ChatWidget> createState() => _ChatWidgetState();
@@ -40,6 +47,7 @@ class _ChatWidgetState extends State<ChatWidget>
   @override
   void initState() {
     super.initState();
+    _visible = widget.initiallyVisible;
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 320),
@@ -747,28 +755,29 @@ class _ChatWidgetState extends State<ChatWidget>
             ),
           ),
           // Square button top-right
-          Positioned(
-            top: 12,
-            right: 12,
-            child: SizedBox(
-              width: 44,
-              height: 44,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2C3E50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
+          if (widget.showToggleButton)
+            Positioned(
+              top: 18,
+              right: 12,
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2C3E50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    padding: EdgeInsets.zero,
                   ),
-                  padding: EdgeInsets.zero,
-                ),
-                onPressed: _toggle,
-                child: const Icon(
-                  Icons.chat_bubble_outline,
-                  color: Color(0xFFC0C0C0),
+                  onPressed: _toggle,
+                  child: const Icon(
+                    Icons.chat_bubble_outline,
+                    color: Color(0xFFC0C0C0),
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
