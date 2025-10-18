@@ -276,23 +276,60 @@ class AuthService {
   Future<void> updateAccount({
     required String username,
     required String email,
+    Avatar? avatar,
+    String? avatarCustom,
   }) async {
     final t = await token;
     if (t == null) throw Exception('Not authenticated');
     final uri = Uri.parse('${ApiClient.baseUrl}/api/auth/update');
+
+    var avatarCustomPayload = avatarCustom;
+    try {
+      if (avatarCustom != null &&
+          avatarCustom.isNotEmpty &&
+          !avatarCustom.startsWith('data:') &&
+          !avatarCustom.startsWith('http')) {
+        final f = File(avatarCustom);
+        if (f.existsSync()) {
+          final bytes = f.readAsBytesSync();
+          final b64 = base64Encode(bytes);
+          avatarCustomPayload = 'data:image/png;base64,$b64';
+        }
+      }
+    } on Object catch (e) {
+      DebugLogger.log(
+        'Update avatarCustom conversion failed: $e',
+        tag: 'AuthService',
+      );
+      avatarCustomPayload = avatarCustom;
+    }
+
+    final body = <String, dynamic>{'username': username, 'email': email};
+
+    if (avatar != null) {
+      body['avatar'] = avatar.value;
+    }
+
+    body['avatarCustom'] = avatarCustomPayload ?? '';
+
     final r = await _client.patch(
       uri,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $t',
       },
-      body: jsonEncode({'username': username, 'email': email}),
+      body: jsonEncode(body),
     );
 
+    if (r.statusCode == 200) {
+      await fetchUser();
+      return;
+    }
+
     try {
-      final body = jsonDecode(r.body);
-      if (body is Map && body['message'] != null) {
-        throw Exception(body['message'].toString());
+      final responseBody = jsonDecode(r.body);
+      if (responseBody is Map && responseBody['message'] != null) {
+        throw Exception(responseBody['message'].toString());
       }
     } catch (_) {
       if (r.body.isNotEmpty) throw Exception(r.body);

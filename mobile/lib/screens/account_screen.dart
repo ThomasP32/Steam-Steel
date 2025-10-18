@@ -188,59 +188,99 @@ class _AuthScreenState extends State<AuthScreen> {
     final usernameEditCtrl = TextEditingController(text: user.username);
     final emailEditCtrl = TextEditingController(text: user.email);
 
-    final result = await showDialog<bool>(
+    var selectedAvatar = Avatar.values.firstWhere(
+      (a) => a.value == int.tryParse(user.avatar),
+      orElse: () => Avatar.avatar1,
+    );
+    var customPreview = user.avatarCustom;
+
+    final result = await showDialog<Map<String, dynamic>?>(
       context: context,
       builder:
-          (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            title: const Text(
-              'Modifier mon compte\n',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: usernameEditCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Pseudonyme',
-                      border: OutlineInputBorder(),
+          (ctx) => StatefulBuilder(
+            builder:
+                (ctx, setModalState) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  title: const Text(
+                    'Modifier mon compte\n',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: usernameEditCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Pseudonyme',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: emailEditCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Avatar :',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        AvatarPicker(
+                          selected: selectedAvatar,
+                          customPreview: customPreview,
+                          onAvatarChanged: (a) {
+                            setModalState(() {
+                              selectedAvatar = a;
+                              customPreview = null;
+                            });
+                          },
+                          onCustomPreviewChanged:
+                              (p) => setModalState(() => customPreview = p),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: emailEditCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      border: OutlineInputBorder(),
+                  actionsAlignment: MainAxisAlignment.center,
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(null),
+                      child: const Text('Annuler'),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Annuler'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Sauvegarder'),
-              ),
-            ],
+                    ElevatedButton(
+                      onPressed:
+                          () => Navigator.of(ctx).pop({
+                            'username': usernameEditCtrl.text.trim(),
+                            'email': emailEditCtrl.text.trim(),
+                            'avatar': selectedAvatar,
+                            'avatarCustom': customPreview,
+                          }),
+                      child: const Text('Sauvegarder'),
+                    ),
+                  ],
+                ),
           ),
     );
 
-    if (result != true || !mounted) return;
+    if (result == null || !mounted) return;
 
     setState(() => _loading = true);
     try {
       await _authService.updateAccount(
-        username: usernameEditCtrl.text.trim(),
-        email: emailEditCtrl.text.trim(),
+        username: result['username'] as String,
+        email: result['email'] as String,
+        avatar: result['avatar'] as Avatar,
+        avatarCustom: result['avatarCustom'] as String?,
       );
       if (mounted) {
         ScaffoldMessenger.of(
