@@ -272,4 +272,31 @@ class AuthService {
     }
     throw Exception('Delete failed ${r.statusCode}');
   }
+
+  Future<void> updateAccount({
+    required String username,
+    required String email,
+  }) async {
+    final t = await token;
+    if (t == null) throw Exception('Not authenticated');
+    final uri = Uri.parse('${ApiClient.baseUrl}/api/auth/update');
+    final r = await _client.patch(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $t',
+      },
+      body: jsonEncode({'username': username, 'email': email}),
+    );
+
+    try {
+      final body = jsonDecode(r.body);
+      if (body is Map && body['message'] != null) {
+        throw Exception(body['message'].toString());
+      }
+    } catch (_) {
+      if (r.body.isNotEmpty) throw Exception(r.body);
+    }
+    throw Exception('Update failed ${r.statusCode}');
+  }
 }

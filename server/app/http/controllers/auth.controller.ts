@@ -138,6 +138,12 @@ export class AuthController {
 
     private async getUserIdFromToken(req: any): Promise<{ userId?: string; error?: string }> {
         let token = req.query.token;
+        if (!token && req.headers.authorization) {
+            const authHeader = req.headers.authorization;
+            if (authHeader.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+            }
+        }
         if (!token && req.body && req.body.token) {
             token = req.body.token;
         }

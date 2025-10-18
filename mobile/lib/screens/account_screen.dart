@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/common/game.dart';
+import 'package:mobile/common/user.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/register/avatar_picker.dart';
@@ -177,6 +178,80 @@ class _AuthScreenState extends State<AuthScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Erreur: $msg')));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _showEditModal(User user) async {
+    final usernameEditCtrl = TextEditingController(text: user.username);
+    final emailEditCtrl = TextEditingController(text: user.email);
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            title: const Text(
+              'Modifier mon compte\n',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: usernameEditCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Pseudonyme',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: emailEditCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Sauvegarder'),
+              ),
+            ],
+          ),
+    );
+
+    if (result != true || !mounted) return;
+
+    setState(() => _loading = true);
+    try {
+      await _authService.updateAccount(
+        username: usernameEditCtrl.text.trim(),
+        email: emailEditCtrl.text.trim(),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Compte mis à jour')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -371,10 +446,8 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
           const SizedBox(height: 30),
           ElevatedButton(
-            onPressed: () async {
-              if (mounted) context.go('/');
-            },
-            child: const Text('Modifier mon compte (TODO)'),
+            onPressed: _loading ? null : () => _showEditModal(user),
+            child: const Text('Modifier mon compte'),
           ),
           const SizedBox(height: 8),
           ElevatedButton(
