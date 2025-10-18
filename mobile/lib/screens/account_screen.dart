@@ -118,6 +118,71 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  Future<void> _deleteAccount() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 80,
+              vertical: 24,
+            ),
+            title: const Center(
+              child: Text(
+                'Confirmer la suppression\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            content: const Text(
+              'Êtes-vous sûr de vouloir supprimer votre compte ?\n\n'
+              'Cette action est irréversible.',
+              textAlign: TextAlign.center,
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    setState(() => _loading = true);
+    try {
+      await _authService.deleteAccount();
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Compte supprimé')));
+        context.go('/');
+      }
+    } on Exception catch (e) {
+      final raw = e.toString();
+      final msg =
+          raw.startsWith('Exception: ')
+              ? raw.substring('Exception: '.length)
+              : raw;
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $msg')));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = _authService.notifier.value;
@@ -290,7 +355,6 @@ class _AuthScreenState extends State<AuthScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          const SizedBox(height: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -314,10 +378,8 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
           const SizedBox(height: 8),
           ElevatedButton(
-            onPressed: () async {
-              if (mounted) context.go('/');
-            },
-            child: const Text('Supprimer mon compte (TODO)'),
+            onPressed: _deleteAccount,
+            child: const Text('Supprimer mon compte'),
           ),
           const SizedBox(height: 8),
           ElevatedButton(
