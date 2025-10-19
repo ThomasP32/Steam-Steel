@@ -32,7 +32,7 @@
                 (customAvatarPreviewChange)="registerCustomAvatarPreview = $event"
             ></app-profile-picture>
         </div>
-        <button type="button" (click)="register()">S'inscrire</button>
+        <button type="button" class="sign-up-button" (click)="register()">S'inscrire</button>
         <div *ngIf="registerMessage" class="message">{{ registerMessage }}</div>
     </div>
     <div class="auth-container auth-login" *ngIf="mode === 'login' || mode === 'both'">
@@ -52,7 +52,7 @@
             (keydown.enter)="login()"
             (input)="onInput($event, 'loginPassword')"
         />
-        <button type="button" (click)="login()">Se connecter</button>
+        <button type="button" class="login-button" (click)="login()">Se connecter</button>
         <div *ngIf="loginMessage" class="message">{{ loginMessage }}</div>
     </div>
 </div>
