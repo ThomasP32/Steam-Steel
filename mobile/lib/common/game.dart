@@ -101,6 +101,7 @@ class GameClassic {
     required this.debug,
     required this.isLocked,
     required this.hasStarted,
+    required this.mapSize,
   });
   final String id;
   final String hostSocketId;
@@ -112,6 +113,7 @@ class GameClassic {
   final bool debug;
   final bool isLocked;
   final bool hasStarted;
+  final Coordinate mapSize;
 }
 
 class GameCtf extends GameClassic {
@@ -126,6 +128,7 @@ class GameCtf extends GameClassic {
     required super.debug,
     required super.isLocked,
     required super.hasStarted,
+    required super.mapSize,
     required this.mode,
     required this.nPlayersCtf,
   });

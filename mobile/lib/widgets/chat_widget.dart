@@ -15,10 +15,12 @@ class ChatWidget extends StatefulWidget {
     super.key,
     this.initiallyVisible = false,
     this.showToggleButton = true,
+    this.onClose,
   });
 
   final bool initiallyVisible;
   final bool showToggleButton;
+  final VoidCallback? onClose;
 
   @override
   State<ChatWidget> createState() => _ChatWidgetState();
@@ -52,6 +54,15 @@ class _ChatWidgetState extends State<ChatWidget>
       vsync: this,
       duration: const Duration(milliseconds: 320),
     );
+
+    // If initially visible, show the chat after build
+    if (widget.initiallyVisible) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _overlayEntry == null) {
+          _showChat();
+        }
+      });
+    }
 
     try {
       _prevSub = SocketService()
@@ -274,46 +285,52 @@ class _ChatWidgetState extends State<ChatWidget>
     super.dispose();
   }
 
+  void _showChat() {
+    try {
+      _overlayEntry = _createOverlayEntry();
+      Overlay.of(context).insert(_overlayEntry!);
+    } on Object catch (e) {
+      DebugLogger.log('overlay insert failed: $e', tag: 'ChatWidget');
+    }
+    setState(() => _visible = true);
+    _ctrl.forward().then((_) {
+      try {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          try {
+            FocusScope.of(context).requestFocus(_inputFocusNode);
+          } on Object catch (e) {
+            DebugLogger.log('requestFocus failed: $e', tag: 'ChatWidget');
+          }
+        });
+      } on Object catch (e) {
+        DebugLogger.log('postFrame requestFocus failed: $e', tag: 'ChatWidget');
+      }
+    });
+    _getMessagesFromDB();
+  }
+
+  void _hideChat() {
+    _ctrl.reverse().then((_) {
+      try {
+        try {
+          _inputFocusNode.unfocus();
+        } on Object catch (_) {}
+        _overlayEntry?.remove();
+      } on Object catch (e) {
+        DebugLogger.log('overlay remove failed: $e', tag: 'ChatWidget');
+      }
+      _overlayEntry = null;
+      if (mounted) setState(() => _visible = false);
+      widget.onClose?.call();
+    });
+  }
+
   void _toggle() {
     if (!_visible) {
-      try {
-        _overlayEntry = _createOverlayEntry();
-        Overlay.of(context).insert(_overlayEntry!);
-      } on Object catch (e) {
-        DebugLogger.log('overlay insert failed: $e', tag: 'ChatWidget');
-      }
-      setState(() => _visible = true);
-      _ctrl.forward().then((_) {
-        try {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            try {
-              FocusScope.of(context).requestFocus(_inputFocusNode);
-            } on Object catch (e) {
-              DebugLogger.log('requestFocus failed: $e', tag: 'ChatWidget');
-            }
-          });
-        } on Object catch (e) {
-          DebugLogger.log(
-            'postFrame requestFocus failed: $e',
-            tag: 'ChatWidget',
-          );
-        }
-      });
-      _getMessagesFromDB();
+      _showChat();
     } else {
-      _ctrl.reverse().then((_) {
-        try {
-          try {
-            _inputFocusNode.unfocus();
-          } on Object catch (_) {}
-          _overlayEntry?.remove();
-        } on Object catch (e) {
-          DebugLogger.log('overlay remove failed: $e', tag: 'ChatWidget');
-        }
-        _overlayEntry = null;
-        if (mounted) setState(() => _visible = false);
-      });
+      _hideChat();
     }
   }
 

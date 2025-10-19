@@ -38,7 +38,8 @@ flutter:
         - lib/assets/backgrounds/
         - lib/assets/main-menu/SteamSteel.png
         - lib/assets/characters/
-        - lib/assets/icons/android_icon.png
+        - lib/assets/icons/
+        - lib/assets/previewcharacters/
         - .env
 
     fonts:

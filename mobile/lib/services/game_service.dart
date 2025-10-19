@@ -41,22 +41,19 @@ class GameService {
     final game = currentGame;
     if (game == null) return 'Inconnue';
 
-    // The size is determined by tiles dimensions - using dynamic access for now
-    final size = (game as dynamic).size as String?;
-    if (size != null) {
-      if (size == 'small') return 'Petite';
-      if (size == 'medium') return 'Moyenne';
-      if (size == 'large') return 'Grande';
-    }
+    final mapSize = game.mapSize;
+    final totalTiles = mapSize.x * mapSize.y;
 
-    return 'Inconnue';
+    // Classify based on total tiles
+    if (totalTiles <= 100) return 'Petite';
+    if (totalTiles <= 225) return 'Moyenne';
+    return 'Grande';
   }
 
   String getActivePlayerName() {
     final game = currentGame;
     if (game == null || game.players.isEmpty) return 'Aucun';
 
-    // Find player with current turn
     try {
       final activePlayer = game.players.firstWhere(
         (p) => p.turn == game.currentTurn,
@@ -71,17 +68,22 @@ class GameService {
   GameClassic _parseGameFromJson(Map<String, dynamic> json) {
     final mode = json['mode'] as String?;
 
-    // Parse players
     final playersJson = json['players'] as List<dynamic>? ?? [];
     final players =
         playersJson
             .map((p) => _parsePlayer(p as Map<String, dynamic>))
             .toList();
 
-    // Parse coordinates
     final doorsJson = json['nDoorsManipulated'] as List<dynamic>? ?? [];
     final doors =
         doorsJson.map((d) => Coordinate(d['x'] as int, d['y'] as int)).toList();
+
+    // Parse mapSize from the game data
+    final mapSizeJson = json['mapSize'] as Map<String, dynamic>?;
+    final mapSize =
+        mapSizeJson != null
+            ? Coordinate(mapSizeJson['x'] as int, mapSizeJson['y'] as int)
+            : Coordinate(10, 10); // Default size if not provided
 
     final baseGame = GameClassic(
       id: json['id'] as String,
@@ -94,6 +96,7 @@ class GameService {
       debug: json['debug'] as bool? ?? false,
       isLocked: json['isLocked'] as bool? ?? false,
       hasStarted: json['hasStarted'] as bool? ?? false,
+      mapSize: mapSize,
     );
 
     if (mode == 'ctf') {
@@ -112,6 +115,7 @@ class GameService {
         duration: baseGame.duration,
         nTurns: baseGame.nTurns,
         debug: baseGame.debug,
+        mapSize: baseGame.mapSize,
         isLocked: baseGame.isLocked,
         hasStarted: baseGame.hasStarted,
         mode: Mode.ctf,
