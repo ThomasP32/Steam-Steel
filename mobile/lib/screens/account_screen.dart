@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/common/game.dart';
+import 'package:mobile/common/user.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/register/avatar_picker.dart';
@@ -112,6 +113,185 @@ class _AuthScreenState extends State<AuthScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(msg)));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 80,
+              vertical: 24,
+            ),
+            title: const Center(
+              child: Text(
+                'Confirmer la suppression\n',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            content: const Text(
+              'Êtes-vous sûr de vouloir supprimer votre compte ?\n\n'
+              'Cette action est irréversible.',
+              textAlign: TextAlign.center,
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    setState(() => _loading = true);
+    try {
+      await _authService.deleteAccount();
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Compte supprimé')));
+        context.go('/');
+      }
+    } on Exception catch (e) {
+      final raw = e.toString();
+      final msg =
+          raw.startsWith('Exception: ')
+              ? raw.substring('Exception: '.length)
+              : raw;
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $msg')));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _showEditModal(User user) async {
+    final usernameEditCtrl = TextEditingController(text: user.username);
+    final emailEditCtrl = TextEditingController(text: user.email);
+
+    var selectedAvatar = Avatar.values.firstWhere(
+      (a) => a.value == int.tryParse(user.avatar),
+      orElse: () => Avatar.avatar1,
+    );
+    var customPreview = user.avatarCustom;
+
+    final result = await showDialog<Map<String, dynamic>?>(
+      context: context,
+      builder:
+          (ctx) => StatefulBuilder(
+            builder:
+                (ctx, setModalState) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  title: const Text(
+                    'Modifier mon compte\n',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: usernameEditCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Pseudonyme',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: emailEditCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Avatar :',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        AvatarPicker(
+                          selected: selectedAvatar,
+                          customPreview: customPreview,
+                          onAvatarChanged: (a) {
+                            setModalState(() {
+                              selectedAvatar = a;
+                              customPreview = null;
+                            });
+                          },
+                          onCustomPreviewChanged:
+                              (p) => setModalState(() => customPreview = p),
+                        ),
+                      ],
+                    ),
+                  ),
+                  actionsAlignment: MainAxisAlignment.center,
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(null),
+                      child: const Text('Annuler'),
+                    ),
+                    ElevatedButton(
+                      onPressed:
+                          () => Navigator.of(ctx).pop({
+                            'username': usernameEditCtrl.text.trim(),
+                            'email': emailEditCtrl.text.trim(),
+                            'avatar': selectedAvatar,
+                            'avatarCustom': customPreview,
+                          }),
+                      child: const Text('Sauvegarder'),
+                    ),
+                  ],
+                ),
+          ),
+    );
+
+    if (result == null || !mounted) return;
+
+    setState(() => _loading = true);
+    try {
+      await _authService.updateAccount(
+        username: result['username'] as String,
+        email: result['email'] as String,
+        avatar: result['avatar'] as Avatar,
+        avatarCustom: result['avatarCustom'] as String?,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Compte mis à jour')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -243,48 +423,76 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       }
 
-      pageContent = Column(
+      final profileSection = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          avatarWidget,
-          const SizedBox(height: 8),
-          Text('Email: ${user.email}'),
-          Text('Pseudonyme: ${user.username}'),
-          const SizedBox(height: 8),
-          const Text('Statistiques:', style: TextStyle(fontSize: 18)),
-          const SizedBox(height: 4),
-          Text(
-            'Classique : ${user.stats.classique.gamesPlayed} parties jouées, ${user.stats.classique.gamesWon} parties gagnées',
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ElevatedButton(
+                onPressed: () async {
+                  if (mounted) context.go('/');
+                },
+                child: const Text('Retour'),
+              ),
+              const Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(left: 30),
+                  child: Text(
+                    'Mon compte',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
           ),
-          Text(
-            'CTF : ${user.stats.ctf.gamesPlayed} parties jouées, ${user.stats.ctf.gamesWon} parties gagnées',
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              avatarWidget,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Pseudonyme:'),
+                    Text(
+                      user.username,
+                      style: const TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Temps moyen par partie :',
-            style: TextStyle(color: Colors.grey[600]),
+          const SizedBox(height: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Email:'),
+              Text(
+                user.email,
+                style: const TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-          Text('${user.stats.avgTime.toStringAsFixed(0)}s'),
-          const SizedBox(height: 12),
+          const SizedBox(height: 30),
           ElevatedButton(
-            onPressed: () async {
-              if (mounted) context.go('/');
-            },
-            child: const Text('Modifier mon compte (TODO)'),
+            onPressed: _loading ? null : () => _showEditModal(user),
+            child: const Text('Modifier mon compte'),
           ),
           const SizedBox(height: 8),
           ElevatedButton(
-            onPressed: () async {
-              if (mounted) context.go('/');
-            },
-            child: const Text('Supprimer mon compte (TODO)'),
-          ),
-          const SizedBox(height: 8),
-          ElevatedButton(
-            onPressed: () async {
-              if (mounted) context.go('/');
-            },
-            child: const Text("Retour à l'accueil"),
+            onPressed: _deleteAccount,
+            child: const Text('Supprimer mon compte'),
           ),
           const SizedBox(height: 8),
           ElevatedButton(
@@ -294,6 +502,66 @@ class _AuthScreenState extends State<AuthScreen> {
             },
             child: const Text('Déconnexion'),
           ),
+        ],
+      );
+
+      final statsSection = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Statistiques',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          _buildStatCard(
+            'Mode Classique',
+            user.stats.classique.gamesPlayed,
+            user.stats.classique.gamesWon,
+          ),
+          const SizedBox(height: 12),
+          _buildStatCard(
+            'Mode CTF',
+            user.stats.ctf.gamesPlayed,
+            user.stats.ctf.gamesWon,
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Temps moyen par partie',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${user.stats.avgTime.toStringAsFixed(0)}s',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+
+      pageContent = Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: profileSection),
+          const SizedBox(width: 24),
+          Expanded(child: statsSection),
         ],
       );
     }
@@ -306,7 +574,6 @@ class _AuthScreenState extends State<AuthScreen> {
         return false;
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Mon compte')),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -314,6 +581,48 @@ class _AuthScreenState extends State<AuthScreen> {
               Expanded(child: SingleChildScrollView(child: pageContent)),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, int played, int won) {
+    final winRate =
+        played > 0 ? ((won / played) * 100).toStringAsFixed(1) : '0.0';
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [Text('Jouées: $played'), Text('Gagnées: $won')],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text('Taux de victoire'),
+                    Text(
+                      '$winRate%',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
