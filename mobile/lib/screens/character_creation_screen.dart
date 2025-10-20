@@ -96,7 +96,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
 
   @override
   void dispose() {
-    _creationService.stopListening();
+    _creationService.reset();
     super.dispose();
   }
 

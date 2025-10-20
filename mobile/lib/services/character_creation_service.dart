@@ -34,6 +34,11 @@ class CharacterCreationService {
     unavailableAvatars.value = {};
   }
 
+  void reset() {
+    stopListening();
+    selectedAvatar.value = 1;
+  }
+
   bool isAvatarAvailable(int avatarId) =>
       !unavailableAvatars.value.contains(avatarId);
 
