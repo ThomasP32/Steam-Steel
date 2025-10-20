@@ -20,20 +20,25 @@ class WaitingRoomScreen extends StatefulWidget {
 
 class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   final List<Player> _players = [];
+  String _mapName = 'En attente...';
   bool _isLocked = false;
-  final String mapName = 'CTF';
+  int _maxPlayers = 2;
+  final GameService _gameService = GameService();
 
   StreamSubscription<dynamic>? _playersSub;
   StreamSubscription<dynamic>? _lockedSub;
   StreamSubscription<dynamic>? _closedSub;
   StreamSubscription<dynamic>? _gameInitializedSub;
   StreamSubscription<dynamic>? _playerKickedSub;
+  StreamSubscription<dynamic>? _currentGameSub;
 
   @override
   void initState() {
     super.initState();
     _requestPlayers();
+    _requestGameData();
     _listenToCurrentPlayers();
+    _listenToCurrentGame();
     _listenToGameLocked();
     _listenToGameClosed();
     _listenToGameInitialized();
@@ -45,6 +50,14 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
       SocketService().send('getPlayers', widget.gameId);
     } on Exception catch (e) {
       DebugLogger.log('getPlayers emit failed: $e', tag: 'WaitingRoom');
+    }
+  }
+
+  void _requestGameData() {
+    try {
+      SocketService().send('getGameData', widget.gameId);
+    } on Exception catch (e) {
+      DebugLogger.log('getGameData emit failed: $e', tag: 'WaitingRoom');
     }
   }
 
@@ -75,6 +88,50 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
         DebugLogger.log('currentPlayers parse failed: $e', tag: 'WaitingRoom');
       }
     });
+  }
+
+  void _listenToCurrentGame() {
+    _currentGameSub = SocketService().listen<dynamic>('currentGame').listen((
+      data,
+    ) {
+      try {
+        if (data is Map<String, dynamic>) {
+          final mapSize = data['mapSize'] as Map<String, dynamic>?;
+          if (mapSize != null) {
+            final x = mapSize['x'] as int?;
+            if (x != null) {
+              final maxPlayers = _getMaxPlayersFromMapSize(x);
+              if (!mounted) return;
+              setState(() {
+                _maxPlayers = maxPlayers;
+              });
+            }
+          }
+          final name = data['name'] as String?;
+          if (name != null && name.isNotEmpty) {
+            if (!mounted) return;
+            setState(() {
+              _mapName = name;
+            });
+          }
+        }
+      } on Exception catch (e) {
+        DebugLogger.log('currentGame parse failed: $e', tag: 'WaitingRoom');
+      }
+    });
+  }
+
+  int _getMaxPlayersFromMapSize(int mapSize) {
+    switch (mapSize) {
+      case 10:
+        return 2;
+      case 15:
+        return 4;
+      case 20:
+        return 6;
+      default:
+        return 2;
+    }
   }
 
   void _listenToGameLocked() {
@@ -109,12 +166,15 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
             'gameInitialized received, navigating away from waiting room',
             tag: 'WaitingRoom',
           );
-          // Store game data in GameService
           if (data is Map<String, dynamic>) {
-            GameService().updateFromJson(data);
+            _gameService.updateFromJson(data);
+            final mapNameFromData = data['name'] as String?;
+            if (mapNameFromData != null && mapNameFromData.isNotEmpty) {
+              _mapName = mapNameFromData;
+            }
           }
           try {
-            GoRouter.of(context).go('/game/${widget.gameId}/$mapName');
+            GoRouter.of(context).go('/game/${widget.gameId}/$_mapName');
           } on Exception catch (e) {
             DebugLogger.log(
               'navigate on gameInitialized failed: $e',
@@ -173,6 +233,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     _closedSub?.cancel();
     _gameInitializedSub?.cancel();
     _playerKickedSub?.cancel();
+    _currentGameSub?.cancel();
     super.dispose();
   }
 
@@ -183,7 +244,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
         backgroundColor: Colors.grey.shade900,
         radius: 22,
         child: Image.asset(
-          'lib/assets/characters/$idx.png',
+          'lib/assets/previewcharacters/${idx}_preview.png',
           width: 44,
           height: 44,
           fit: BoxFit.cover,
@@ -252,7 +313,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               Text(
-                                mapName,
+                                _mapName,
                                 style: const TextStyle(fontSize: 18),
                               ),
                             ],
@@ -289,6 +350,13 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                           },
                           icon: const Icon(Icons.exit_to_app),
                           label: const Text('Quitter la partie'),
+                        ),
+                        Text(
+                          '${_players.length}/$_maxPlayers joueurs',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),

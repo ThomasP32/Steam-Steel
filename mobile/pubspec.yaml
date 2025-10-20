@@ -40,6 +40,9 @@ flutter:
         - lib/assets/characters/
         - lib/assets/icons/
         - lib/assets/previewcharacters/
+        - lib/assets/pixelcharacters/
+        - lib/assets/items/
+        - lib/assets/tiles/
         - .env
 
     fonts:

@@ -102,6 +102,14 @@ class GameClassic {
     required this.isLocked,
     required this.hasStarted,
     required this.mapSize,
+    this.tiles = const [],
+    this.doorTiles = const [],
+    this.items = const [],
+    this.startTiles = const [],
+    this.name = '',
+    this.description = '',
+    this.imagePreview = '',
+    this.mode,
   });
   final String id;
   final String hostSocketId;
@@ -114,6 +122,14 @@ class GameClassic {
   final bool isLocked;
   final bool hasStarted;
   final Coordinate mapSize;
+  final List<Tile> tiles;
+  final List<DoorTile> doorTiles;
+  final List<Item> items;
+  final List<Coordinate> startTiles;
+  final String name;
+  final String description;
+  final String imagePreview;
+  final Mode? mode;
 }
 
 class GameCtf extends GameClassic {
@@ -129,9 +145,15 @@ class GameCtf extends GameClassic {
     required super.isLocked,
     required super.hasStarted,
     required super.mapSize,
-    required this.mode,
     required this.nPlayersCtf,
+    super.tiles,
+    super.doorTiles,
+    super.items,
+    super.startTiles,
+    super.name,
+    super.description,
+    super.imagePreview,
+    super.mode,
   });
-  final Mode mode;
   final List<Player> nPlayersCtf;
 }

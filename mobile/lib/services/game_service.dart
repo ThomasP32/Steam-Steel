@@ -44,7 +44,6 @@ class GameService {
     final mapSize = game.mapSize;
     final totalTiles = mapSize.x * mapSize.y;
 
-    // Classify based on total tiles
     if (totalTiles <= 100) return 'Petite';
     if (totalTiles <= 225) return 'Moyenne';
     return 'Grande';
@@ -78,12 +77,36 @@ class GameService {
     final doors =
         doorsJson.map((d) => Coordinate(d['x'] as int, d['y'] as int)).toList();
 
-    // Parse mapSize from the game data
     final mapSizeJson = json['mapSize'] as Map<String, dynamic>?;
     final mapSize =
         mapSizeJson != null
             ? Coordinate(mapSizeJson['x'] as int, mapSizeJson['y'] as int)
-            : Coordinate(10, 10); // Default size if not provided
+            : Coordinate(10, 10);
+
+    final tilesJson = json['tiles'] as List<dynamic>? ?? [];
+    final tiles =
+        tilesJson.map((t) => _parseTile(t as Map<String, dynamic>)).toList();
+
+    final doorTilesJson = json['doorTiles'] as List<dynamic>? ?? [];
+    final doorTiles =
+        doorTilesJson
+            .map((d) => _parseDoorTile(d as Map<String, dynamic>))
+            .toList();
+
+    final itemsJson = json['items'] as List<dynamic>? ?? [];
+    final items =
+        itemsJson.map((i) => _parseItem(i as Map<String, dynamic>)).toList();
+
+    final startTilesJson = json['startTiles'] as List<dynamic>? ?? [];
+    final startTiles =
+        startTilesJson
+            .map(
+              (s) => Coordinate(
+                (s['coordinate']['x'] as int?) ?? (s['x'] as int? ?? 0),
+                (s['coordinate']['y'] as int?) ?? (s['y'] as int? ?? 0),
+              ),
+            )
+            .toList();
 
     final baseGame = GameClassic(
       id: json['id'] as String,
@@ -97,6 +120,14 @@ class GameService {
       isLocked: json['isLocked'] as bool? ?? false,
       hasStarted: json['hasStarted'] as bool? ?? false,
       mapSize: mapSize,
+      tiles: tiles,
+      doorTiles: doorTiles,
+      items: items,
+      startTiles: startTiles,
+      name: json['name'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      imagePreview: json['imagePreview'] as String? ?? '',
+      mode: mode != null ? _parseMode(mode) : null,
     );
 
     if (mode == 'ctf') {
@@ -118,6 +149,13 @@ class GameService {
         mapSize: baseGame.mapSize,
         isLocked: baseGame.isLocked,
         hasStarted: baseGame.hasStarted,
+        tiles: baseGame.tiles,
+        doorTiles: baseGame.doorTiles,
+        items: baseGame.items,
+        startTiles: baseGame.startTiles,
+        name: baseGame.name,
+        description: baseGame.description,
+        imagePreview: baseGame.imagePreview,
         mode: Mode.ctf,
         nPlayersCtf: nPlayersCtf,
       );
@@ -202,6 +240,54 @@ class GameService {
         return ProfileType.defensive;
       default:
         return ProfileType.normal;
+    }
+  }
+
+  Tile _parseTile(Map<String, dynamic> json) {
+    final coordJson = json['coordinate'] as Map<String, dynamic>;
+    final coord = Coordinate(coordJson['x'] as int, coordJson['y'] as int);
+    final category = _parseTileCategory(json['category'] as String);
+    return Tile(coord, category);
+  }
+
+  DoorTile _parseDoorTile(Map<String, dynamic> json) {
+    final coordJson = json['coordinate'] as Map<String, dynamic>;
+    final coord = Coordinate(coordJson['x'] as int, coordJson['y'] as int);
+    final isOpened = json['isOpened'] as bool? ?? false;
+    return DoorTile(coord, isOpened: isOpened);
+  }
+
+  Item _parseItem(Map<String, dynamic> json) {
+    final coordJson = json['coordinate'] as Map<String, dynamic>;
+    final coord = Coordinate(coordJson['x'] as int, coordJson['y'] as int);
+    final category = _parseItemCategory(json['category'] as String);
+    return Item(coord, category);
+  }
+
+  TileCategory _parseTileCategory(String category) {
+    switch (category.toLowerCase()) {
+      case 'water':
+        return TileCategory.water;
+      case 'ice':
+        return TileCategory.ice;
+      case 'wall':
+        return TileCategory.wall;
+      case 'door':
+        return TileCategory.door;
+      case 'floor':
+      default:
+        return TileCategory.floor;
+    }
+  }
+
+  Mode _parseMode(String mode) {
+    switch (mode.toLowerCase()) {
+      case 'ctf':
+        return Mode.ctf;
+      case 'classique':
+      case 'classic':
+      default:
+        return Mode.classic;
     }
   }
 }

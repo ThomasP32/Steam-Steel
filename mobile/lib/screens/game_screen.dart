@@ -6,6 +6,7 @@ import 'package:mobile/services/countdown_service.dart';
 import 'package:mobile/services/game_service.dart';
 import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
+import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
 
 class GameScreen extends StatefulWidget {
@@ -25,15 +26,19 @@ class _GameScreenState extends State<GameScreen> {
   StreamSubscription<dynamic>? _gameInitializedSub;
   StreamSubscription<dynamic>? _countdownSub;
   StreamSubscription<String>? _playerTurnSub;
+  StreamSubscription<int>? _delaySub;
   dynamic _countdown = 30;
   static const int _turnDuration = 30;
   String _currentPlayerName = 'Aucun';
+  int _startTurnCountdown = 3;
+  bool _delayFinished = true;
 
   @override
   void initState() {
     super.initState();
     _listenToGameEvents();
     _listenToPlayerTurn();
+    _listenToStartTurnDelay();
     _countdownService.initialize();
     _listenToCountdown();
   }
@@ -51,6 +56,10 @@ class _GameScreenState extends State<GameScreen> {
       playerName,
     ) {
       if (!mounted) return;
+      DebugLogger.log(
+        'GameScreen: playerTurn event -> $playerName',
+        tag: 'GameScreen',
+      );
       setState(() {
         _currentPlayerName = playerName;
       });
@@ -58,6 +67,7 @@ class _GameScreenState extends State<GameScreen> {
 
     SocketService().listen<dynamic>('yourTurn').listen((data) {
       if (!mounted) return;
+      DebugLogger.log('GameScreen: yourTurn event -> $data', tag: 'GameScreen');
       if (data is Map<String, dynamic>) {
         final playerName = data['name'] as String?;
         if (playerName != null) {
@@ -70,7 +80,12 @@ class _GameScreenState extends State<GameScreen> {
 
     SocketService().listen<dynamic>('startTurn').listen((_) {
       if (!mounted) return;
+      DebugLogger.log('GameScreen: startTurn event', tag: 'GameScreen');
       final activePlayerName = _gameService.getActivePlayerName();
+      DebugLogger.log(
+        'GameScreen: active player from game -> $activePlayerName',
+        tag: 'GameScreen',
+      );
       if (activePlayerName != 'Aucun') {
         setState(() {
           _currentPlayerName = activePlayerName;
@@ -95,11 +110,28 @@ class _GameScreenState extends State<GameScreen> {
         });
   }
 
+  void _listenToStartTurnDelay() {
+    _delaySub = SocketService().listen<int>('delay').listen((delay) {
+      if (!mounted) return;
+      DebugLogger.log('GameScreen: delay event -> $delay', tag: 'GameScreen');
+      setState(() {
+        _startTurnCountdown = delay;
+        if (delay == 0) {
+          _startTurnCountdown = 3;
+          _delayFinished = true;
+        } else {
+          _delayFinished = false;
+        }
+      });
+    });
+  }
+
   @override
   void dispose() {
     _gameInitializedSub?.cancel();
     _countdownSub?.cancel();
     _playerTurnSub?.cancel();
+    _delaySub?.cancel();
     super.dispose();
   }
 
@@ -160,7 +192,7 @@ class _GameScreenState extends State<GameScreen> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'lib/assets/backgrounds/citybackground.png',
+              'lib/assets/backgrounds/backgroundcombat.png',
               fit: BoxFit.cover,
             ),
           ),
@@ -291,6 +323,43 @@ class _GameScreenState extends State<GameScreen> {
                 });
               },
             ),
+          if (!_delayFinished)
+            ColoredBox(
+              color: Colors.black.withValues(alpha: 0.7),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(40),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2C3E50),
+                    border: Border.all(color: Colors.orange, width: 3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "C'est au tour de $_currentPlayerName",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        _startTurnCountdown.toString(),
+                        style: const TextStyle(
+                          color: Colors.orange,
+                          fontSize: 64,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -344,37 +413,171 @@ class _GameScreenState extends State<GameScreen> {
     final mapSize = game.mapSize;
     final gridSize = mapSize.x;
     const tileSize = 60.0;
+    final needsInteractiveViewer = gridSize > 10;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 60),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.orange, width: 2),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(
-            gridSize,
-            (row) => Row(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(
-                gridSize,
-                (col) => Container(
-                  width: tileSize,
-                  height: tileSize,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF8B7355),
-                    border: Border.all(
-                      color: const Color(0xFF654321),
-                      width: 2,
-                    ),
-                  ),
-                ),
-              ),
+    final gridWidget = DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.orange, width: 2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(
+          gridSize,
+          (row) => Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(
+              gridSize,
+              (col) => _buildTile(row, col, tileSize, game),
             ),
           ),
         ),
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableHeight = constraints.maxHeight - 120;
+        final availableWidth = constraints.maxWidth - 40;
+        final gridTotalSize = gridSize * tileSize;
+
+        // Calculate offset to center the grid
+        final offsetX = (availableWidth - gridTotalSize) / 2;
+        final offsetY = (availableHeight - gridTotalSize) / 2;
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 60, left: 20, right: 20),
+          child:
+              needsInteractiveViewer
+                  ? SizedBox(
+                    height: availableHeight,
+                    width: availableWidth,
+                    child: ClipRect(
+                      child: InteractiveViewer(
+                        constrained: false,
+                        boundaryMargin: const EdgeInsets.all(20),
+                        minScale: 0.5,
+                        maxScale: 2,
+                        child: Transform.translate(
+                          offset: Offset(
+                            offsetX > 0 ? offsetX : 0,
+                            offsetY > 0 ? offsetY : 0,
+                          ),
+                          child: gridWidget,
+                        ),
+                      ),
+                    ),
+                  )
+                  : gridWidget,
+        );
+      },
+    );
+  }
+
+  Widget _buildTile(int row, int col, double tileSize, dynamic game) {
+    final tile = game.tiles.cast<dynamic>().firstWhere(
+      (t) => t.coordinate.x == row && t.coordinate.y == col,
+      orElse: () => null,
+    );
+
+    final door = game.doorTiles.cast<dynamic>().firstWhere(
+      (d) => d.coordinate.x == row && d.coordinate.y == col,
+      orElse: () => null,
+    );
+
+    final item = game.items.cast<dynamic>().firstWhere(
+      (i) => i.coordinate.x == row && i.coordinate.y == col,
+      orElse: () => null,
+    );
+
+    final startPoint = game.startTiles.cast<dynamic>().firstWhere(
+      (s) => s.x == row && s.y == col,
+      orElse: () => null,
+    );
+
+    final player = game.players.cast<dynamic>().firstWhere((p) {
+      if (p.position == null) return false;
+      final pos = p.position as List;
+      return pos.isNotEmpty && pos[0].x == row && pos[0].y == col;
+    }, orElse: () => null);
+
+    String? tileAsset;
+    if (door != null) {
+      final isOpened = door.isOpened as bool? ?? false;
+      tileAsset =
+          isOpened
+              ? 'lib/assets/tiles/door_opened.jpg'
+              : 'lib/assets/tiles/door_closed.jpg';
+    } else if (tile != null) {
+      final category = tile.category.toString().split('.').last;
+
+      switch (category) {
+        case 'water':
+          tileAsset = 'lib/assets/tiles/water.png';
+        case 'ice':
+          tileAsset = 'lib/assets/tiles/ice1.jpg';
+        case 'wall':
+          tileAsset = 'lib/assets/tiles/wall.png';
+        case 'floor':
+        default:
+          tileAsset = 'lib/assets/tiles/floor.png';
+      }
+    } else {
+      tileAsset = 'lib/assets/tiles/floor.png';
+    }
+
+    return Container(
+      width: tileSize,
+      height: tileSize,
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFF654321)),
+      ),
+      child: Stack(
+        children: [
+          // Base tile
+          Image.asset(
+            tileAsset,
+            width: tileSize,
+            height: tileSize,
+            fit: BoxFit.cover,
+          ),
+
+          // Starting point overlay
+          if (startPoint != null)
+            Center(
+              child: Image.asset(
+                'lib/assets/tiles/startingpoint.png',
+                width: tileSize * 0.6,
+                height: tileSize * 0.6,
+                fit: BoxFit.contain,
+              ),
+            ),
+
+          // Item overlay
+          if (item != null)
+            Center(
+              child: Icon(
+                Icons.star,
+                color: Colors.yellow,
+                size: tileSize * 0.4,
+              ),
+            ),
+
+          // Player overlay
+          if (player != null)
+            Center(
+              child: CircleAvatar(
+                radius: tileSize * 0.3,
+                backgroundColor: Colors.transparent,
+                child: Image.asset(
+                  'lib/assets/pixelcharacters/${player.avatar.value}_pixelated.png',
+                  width: tileSize,
+                  height: tileSize,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
