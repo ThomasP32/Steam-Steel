@@ -195,6 +195,11 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canSubmit =
+        lifeOrSpeedBonus != null &&
+        attackOrDefenseBonus != null &&
+        !_isSubmitting;
+
     return Scaffold(
       body: DecoratedBox(
         decoration: const BoxDecoration(
@@ -370,7 +375,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
                     ),
                     const SizedBox(height: 12),
                     ElevatedButton(
-                      onPressed: onSubmit,
+                      onPressed: canSubmit ? onSubmit : null,
                       child: Text(
                         widget.gameId.isEmpty
                             ? 'Créer une partie'
