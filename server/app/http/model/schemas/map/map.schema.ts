@@ -1,6 +1,6 @@
 import { Coordinate, coordinateSchema, StartTile, startTileSchema } from '@app/http/model/schemas/map/coordinate.schema';
 import { DoorTile, doorTileSchema, Tile, tileSchema } from '@app/http/model/schemas/map/tiles.schema';
-import { ItemCategory, Item as ItemType, DetailedMap, Mode } from '@common/map.types';
+import { DetailedMap, ItemCategory, Item as ItemType, MapState, Mode } from '@common/map.types';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 import { Document, Types } from 'mongoose';
@@ -37,6 +37,14 @@ export class Map implements DetailedMap {
     @ApiProperty()
     @Prop({ type: String, enum: Mode, required: true })
     mode: Mode;
+
+    @ApiProperty()
+    @Prop({ type: String, required: true })
+    creator: string;
+
+    @ApiProperty()
+    @Prop({ type: String, enum: MapState, required: true, default: MapState.Public })
+    state: MapState;
 
     @ApiProperty()
     @Prop({ type: coordinateSchema, required: true })

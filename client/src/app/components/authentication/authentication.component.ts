@@ -20,7 +20,7 @@ export class AuthenticationComponent {
     registerUsername = '';
     registerAvatar: Avatar = Avatar.Avatar1;
     registerCustomAvatarPreview: string | undefined;
-    loginEmail = '';
+    loginUsername = '';
     loginPassword = '';
     registerMessage = '';
     loginMessage = '';
@@ -44,7 +44,7 @@ export class AuthenticationComponent {
     }
 
     async login() {
-        const result = await this.handleAuth(() => this.authService.login(this.loginEmail, this.loginPassword));
+        const result = await this.handleAuth(() => this.authService.login(this.loginUsername, this.loginPassword));
         this.loginMessage = result.message || (result.success ? 'Connexion réussie !' : 'Erreur lors de la connexion.');
         if (result.success) {
             this.closed.emit();
@@ -67,8 +67,8 @@ export class AuthenticationComponent {
             case 'registerUsername':
                 this.registerUsername = value;
                 break;
-            case 'loginEmail':
-                this.loginEmail = value;
+            case 'loginUsername':
+                this.loginUsername = value;
                 break;
             case 'loginPassword':
                 this.loginPassword = value;

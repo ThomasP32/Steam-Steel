@@ -1,0 +1,53 @@
+{
+  "name": "theme-2",
+  "images": {
+    "home_bg": "light-homepage",
+    "city_bg": "citybackground",
+    "edition_bg": "light-gameedition"
+  },
+  "colors": {
+    "button_bg": "#b0bac5",
+    "button_border": "#8e99a6",
+    "button_text": "#1c2630",
+
+    "chat_toggle_bg": "#b0bac5",
+    "chat_toggle_border": "#8e99a6",
+
+    "player_count_bar_bg": "#3f464f",
+
+    "player_stats_bg": "#aeb6c1",
+    "player_stats_border": "#8a94a1",
+
+    "map_grad_from": "#5c646f",
+    "map_grad_to": "#444b55",
+    "map_border_brown": "#c6843e",
+
+    "info_item_bg": "rgba(180,188,199,0.35)"
+  },
+  "selectors": {
+    "home": ".homePage-container",
+    "create": ".create-game-component",
+    "character": ".character-selection-container",
+    "waiting": ".waiting-room-container",
+    "game": ".game-page-container",
+    "admin": ".adminPage-container",
+    "edition": ".center-area",
+    "combat_modal": ".combat-interface",
+
+    "buttons_all": ".button, button, .btn, .homePage-container .button, .homePage-container button, .homePage-container .btn, .create-game-component .button, .character-page-container .button, .waiting-room-container .button, .game-page-container .button",
+    "chat_toggle": ".chat-toggle-button",
+    "player_count_bar": ".player-count-bar",
+    "player_stats": ".player-stats",
+    "players_list": ".players-list",
+
+    "game_map": ".game-map",
+    "game_code": ".game-code",
+    "gamemode_bar": ".gamemode-bar",
+    
+    "info_item": ".info-item",
+    "inventory_slot": ".inventory-slot"
+  },
+  "background_groups": {
+    "city_pages": ".create-game-component, .waiting-room-container, .game-page-container, .adminPage-container, .character-selection-container, .combat-interface"
+  }
+}

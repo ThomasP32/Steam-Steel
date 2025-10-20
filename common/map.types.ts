@@ -16,6 +16,12 @@ export enum Mode {
     Classic = 'classique',
 }
 
+export enum MapState {
+    Public = 'public',
+    Private = 'private',
+    Share = 'share',
+}
+
 export enum ItemCategory {
     Armor = 'armor',
     Sword = 'sword',
@@ -76,6 +82,8 @@ export interface Map {
     items: Item[];
     doorTiles: DoorTile[];
     tiles: Tile[];
+    creator: string;
+    state: MapState;
 }
 
 export interface DetailedMap extends Map {

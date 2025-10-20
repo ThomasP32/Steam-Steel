@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MapService } from '@app/services/map/map.service';
 import { TIME_LIMIT_DELAY } from '@common/constants';
-
+import { MapState } from '@common/map.types';
+import { AuthService } from '@app/services/auth/auth.service';
 @Component({
     selector: 'app-map-control-bar',
     standalone: true,
@@ -20,27 +21,36 @@ export class MapControlBarComponent implements OnInit {
         private readonly route: ActivatedRoute,
         private readonly mapService: MapService,
         private readonly router: Router,
+        private readonly authService: AuthService,
     ) {
         this.route = route;
         this.mapService = mapService;
         this.router = router;
+        this.authService = authService;
     }
 
-    ngOnInit(): void {
+    async ngOnInit(): Promise<void> {
         if (this.route.snapshot.params['mode']) {
             this.title = '';
             this.description = '';
+            this.mapState = MapState.Public;
         } else {
             this.getUrlId();
             this.editMode = false;
             this.title = this.mapService.map.name;
             this.description = this.mapService.map.description;
+            this.mapState = this.mapService.map.state;
+            const info = await this.authService.getUserInfo();
+            this.creator = this.mapService.map.creator || info?.user?.username || 'Créateur inconnu';
         }
     }
 
     title: string = '';
     description: string = '';
     editMode: boolean = true;
+    mapState: MapState = MapState.Public;
+    creator: string = '';
+    MapState = MapState;
 
     toggleEditing() {
         this.editMode = !this.editMode;
@@ -65,6 +75,8 @@ export class MapControlBarComponent implements OnInit {
 
         this.mapService.map.name = this.title;
         this.mapService.map.description = this.description;
+        this.mapService.map.state = this.mapState;
+
         this.mapService.generateMap();
     }
 

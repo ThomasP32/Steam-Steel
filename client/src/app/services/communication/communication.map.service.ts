@@ -43,6 +43,14 @@ export class CommunicationMapService {
             responseType: 'text',
         });
     }
+
+    basicDeleteWithBody<T>(url: string, body: T): Observable<HttpResponse<string>> {
+        return this.http.delete(`${this.baseUrl}/${url}`, {
+            body: body,
+            observe: 'response',
+            responseType: 'text',
+        });
+    }
     private handleError<T>(request: string, result?: T): () => Observable<T> {
         return () => of(result as T);
     }

@@ -3,9 +3,10 @@ import { DoorTileDto } from '@app/http/model/dto/map/door.dto';
 import { MapDto } from '@app/http/model/dto/map/map.dto';
 import { ItemDto, TileDto } from '@app/http/model/dto/map/tiles.dto';
 import { MapDocument } from '@app/http/model/schemas/map/map.schema';
+import { AdminGateway } from '@app/socket/game/gateways/admin/admin.gateway';
 import { HALF, MapConfig, MapSize } from '@common/constants';
 import { DIRECTIONS } from '@common/directions';
-import { Coordinate, DetailedMap, ItemCategory, Map, Mode, TileCategory } from '@common/map.types';
+import { Coordinate, DetailedMap, ItemCategory, Map, MapState, Mode, TileCategory } from '@common/map.types';
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -13,6 +14,10 @@ import { Model, Types } from 'mongoose';
 @Injectable()
 export class AdminService {
     @InjectModel(Map.name) public mapModel: Model<MapDocument>;
+
+    constructor(private readonly adminGateway: AdminGateway) {
+        this.adminGateway = adminGateway;
+    }
 
     async getAllMaps(): Promise<Map[]> {
         return await this.mapModel.find({});
@@ -55,54 +60,125 @@ export class AdminService {
         await this.verifyMap(map);
         try {
             await this.mapModel.create(map);
+            this.adminGateway.notifyMapListUpdate();
         } catch (error) {
             throw new Error('La création du jeu a échoué');
         }
     }
 
-    async deleteMap(mapId: string): Promise<void> {
+    async deleteMap(mapId: string, username?: string): Promise<void> {
         try {
             const objectId = new Types.ObjectId(mapId);
-            const response = await this.mapModel.deleteOne({
-                _id: objectId,
-            });
+            const map = await this.mapModel.findById(objectId);
+
+            if (!map) {
+                throw new NotFoundException("Le jeu n'a pas été trouvé");
+            }
+
+            if (!this.canDeleteMap(map, username)) {
+                throw new ForbiddenException("Vous n'avez pas les permissions pour supprimer ce jeu");
+            }
+
+            const response = await this.mapModel.deleteOne({ _id: objectId });
             if (response.deletedCount === 0) {
                 throw new NotFoundException("Le jeu n'a pas été trouvé");
             }
+            this.adminGateway.notifyMapListUpdate();
         } catch (err) {
-            if (err instanceof NotFoundException) {
+            if (err instanceof NotFoundException || err instanceof ForbiddenException) {
                 throw err;
             }
             throw new BadRequestException('La suppression du jeu a échoué');
         }
     }
 
-    async modifyMap(mapId: string, updateMapDto: MapDto): Promise<DetailedMap> {
-        await this.verifyMapModification(mapId, updateMapDto);
+    async deleteAllMapsByCreator(username: string): Promise<void> {
         try {
-            this.verifyMapModification(mapId, updateMapDto);
-            const existingMap = await this.mapModel.findById(mapId);
+            await this.mapModel.deleteMany({ creator: username });
+            this.adminGateway.notifyMapListUpdate();
+        } catch (error) {
+            throw new BadRequestException('La suppression des cartes a échoué');
+        }
+    }
 
-            if (existingMap) {
-                existingMap.set({ ...updateMapDto });
-                existingMap.isVisible = false;
-                existingMap.lastModified = new Date();
-                return await existingMap.save();
-            } else {
-                const newMap = new this.mapModel({
-                    ...updateMapDto,
-                    _id: new Types.ObjectId(),
-                    isVisible: false,
-                    lastModified: new Date(),
-                });
-                return await newMap.save();
-            }
+    async duplicateMap(mapId: string, username: string): Promise<DetailedMap> {
+        const existingMap = await this.mapModel.findById(mapId);
+
+        if (!existingMap) {
+            throw new NotFoundException("Le jeu n'a pas été trouvé");
+        }
+
+        if (existingMap.state !== MapState.Public) {
+            throw new ForbiddenException('Seuls les jeux publics peuvent être dupliqués');
+        }
+
+        const baseName = existingMap.name + '_copie';
+        let duplicatedName = baseName;
+        let counter = 1;
+
+        while (!(await this.isUnique(duplicatedName))) {
+            duplicatedName = `${baseName}_${counter}`;
+            counter++;
+        }
+
+        const duplicatedMapData = {
+            name: duplicatedName,
+            description: existingMap.description,
+            imagePreview: existingMap.imagePreview,
+            mapSize: existingMap.mapSize,
+            tiles: existingMap.tiles,
+            doorTiles: existingMap.doorTiles,
+            startTiles: existingMap.startTiles,
+            items: existingMap.items,
+            mode: existingMap.mode,
+            state: MapState.Private,
+            creator: username,
+        };
+
+        try {
+            const duplicatedMap = await this.mapModel.create(duplicatedMapData);
+            this.adminGateway.notifyMapListUpdate();
+            return duplicatedMap;
+        } catch (error) {
+            throw new BadRequestException('La duplication du jeu a échoué');
+        }
+    }
+
+    async modifyMap(mapId: string, updateMapDto: MapDto, username?: string): Promise<DetailedMap> {
+        const existingMap = await this.mapModel.findById(mapId);
+
+        if (!existingMap) {
+            throw new NotFoundException("Le jeu n'a pas été trouvé");
+        }
+
+        if (!this.canModifyMap(existingMap, username)) {
+            throw new ForbiddenException("Vous n'avez pas la permission de modifier cette carte");
+        }
+
+        if (updateMapDto.state !== existingMap.state && existingMap.creator !== username) {
+            throw new ForbiddenException("Seul le créateur peut modifier l'état de la carte");
+        }
+
+        const mapWithCreator = {
+            ...updateMapDto,
+            creator: existingMap.creator,
+        };
+
+        await this.verifyMapModification(mapId, mapWithCreator);
+
+        try {
+            existingMap.set(mapWithCreator);
+            existingMap.isVisible = false;
+            existingMap.lastModified = new Date();
+            const updatedMap = await existingMap.save();
+            this.adminGateway.notifyMapListUpdate();
+            return updatedMap;
         } catch (error) {
             throw new Error("Le jeu n'a pas pu être modifié");
         }
     }
 
-    async verifyMapModification(mapId: string, mapDto: MapDto): Promise<void> {
+    async verifyMapModification(mapId: string, mapDto: MapDto & { creator?: string }): Promise<void> {
         const idObject = new Types.ObjectId(mapId);
         const existingMap = await this.mapModel.findOne({
             name: mapDto.name,
@@ -133,13 +209,15 @@ export class AdminService {
 
     async visibilityToggle(mapId: string) {
         const map = await this.getMapById(mapId);
-        return await this.mapModel.findByIdAndUpdate(
+        const updatedMap = await this.mapModel.findByIdAndUpdate(
             map._id,
             { isVisible: !map.isVisible },
             {
                 new: true,
             },
         );
+        this.adminGateway.notifyMapListUpdate();
+        return updatedMap;
     }
 
     private async isUnique(mapName: string): Promise<boolean> {
@@ -272,5 +350,27 @@ export class AdminService {
         } else {
             return true;
         }
+    }
+
+    private canDeleteMap(map: DetailedMap, username?: string): boolean {
+        if (map.state === MapState.Public) {
+            return true;
+        }
+        return username !== undefined && map.creator === username;
+    }
+
+    private canModifyMap(map: DetailedMap, username?: string): boolean {
+        if (map.state === MapState.Public) {
+            return true;
+        }
+        return username !== undefined && map.creator === username;
+    }
+
+    canUseMapForGameByUsername(map: DetailedMap, username?: string): boolean {
+        if (map.state === MapState.Public || map.state === MapState.Share) {
+            return true;
+        }
+
+        return username !== undefined && map.creator === username;
     }
 }

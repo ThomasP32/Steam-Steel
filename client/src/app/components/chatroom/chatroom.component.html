@@ -48,7 +48,7 @@
             <div class="channel-item" [class.active]="channel.name === activeChannel">
                 <span class="channel-name" (click)="selectActiveChannel(channel.name)">{{ channel.name }}</span>
                 <div class="channel-actions">
-                    @if (channel.name !== 'global') {
+                    @if (channel.name !== 'global' && channel.name !== ('partie-' + gameId)) {
                     <button class="leave-btn" (click)="leaveChannel(channel.name)">Quitter</button>
                     }
                 </div>

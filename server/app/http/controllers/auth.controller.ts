@@ -4,12 +4,14 @@ import { Body, Controller, Delete, Get, HttpStatus, Inject, Patch, Post, Req, Re
 import { ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import * as jwt from 'jsonwebtoken';
+import { AdminService } from '../services/admin/admin.service';
 import { UserService } from '../services/user/user.service';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
     @Inject(UserService) private readonly userService: UserService;
+    @Inject(AdminService) private readonly adminService: AdminService;
 
     @ApiCreatedResponse({
         description: 'Register a new user',
@@ -48,11 +50,11 @@ export class AuthController {
         description: 'Return UNAUTHORIZED http status when login fails',
     })
     @Post('login')
-    async login(@Body('email') email: string, @Body('password') password: string, @Res() response: Response) {
+    async login(@Body('username') username: string, @Body('password') password: string, @Res() response: Response) {
         try {
-            const result = await this.userService.validateUserLogin(email, password);
+            const result = await this.userService.validateUserLogin(username, password);
             if (!result.success) {
-                const status = result.message === 'Email ou mot de passe incorrects.' ? HttpStatus.UNAUTHORIZED : HttpStatus.BAD_REQUEST;
+                const status = result.message === 'Pseudo ou mot de passe incorrect.' ? HttpStatus.UNAUTHORIZED : HttpStatus.BAD_REQUEST;
                 return response.status(status).json(result);
             }
 
@@ -92,6 +94,8 @@ export class AuthController {
         if (!user) return { success: false, message: 'Utilisateur non trouvé' };
 
         this.userService.removeUserSession(userId);
+
+        await this.adminService.deleteAllMapsByCreator(user.username);
 
         await this.userService.deleteById(userId);
         return { success: true, message: 'Compte supprimé avec succès' };

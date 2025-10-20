@@ -280,6 +280,7 @@ class _ChatWidgetState extends State<ChatWidget>
     }
     _inputCtrl.dispose();
     _listController.dispose();
+    _inputFocusNode.dispose();
     _deletedSub?.cancel();
     _ctrl.dispose();
     super.dispose();
