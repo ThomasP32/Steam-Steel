@@ -47,7 +47,6 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _listenToPlayerTurn() {
-    // Listen to playerTurn event (broadcasts current player name)
     _playerTurnSub = SocketService().listen<String>('playerTurn').listen((
       playerName,
     ) {
@@ -57,7 +56,6 @@ class _GameScreenState extends State<GameScreen> {
       });
     });
 
-    // Also listen to yourTurn event to update when it's your turn
     SocketService().listen<dynamic>('yourTurn').listen((data) {
       if (!mounted) return;
       if (data is Map<String, dynamic>) {
@@ -70,10 +68,8 @@ class _GameScreenState extends State<GameScreen> {
       }
     });
 
-    // Listen to startTurn event which fires after the delay countdown
     SocketService().listen<dynamic>('startTurn').listen((_) {
       if (!mounted) return;
-      // Get the active player name from the game state
       final activePlayerName = _gameService.getActivePlayerName();
       if (activePlayerName != 'Aucun') {
         setState(() {
@@ -303,7 +299,7 @@ class _GameScreenState extends State<GameScreen> {
   Widget _buildTimer() {
     final displayTime = _countdown.toString();
     final timeLeft = _countdown is int ? _countdown as int : 0;
-    final double progress = timeLeft / _turnDuration;
+    final progress = timeLeft / _turnDuration;
 
     return Container(
       width: 80,
@@ -326,7 +322,6 @@ class _GameScreenState extends State<GameScreen> {
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
             ),
           ),
-          // Timer text
           Text(
             displayTime,
             style: const TextStyle(
@@ -431,7 +426,6 @@ class _GameScreenState extends State<GameScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          // Stats with bars
           _buildStatBar('❤️', 'Vie', specs.life, specs.life),
           const SizedBox(height: 8),
           _buildStatBar('⚡', 'Vitesse', specs.speed, specs.speed),
@@ -440,7 +434,6 @@ class _GameScreenState extends State<GameScreen> {
           const SizedBox(height: 8),
           _buildStatBar('🛡️', 'Défense', specs.defense, specs.defense),
           const SizedBox(height: 16),
-          // Attack and defense dice
           Row(
             children: [
               Expanded(
@@ -453,7 +446,6 @@ class _GameScreenState extends State<GameScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          // Inventory
           const Text(
             'Inventaire',
             style: TextStyle(
@@ -471,7 +463,6 @@ class _GameScreenState extends State<GameScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          // Actions and movements
           _buildCounter('Actions restantes', specs.actions),
           const SizedBox(height: 8),
           _buildCounter('Mouvements restants', specs.movePoints),
@@ -528,14 +519,13 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildDiceIndicator(String label, int value) {
-    // Determine dice image based on value (d4 or d6)
     final diceImage = value == 4 ? 'd4.png' : 'd6.png';
 
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: const Color(0xFF1A252F),
-        border: Border.all(color: Colors.orange, width: 1),
+        border: Border.all(color: Colors.orange),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -564,7 +554,7 @@ class _GameScreenState extends State<GameScreen> {
       height: 60,
       decoration: BoxDecoration(
         color: const Color(0xFF1A252F),
-        border: Border.all(color: Colors.grey, width: 1),
+        border: Border.all(color: Colors.grey),
         borderRadius: BorderRadius.circular(6),
       ),
       child: const Center(

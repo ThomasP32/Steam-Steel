@@ -24,7 +24,7 @@ class GameService {
     try {
       final game = _parseGameFromJson(json);
       setGame(game);
-    } catch (e) {
+    } on Exception catch (e) {
       DebugLogger.log(
         'GameService: failed to parse game: $e',
         tag: 'GameService',
@@ -60,7 +60,7 @@ class GameService {
         orElse: () => game.players.first,
       );
       return activePlayer.name;
-    } catch (e) {
+    } on Exception {
       return game.players.first.name;
     }
   }
