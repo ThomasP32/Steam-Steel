@@ -34,11 +34,29 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   String _diceAsset(int? faces) => 'lib/assets/icons/d${faces ?? 4}.png';
   StreamSubscription<dynamic>? _youJoinedSub;
   final CharacterCreationService _creationService = CharacterCreationService();
+  VoidCallback? _availabilityListener;
 
   @override
   void initState() {
     super.initState();
     _loadUserName();
+    if (widget.gameId.isNotEmpty) {
+      _creationService.startListening(widget.gameId);
+      _availabilityListener = _onAvatarAvailabilityChanged;
+      _creationService.unavailableAvatars.addListener(_availabilityListener!);
+    }
+  }
+
+  void _onAvatarAvailabilityChanged() {
+    if (!mounted) return;
+    if (!_creationService.isAvatarAvailable(selectedAvatar)) {
+      final firstAvailable = _creationService.findFirstAvailable();
+      if (firstAvailable != null) {
+        setState(() {
+          selectedAvatar = firstAvailable;
+        });
+      }
+    }
   }
 
   Future<void> _loadUserName() async {
@@ -190,6 +208,12 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   @override
   void dispose() {
     _youJoinedSub?.cancel();
+    if (_availabilityListener != null) {
+      _creationService.unavailableAvatars.removeListener(
+        _availabilityListener!,
+      );
+    }
+    _creationService.stopListening();
     super.dispose();
   }
 
@@ -240,7 +264,6 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
                     const SizedBox(height: 12),
                     const Text('Ajoutes un bonus:'),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ElevatedButton(
                           onPressed: () => addBonus('life'),
@@ -268,7 +291,6 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
                     const SizedBox(height: 12),
                     const Text('Attribues un dé à 6 faces:'),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Column(
                           mainAxisSize: MainAxisSize.min,
@@ -391,36 +413,51 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
               // Right: list of avatars
               Expanded(
                 flex: 3,
-                child: GridView.count(
-                  crossAxisCount: 3,
-                  shrinkWrap: true,
-                  children: List.generate(12, (index) {
-                    final id = index + 1;
-                    return GestureDetector(
-                      onTap: () => setState(() => selectedAvatar = id),
-                      child: Container(
-                        margin: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          color:
-                              id == selectedAvatar
-                                  ? Colors.orange
-                                  : Colors.grey[800],
-                          border: Border.all(color: Colors.orange, width: 3),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(5),
-                          child: Image.asset(
-                            'lib/assets/previewcharacters/${id}_preview.png',
-                            fit: BoxFit.contain,
-                            errorBuilder:
-                                (ctx, err, stack) => Image.asset(
-                                  'lib/assets/characters/unlocked.png',
+                child: ValueListenableBuilder<Set<int>>(
+                  valueListenable: _creationService.unavailableAvatars,
+                  builder: (context, unavailable, _) {
+                    return GridView.count(
+                      crossAxisCount: 3,
+                      shrinkWrap: true,
+                      children: List.generate(12, (index) {
+                        final id = index + 1;
+                        final isAvailable = !unavailable.contains(id);
+                        return GestureDetector(
+                          onTap:
+                              isAvailable
+                                  ? () => setState(() => selectedAvatar = id)
+                                  : null,
+                          child: Opacity(
+                            opacity: isAvailable ? 1.0 : 0.4,
+                            child: Container(
+                              margin: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color:
+                                    id == selectedAvatar
+                                        ? Colors.orange
+                                        : Colors.grey[800],
+                                border: Border.all(
+                                  color: Colors.orange,
+                                  width: 3,
                                 ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(5),
+                                child: Image.asset(
+                                  'lib/assets/previewcharacters/${id}_preview.png',
+                                  fit: BoxFit.contain,
+                                  errorBuilder:
+                                      (ctx, err, stack) => Image.asset(
+                                        'lib/assets/characters/unlocked.png',
+                                      ),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      }),
                     );
-                  }),
+                  },
                 ),
               ),
             ],
