@@ -31,6 +31,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   int? defenseBonus;
   int selectedAvatar = 1;
   bool _isSubmitting = false;
+  String _diceAsset(int? faces) => 'lib/assets/icons/d${faces ?? 4}.png';
   StreamSubscription<dynamic>? _youJoinedSub;
   final CharacterCreationService _creationService = CharacterCreationService();
 
@@ -195,8 +196,13 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Choisis ton personnage')),
-      body: SafeArea(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('lib/assets/backgrounds/backgroundcombat.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -207,6 +213,13 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (mounted) context.go('/');
+                      },
+                      child: const Text('Retour'),
+                    ),
+                    const SizedBox(height: 6),
                     const Text(
                       'Stats',
                       style: TextStyle(
@@ -215,20 +228,21 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _statRow('Vie', life, Colors.red),
-                    _statRow('Rapidité', speed, Colors.blue),
+                    _statRow('Vie', life, Colors.orange),
+                    _statRow('Rapidité', speed, Colors.orange),
                     _statRow('Attaque', attack, Colors.orange),
-                    _statRow('Défense', defense, Colors.green),
+                    _statRow('Défense', defense, Colors.orange),
                     const SizedBox(height: 12),
                     const Text('Ajoutes un bonus:'),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ElevatedButton(
                           onPressed: () => addBonus('life'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor:
                                 lifeOrSpeedBonus == 'life'
-                                    ? Colors.amber
+                                    ? Colors.orange
                                     : null,
                           ),
                           child: const Text('Vie'),
@@ -239,7 +253,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor:
                                 lifeOrSpeedBonus == 'speed'
-                                    ? Colors.amber
+                                    ? Colors.orange
                                     : null,
                           ),
                           child: const Text('Rapidité'),
@@ -249,34 +263,68 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
                     const SizedBox(height: 12),
                     const Text('Attribues un dé à 6 faces:'),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ElevatedButton(
-                          onPressed: () => assignDice('attack'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                attackOrDefenseBonus == 'attack'
-                                    ? Colors.amber
-                                    : null,
-                          ),
-                          child: const Text('Attaque'),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () => assignDice('attack'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    attackOrDefenseBonus == 'attack'
+                                        ? Colors.orange
+                                        : null,
+                              ),
+                              child: const Text('Attaque'),
+                            ),
+                            const SizedBox(height: 6),
+                            Image.asset(
+                              _diceAsset(attackBonus),
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.contain,
+                              errorBuilder:
+                                  (_, __, ___) => const Text(
+                                    'd4',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                            ),
+                          ],
                         ),
                         const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: () => assignDice('defense'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                attackOrDefenseBonus == 'defense'
-                                    ? Colors.amber
-                                    : null,
-                          ),
-                          child: const Text('Défense'),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () => assignDice('defense'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    attackOrDefenseBonus == 'defense'
+                                        ? Colors.orange
+                                        : null,
+                              ),
+                              child: const Text('Défense'),
+                            ),
+                            const SizedBox(height: 6),
+                            Image.asset(
+                              _diceAsset(defenseBonus),
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.contain,
+                              errorBuilder:
+                                  (_, __, ___) => const Text(
+                                    'd4',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(width: 16),
 
               // Center: avatar + name + submit
@@ -293,15 +341,14 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Container(
-                      width: 200,
-                      height: 200,
-                      color: Colors.grey.shade900,
+                    SizedBox(
+                      width: 400,
+                      height: 500,
                       child: Center(
                         child: Image.asset(
                           'lib/assets/characters/$selectedAvatar.png',
-                          width: 180,
-                          height: 180,
+                          width: 350,
+                          height: 350,
                           fit: BoxFit.contain,
                           errorBuilder:
                               (ctx, err, stack) => Image.asset(
@@ -340,22 +387,25 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
               Expanded(
                 flex: 3,
                 child: GridView.count(
-                  crossAxisCount: 2,
+                  crossAxisCount: 3,
                   shrinkWrap: true,
                   children: List.generate(12, (index) {
                     final id = index + 1;
                     return GestureDetector(
                       onTap: () => setState(() => selectedAvatar = id),
                       child: Container(
-                        margin: const EdgeInsets.all(8),
-                        color:
-                            id == selectedAvatar
-                                ? Colors.blueGrey
-                                : Colors.grey[800],
+                        margin: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          color:
+                              id == selectedAvatar
+                                  ? Colors.orange
+                                  : Colors.grey[800],
+                          border: Border.all(color: Colors.orange, width: 3),
+                        ),
                         child: Padding(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(5),
                           child: Image.asset(
-                            'lib/assets/characters/$id.png',
+                            'lib/assets/previewcharacters/${id}_preview.png',
                             fit: BoxFit.contain,
                             errorBuilder:
                                 (ctx, err, stack) => Image.asset(
@@ -388,6 +438,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
             value: pct,
             color: color,
             backgroundColor: Colors.grey.shade700,
+            minHeight: 15,
           ),
         ],
       ),
