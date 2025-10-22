@@ -58,6 +58,7 @@ export interface Player {
     name: string;
     avatar: Avatar;
     isActive: boolean;
+    isObservationMode?: boolean;
     specs: Specs;
     inventory: ItemCategory[];
     position: Coordinate;
@@ -79,6 +80,11 @@ export interface GameClassic extends Map {
     debug: boolean;
     isLocked: boolean;
     hasStarted: boolean;
+    settings: GameSettings;
+}
+
+interface GameSettings {
+    isFastElimination: boolean;
 }
 
 export interface GameCtf extends GameClassic {

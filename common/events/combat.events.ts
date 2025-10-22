@@ -1,4 +1,4 @@
-import { Game, Player } from '@common/game';
+import { Game, Player } from '../game';
 
 export enum CombatEvents {
     StartCombat = 'startCombat',
@@ -29,10 +29,16 @@ export enum CombatEvents {
     PlayerTurnCombat = 'playerTurnCombat',
 
     CombatFinishedByDisconnection = 'combatFinishedByDisconnection',
+    PlayerEnteredObservationMode = 'playerEnteredObservationMode',
 }
 export interface CombatStartedData {
     challenger: Player;
     opponent: Player;
+}
+
+export interface PlayerEnteredObservationModeData {
+    player: Player;
+    message?: string;
 }
 
 export interface StartCombatData {

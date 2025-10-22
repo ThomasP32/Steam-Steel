@@ -67,6 +67,7 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     maxPlayers: number;
     showProfileModal: boolean = false;
     isChatVisible: boolean = false;
+    gameSettings: { isFastElimination: boolean } = { isFastElimination: false };
 
     async ngOnInit(): Promise<void> {
         if (!this.socketService.isSocketAlive()) {
@@ -85,6 +86,10 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
             this.isHost = true;
             this.getMapName();
             this.generateRandomNumber();
+            // Get game settings from navigation state
+            if (window.history.state?.gameSettings) {
+                this.gameSettings = window.history.state.gameSettings;
+            }
             await this.createNewGame(this.mapName);
         } else {
             this.waitingRoomCode = this.route.snapshot.params['gameId'];
@@ -109,9 +114,9 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         const map: Map = await firstValueFrom(this.communicationMapService.basicGet<Map>(`map/${mapName}`));
         let newGame: Game | GameCtf;
         if (map.mode === Mode.Ctf) {
-            newGame = this.gameService.createNewCtfGame(map, this.waitingRoomCode);
+            newGame = this.gameService.createNewCtfGame(map, this.waitingRoomCode, this.gameSettings);
         } else {
-            newGame = this.gameService.createNewGame(map, this.waitingRoomCode);
+            newGame = this.gameService.createNewGame(map, this.waitingRoomCode, this.gameSettings);
         }
         this.socketService.sendMessage(GameCreationEvents.CreateGame, newGame);
     }

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { PlayerService } from '@app/services/player-service/player.service';
 import { ProfileType, TIME_LIMIT_DELAY } from '@common/constants';
-import { CombatEvents, CombatStartedData } from '@common/events/combat.events';
+import { CombatEvents, CombatStartedData, PlayerEnteredObservationModeData } from '@common/events/combat.events';
 import { Player } from '@common/game';
 import { BehaviorSubject, Subscription } from 'rxjs';
 
@@ -15,6 +15,7 @@ export class CombatService {
         name: '',
         avatar: 1,
         isActive: false,
+        isObservationMode: false,
         specs: {
             evasions: 2,
             life: 0,
@@ -48,6 +49,12 @@ export class CombatService {
 
     private readonly opponent = new BehaviorSubject<Player>(this.defaultPlayer);
     public opponent$ = this.opponent.asObservable();
+
+    private readonly showObservationModeModal = new BehaviorSubject<boolean>(false);
+    public showObservationModeModal$ = this.showObservationModeModal.asObservable();
+
+    private readonly observationModeMessage = new BehaviorSubject<string>('');
+    public observationModeMessage$ = this.observationModeMessage.asObservable();
 
     constructor(
         private readonly socketService: SocketService,
@@ -104,5 +111,19 @@ export class CombatService {
                 }
             }),
         );
+    }
+
+    listenForObservationMode(): void {
+        this.socketSubscription.add(
+            this.socketService.listen<PlayerEnteredObservationModeData>(CombatEvents.PlayerEnteredObservationMode).subscribe((data) => {
+                this.playerService.setPlayer(data.player);
+                this.observationModeMessage.next(data.message || 'Vous êtes maintenant en mode observation.');
+                this.showObservationModeModal.next(true);
+            }),
+        );
+    }
+
+    closeObservationModeModal(): void {
+        this.showObservationModeModal.next(false);
     }
 }

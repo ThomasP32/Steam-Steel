@@ -37,6 +37,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
 
     gameId: string | null = null;
     mapName: string | null = null;
+    gameSettings: { isFastElimination: boolean } = { isFastElimination: false };
 
     gameHasStarted: boolean = false;
     gameLockedModal: boolean = false;
@@ -84,6 +85,11 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
             this.socketService.sendMessage(GameCreationEvents.GetPlayers, this.gameId);
         } else {
             this.mapName = this.route.snapshot.params['mapName'];
+            // Get game settings from navigation state
+            console.log('In the on init');
+            if (window.history.state?.gameSettings) {
+                this.gameSettings = window.history.state.gameSettings;
+            }
         }
     }
 
@@ -215,7 +221,9 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
                             this.router.navigate(['/create-game']);
                         }, TIME_REDIRECTION);
                     } else {
-                        this.router.navigate([`${this.mapName}/waiting-room/host`]);
+                        this.router.navigate([`${this.mapName}/waiting-room/host`], {
+                            state: { gameSettings: this.gameSettings },
+                        });
                     }
                 } catch (error) {
                     this.showSelectionError = true;

@@ -8,6 +8,7 @@ import { GameMapComponent } from '@app/components/game-map/game-map.component';
 import { GamePlayersListComponent } from '@app/components/game-players-list/game-players-list.component';
 import { InventoryModalComponent } from '@app/components/inventory-modal/inventory-modal.component';
 import { JournalComponent } from '@app/components/journal/journal.component';
+import { ObservationModeModalComponent } from '@app/components/observation-mode-modal/observation-mode-modal.component';
 import { PlayerInfosComponent } from '@app/components/player-infos/player-infos.component';
 import { AuthService } from '@app/services/auth/auth.service';
 import { ChannelService } from '@app/services/channel/channel.service';
@@ -43,6 +44,7 @@ import { Subscription } from 'rxjs';
         ActionsComponentComponent,
         PlayerInfosComponent,
         InventoryModalComponent,
+        ObservationModeModalComponent,
     ],
     templateUrl: './game-page.html',
     styleUrl: './game-page.scss',
@@ -76,6 +78,8 @@ export class GamePageComponent implements OnInit, OnDestroy {
     gameOverMessage: boolean = false;
     isCombatModalOpen: boolean = false;
     isInventoryModalOpen = false;
+    isObservationModeModalOpen = false;
+    observationModeMessage = '';
 
     youFell: boolean = false;
     map: Map;
@@ -129,6 +133,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
             this.combatService.listenCombatStart();
             this.combatService.listenForCombatFinish();
             this.combatService.listenForEvasionInfo();
+            this.combatService.listenForObservationMode();
 
             this.listenForEndOfGame();
             this.listenForOpponent();
@@ -139,6 +144,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
             this.listenForCurrentPlayerUpdates();
             this.listenForInventoryFull();
             this.listenForCombatModal();
+            this.listenForObservationModeModal();
 
             this.activePlayers = this.gameService.game.players;
 
@@ -182,7 +188,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
     }
 
     areModalsOpen(): boolean {
-        return this.showExitModal || this.showKickedModal || this.isCombatModalOpen;
+        return this.showExitModal || this.showKickedModal || this.isCombatModalOpen || this.isObservationModeModalOpen;
     }
 
     navigateToEndOfGame(): void {
@@ -250,6 +256,20 @@ export class GamePageComponent implements OnInit, OnDestroy {
                 this.gameTurnService.clearMoves();
             }
         });
+    }
+
+    listenForObservationModeModal() {
+        this.combatService.showObservationModeModal$.subscribe((showModal) => {
+            this.isObservationModeModalOpen = showModal;
+        });
+        
+        this.combatService.observationModeMessage$.subscribe((message) => {
+            this.observationModeMessage = message;
+        });
+    }
+
+    closeObservationModeModal(): void {
+        this.combatService.closeObservationModeModal();
     }
 
     private listenForCountDown() {

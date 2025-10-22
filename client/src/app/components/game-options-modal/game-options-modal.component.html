@@ -1,0 +1,30 @@
+<div class="game-options-modal-container">
+    <button class="close-button" (click)="onClose()">X</button>
+    <p class="modal-title">Options de jeu</p>
+    <p class="map-name">Carte: {{ selectedMapName }}</p>
+
+    <div class="options-section">
+        <div class="option-item" (click)="toggleFastElimination()">
+            <div class="checkbox-container">
+                <input 
+                    type="checkbox" 
+                    id="fastElimination" 
+                    [(ngModel)]="isFastElimination"
+                    class="custom-checkbox"
+                />
+                <label for="fastElimination" class="checkbox-label">
+                    Mode d'élimination rapide
+                </label>
+            </div>
+            <p class="option-description">
+                Les joueurs éliminés en combat passent en mode observation
+            </p>
+        </div>
+    </div>
+
+    <div class="button-group">
+        <button class="action-button back-button" (click)="onClose()">Retour</button>
+        <button class="action-button next-button" (click)="onNext()">Suivant</button>
+    </div>
+</div>
+
