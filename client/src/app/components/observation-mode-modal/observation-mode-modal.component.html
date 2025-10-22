@@ -1,0 +1,26 @@
+<div class="observation-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Mode Observation</h2>
+            <span class="close-button" (click)="onClose()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="icon-container">
+                <i class="fas fa-eye"></i>
+            </div>
+            <p class="message">{{ message }}</p>
+            <div class="explanation">
+                <p>En mode observation, vous pouvez :</p>
+                <ul>
+                    <li>Observer le déroulement de la partie</li>
+                    <li>Utiliser le chat pour communiquer</li>
+                    <li>Voir les actions des autres joueurs</li>
+                </ul>
+                <p>Vous ne pouvez plus participer activement au jeu.</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="confirm-button" (click)="onClose()">Compris</button>
+        </div>
+    </div>
+</div>

@@ -134,4 +134,13 @@
         <app-inventory-modal [player]="player" [gameId]="game.id"> </app-inventory-modal>
     </div>
 </div>
+} @if(isObservationModeModalOpen) {
+<div class="observation-mode-modal">
+    <div class="popup-overlay">
+        <app-observation-mode-modal 
+            [message]="observationModeMessage" 
+            [closeModal]="closeObservationModeModal.bind(this)">
+        </app-observation-mode-modal>
+    </div>
+</div>
 }}

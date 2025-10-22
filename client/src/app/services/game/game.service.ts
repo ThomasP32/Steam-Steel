@@ -24,7 +24,7 @@ export class GameService {
         this.game = newGame;
     }
 
-    createNewCtfGame(map: Map, gameId: string): GameCtf {
+    createNewCtfGame(map: Map, gameId: string, gameSettings?: { isFastElimination: boolean }): GameCtf {
         return {
             ...map,
             id: gameId,
@@ -39,10 +39,13 @@ export class GameService {
             hasStarted: false,
             nPlayersCtf: [],
             mode: Mode.Ctf,
+            settings: {
+                isFastElimination: gameSettings?.isFastElimination ?? false,
+            },
         };
     }
 
-    createNewGame(map: Map, gameId: string): Game {
+    createNewGame(map: Map, gameId: string, gameSettings?: { isFastElimination: boolean }): Game {
         return {
             ...map,
             id: gameId,
@@ -55,6 +58,9 @@ export class GameService {
             debug: false,
             isLocked: false,
             hasStarted: false,
+            settings: {
+                isFastElimination: gameSettings?.isFastElimination ?? false,
+            },
         };
     }
 

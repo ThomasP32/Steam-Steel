@@ -1,7 +1,7 @@
 import { CombatService } from '@app/services/combat/combat.service';
 import { Combat } from '@common/combat';
 import { EVASION_SUCCESS_RATE, TIME_LIMIT_DELAY } from '@common/constants';
-import { CombatEvents, CombatFinishedByEvasionData, CombatFinishedData, CombatStartedData, StartCombatData } from '@common/events/combat.events';
+import { CombatEvents, CombatFinishedByEvasionData, CombatFinishedData, CombatStartedData, PlayerEnteredObservationModeData, StartCombatData } from '@common/events/combat.events';
 import { CountdownEvents } from '@common/events/countdown.events';
 import { GameCreationEvents } from '@common/events/game-creation.events';
 import { ItemDroppedData, ItemsEvents } from '@common/events/items.events';
@@ -162,6 +162,12 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     handleCombatLost(defendingPlayer: Player, attackingPlayer: Player, gameId: string, combatId: string) {
         const game = this.gameCreationService.getGameById(gameId);
         this.combatService.combatWinStatsUpdate(attackingPlayer, gameId);
+        
+        const isElimination = game.settings.isFastElimination;
+        console.log('The game is in elimination mode?: ' + isElimination);
+        if(game.settings.isFastElimination){
+            defendingPlayer.isObservationMode = true;
+        }
 
         this.itemsManagerService.dropInventory(defendingPlayer, gameId);
         this.combatService.sendBackToInitPos(defendingPlayer, game);
@@ -170,6 +176,15 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         this.server.to(combatId).emit(CombatEvents.CombatFinishedNormally, attackingPlayer);
 
         this.journalService.logMessage(gameId, `Fin de combat. ${attackingPlayer.name} est le gagnant.`, [attackingPlayer.name]);
+
+
+        if(game.settings.isFastElimination){
+            const observationModeData: PlayerEnteredObservationModeData = {
+                player: defendingPlayer,
+                message: 'Vous avez perdu le combat et êtes maintenant en mode observation.'
+            };
+            this.server.to(defendingPlayer.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
+        }
 
         this.combatCountdownService.deleteCountdown(gameId);
         setTimeout(() => {
@@ -297,10 +312,23 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         const disconnectedPlayer = client.id === combat.challenger.socketId ? combat.challenger : combat.opponent;
         const winner = client.id === combat.challenger.socketId ? combat.opponent : combat.challenger;
         disconnectedPlayer.isActive = false;
+        
+        if(updatedGame.settings.isFastElimination) {
+            disconnectedPlayer.isObservationMode = true;
+        }
 
         this.combatService.combatWinStatsUpdate(winner, updatedGame.id);
         this.combatService.updatePlayersInGame(updatedGame);
         this.server.to(combat.id).emit(CombatEvents.CombatFinishedByDisconnection, winner);
+
+        if(updatedGame.settings.isFastElimination) {
+            const observationModeData: PlayerEnteredObservationModeData = {
+                player: disconnectedPlayer,
+                message: 'Vous avez perdu le combat par déconnexion et êtes maintenant en mode observation.'
+            };
+            this.server.to(disconnectedPlayer.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
+        }       
+
         this.combatCountdownService.deleteCountdown(updatedGame.id);
 
         setTimeout(() => {

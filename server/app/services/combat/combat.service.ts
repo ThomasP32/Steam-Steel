@@ -178,12 +178,14 @@ export class CombatService {
                 combat.challenger.specs.attack = combat.challengerAttack;
                 combat.challenger.specs.evasions = DEFAULT_EVASIONS;
                 combat.challenger.specs.nCombats++;
+                combat.challenger.isObservationMode = player.isObservationMode;
                 game.players[index] = combat.challenger;
             } else if (player.socketId === combat.opponent.socketId) {
                 combat.opponent.specs.life = combat.opponentLife;
                 combat.opponent.specs.attack = combat.opponentAttack;
                 combat.opponent.specs.evasions = DEFAULT_EVASIONS;
                 combat.opponent.specs.nCombats++;
+                combat.opponent.isObservationMode = player.isObservationMode;
                 game.players[index] = combat.opponent;
             }
         });
