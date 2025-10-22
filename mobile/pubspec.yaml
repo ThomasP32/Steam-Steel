@@ -35,11 +35,14 @@ flutter_launcher_icons:
 flutter:
     uses-material-design: true
     assets:
-        - lib/assets/backgrounds/mainbackground.gif
-        - lib/assets/backgrounds/origbig.png
+        - lib/assets/backgrounds/
         - lib/assets/main-menu/SteamSteel.png
         - lib/assets/characters/
-        - lib/assets/icons/android_icon.png
+        - lib/assets/icons/
+        - lib/assets/previewcharacters/
+        - lib/assets/pixelcharacters/
+        - lib/assets/items/
+        - lib/assets/tiles/
         - .env
 
     fonts:

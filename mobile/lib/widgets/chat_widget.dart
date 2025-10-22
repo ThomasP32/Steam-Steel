@@ -11,7 +11,16 @@ import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 class ChatWidget extends StatefulWidget {
-  const ChatWidget({super.key});
+  const ChatWidget({
+    super.key,
+    this.initiallyVisible = false,
+    this.showToggleButton = true,
+    this.onClose,
+  });
+
+  final bool initiallyVisible;
+  final bool showToggleButton;
+  final VoidCallback? onClose;
 
   @override
   State<ChatWidget> createState() => _ChatWidgetState();
@@ -40,10 +49,20 @@ class _ChatWidgetState extends State<ChatWidget>
   @override
   void initState() {
     super.initState();
+    _visible = widget.initiallyVisible;
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 320),
     );
+
+    // If initially visible, show the chat after build
+    if (widget.initiallyVisible) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _overlayEntry == null) {
+          _showChat();
+        }
+      });
+    }
 
     try {
       _prevSub = SocketService()
@@ -267,50 +286,52 @@ class _ChatWidgetState extends State<ChatWidget>
     super.dispose();
   }
 
+  void _showChat() {
+    try {
+      _overlayEntry = _createOverlayEntry();
+      Overlay.of(context).insert(_overlayEntry!);
+    } on Object catch (e) {
+      DebugLogger.log('overlay insert failed: $e', tag: 'ChatWidget');
+    }
+    setState(() => _visible = true);
+    _ctrl.forward().then((_) {
+      try {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          try {
+            FocusScope.of(context).requestFocus(_inputFocusNode);
+          } on Object catch (e) {
+            DebugLogger.log('requestFocus failed: $e', tag: 'ChatWidget');
+          }
+        });
+      } on Object catch (e) {
+        DebugLogger.log('postFrame requestFocus failed: $e', tag: 'ChatWidget');
+      }
+    });
+    _getMessagesFromDB();
+  }
+
+  void _hideChat() {
+    _ctrl.reverse().then((_) {
+      try {
+        try {
+          _inputFocusNode.unfocus();
+        } on Object catch (_) {}
+        _overlayEntry?.remove();
+      } on Object catch (e) {
+        DebugLogger.log('overlay remove failed: $e', tag: 'ChatWidget');
+      }
+      _overlayEntry = null;
+      if (mounted) setState(() => _visible = false);
+      widget.onClose?.call();
+    });
+  }
+
   void _toggle() {
     if (!_visible) {
-      setState(() {
-        _messages.clear();
-        _loading = true;
-      });
-      try {
-        _overlayEntry = _createOverlayEntry();
-        Overlay.of(context).insert(_overlayEntry!);
-      } on Object catch (e) {
-        DebugLogger.log('overlay insert failed: $e', tag: 'ChatWidget');
-      }
-      setState(() => _visible = true);
-      _ctrl.forward().then((_) {
-        try {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            try {
-              FocusScope.of(context).requestFocus(_inputFocusNode);
-            } on Object catch (e) {
-              DebugLogger.log('requestFocus failed: $e', tag: 'ChatWidget');
-            }
-          });
-        } on Object catch (e) {
-          DebugLogger.log(
-            'postFrame requestFocus failed: $e',
-            tag: 'ChatWidget',
-          );
-        }
-      });
-      _getMessagesFromDB();
+      _showChat();
     } else {
-      _ctrl.reverse().then((_) {
-        try {
-          try {
-            _inputFocusNode.unfocus();
-          } on Object catch (_) {}
-          _overlayEntry?.remove();
-        } on Object catch (e) {
-          DebugLogger.log('overlay remove failed: $e', tag: 'ChatWidget');
-        }
-        _overlayEntry = null;
-        if (mounted) setState(() => _visible = false);
-      });
+      _hideChat();
     }
   }
 
@@ -752,28 +773,29 @@ class _ChatWidgetState extends State<ChatWidget>
             ),
           ),
           // Square button top-right
-          Positioned(
-            top: 12,
-            right: 12,
-            child: SizedBox(
-              width: 44,
-              height: 44,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2C3E50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
+          if (widget.showToggleButton)
+            Positioned(
+              top: 18,
+              right: 12,
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2C3E50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    padding: EdgeInsets.zero,
                   ),
-                  padding: EdgeInsets.zero,
-                ),
-                onPressed: _toggle,
-                child: const Icon(
-                  Icons.chat_bubble_outline,
-                  color: Color(0xFFC0C0C0),
+                  onPressed: _toggle,
+                  child: const Icon(
+                    Icons.chat_bubble_outline,
+                    color: Color(0xFFC0C0C0),
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
