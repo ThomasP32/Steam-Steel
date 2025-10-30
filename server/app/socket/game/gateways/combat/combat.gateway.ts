@@ -48,9 +48,23 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
 
     @SubscribeMessage(CombatEvents.StartCombat)
     async startCombat(client: Socket, data: StartCombatData): Promise<void> {
-        const game = this.gameCreationService.getGameById(data.gameId);
-        if (game) {
+        try {
+            const game = this.gameCreationService.getGameById(data.gameId);
+            if (!game) {
+                console.warn(`[CombatGateway] startCombat: Game ${data.gameId} not found`);
+                return;
+            }
+
             const player = game.players.find((player) => player.turn === game.currentTurn);
+            if (!player || !player.position) {
+                console.warn(`[CombatGateway] startCombat: Player not found or has no position`);
+                return;
+            }
+
+            if (!data.opponent || !data.opponent.position) {
+                console.warn(`[CombatGateway] startCombat: Opponent not found or has no position`);
+                return;
+            }
 
             if (player?.isObservationMode || data.opponent?.isObservationMode) {
                 return;
@@ -95,6 +109,11 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                 this.gameCountdownService.pauseCountdown(data.gameId);
                 this.startCombatTurns(data.gameId);
             }
+        } catch (error) {
+            console.error(`[CombatGateway] Error starting combat:`, error);
+            this.gameManagerService.logGameStateDebug(data.gameId, 'StartCombatError');
+            // Clean up on error
+            this.cleanupFailedCombat(data.gameId, undefined);
         }
     }
 
@@ -149,10 +168,21 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     }
 
     attackOnTimeOut(gameId: string) {
-        const combat = this.combatService.getCombatByGameId(gameId);
-        if (combat) {
+        try {
+            const combat = this.combatService.getCombatByGameId(gameId);
+            if (!combat) {
+                console.warn(`[CombatGateway] attackOnTimeOut: Combat not found for game ${gameId}`);
+                return;
+            }
+
             const attackingPlayer: Player = combat.currentTurnSocketId === combat.challenger.socketId ? combat.challenger : combat.opponent;
             const defendingPlayer: Player = combat.currentTurnSocketId === combat.challenger.socketId ? combat.opponent : combat.challenger;
+
+            if (!attackingPlayer || !defendingPlayer) {
+                console.warn(`[CombatGateway] attackOnTimeOut: Invalid players in combat`);
+                this.cleanupFailedCombat(gameId, combat.id);
+                return;
+            }
 
             const rollResult = this.combatService.rollDice(attackingPlayer, defendingPlayer);
             this.server.to(combat.id).emit(CombatEvents.DiceRolled, rollResult);
@@ -175,85 +205,95 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             } else {
                 this.prepareNextTurn(gameId);
             }
+        } catch (error) {
+            console.error(`[CombatGateway] Error in attackOnTimeOut for game ${gameId}:`, error);
+            this.gameManagerService.logGameStateDebug(gameId, 'AttackOnTimeOutError');
+            this.cleanupFailedCombat(gameId, this.combatService.getCombatByGameId(gameId)?.id);
         }
     }
 
     handleCombatLost(defendingPlayer: Player, attackingPlayer: Player, gameId: string, combatId: string) {
-        const game = this.gameCreationService.getGameById(gameId);
-        this.combatService.combatWinStatsUpdate(attackingPlayer, gameId);
-                
-        if(game.settings.isFastElimination){
-            defendingPlayer.isObservationMode = true;
-            // Also update the player in game.players array
-            const playerInGame = game.players.find(p => p.socketId === defendingPlayer.socketId);
-            if (playerInGame) {
-                playerInGame.isObservationMode = true;
-            }
-            console.log(`[ELIMINATION DEBUG] Player ${defendingPlayer.name} set to observation mode (isObservationMode: ${defendingPlayer.isObservationMode})`);
-        } 
-
-        this.itemsManagerService.dropInventory(defendingPlayer, gameId);
-        if (!game.settings.isFastElimination){
-            this.combatService.sendBackToInitPos(defendingPlayer, game);
-        }
-        this.combatService.updatePlayersInGame(game);
-
-        this.server.to(combatId).emit(CombatEvents.CombatFinishedNormally, attackingPlayer);
-
-        this.journalService.logMessage(gameId, `Fin de combat. ${attackingPlayer.name} est le gagnant.`, [attackingPlayer.name]);
-
-
-        if(game.settings.isFastElimination){
-            const observationModeData: PlayerEnteredObservationModeData = {
-                player: defendingPlayer,
-                message: 'Vous avez perdu le combat et êtes maintenant en mode observation.'
-            };
-            this.server.to(defendingPlayer.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
-        }
-
-        this.combatCountdownService.deleteCountdown(gameId);
-        setTimeout(() => {
+        try {
             const game = this.gameCreationService.getGameById(gameId);
             if (!game) {
-                console.warn(`[CombatGateway] handleCombatLost setTimeout: Game ${gameId} not found (likely already ended)`);
+                console.warn(`[CombatGateway] handleCombatLost: Game ${gameId} not found`);
+                this.cleanupFailedCombat(gameId, combatId);
                 return;
             }
+
+            this.combatService.combatWinStatsUpdate(attackingPlayer, gameId);
+                    
+            if(game.settings.isFastElimination){
+                defendingPlayer.isObservationMode = true;
+                // Also update the player in game.players array
+                const playerInGame = game.players.find(p => p.socketId === defendingPlayer.socketId);
+                if (playerInGame) {
+                    playerInGame.isObservationMode = true;
+                }
+                console.log(`[ELIMINATION DEBUG] Player ${defendingPlayer.name} set to observation mode (isObservationMode: ${defendingPlayer.isObservationMode})`);
+            } 
+
+            this.itemsManagerService.dropInventory(defendingPlayer, gameId);
+            if (!game.settings.isFastElimination){
+                this.combatService.sendBackToInitPos(defendingPlayer, game);
+            }
+            this.combatService.updatePlayersInGame(game);
+
+            this.server.to(combatId).emit(CombatEvents.CombatFinishedNormally, attackingPlayer);
+
+            this.journalService.logMessage(gameId, `Fin de combat. ${attackingPlayer.name} est le gagnant.`, [attackingPlayer.name]);
+
+
+            if(game.settings.isFastElimination){
+                const observationModeData: PlayerEnteredObservationModeData = {
+                    player: defendingPlayer,
+                    message: 'Vous avez perdu le combat et êtes maintenant en mode observation.'
+                };
+                this.server.to(defendingPlayer.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
+            }
+
+            // Emit updated game state immediately so all players see the observation mode change right away
             const combatFinishedData: CombatFinishedData = { updatedGame: game, winner: attackingPlayer, loser: defendingPlayer };
             this.server.to(gameId).emit(CombatEvents.CombatFinished, combatFinishedData);
-            
-            if (this.combatService.checkForGameWinner(game.id, attackingPlayer)) {
-                this.combatService.markClassicGameWinners(game.id, game);
 
-                this.server.to(gameId).emit(CombatEvents.GameFinished, { updatedGame: game });
-                this.server.to(gameId).emit(CombatEvents.GameFinishedPlayerWon, attackingPlayer);
+            this.combatCountdownService.deleteCountdown(gameId);
+            setTimeout(() => {
+                const game = this.gameCreationService.getGameById(gameId);
+                if (!game) {
+                    console.warn(`[CombatGateway] handleCombatLost setTimeout: Game ${gameId} not found (likely already ended)`);
+                    return;
+                }
                 
-                // Clean up combat resources before ending
+                if (this.combatService.checkForGameWinner(game.id, attackingPlayer)) {
+                    this.combatService.markClassicGameWinners(game.id, game);
+
+                    this.server.to(gameId).emit(CombatEvents.GameFinished, { updatedGame: game });
+                    this.server.to(gameId).emit(CombatEvents.GameFinishedPlayerWon, attackingPlayer);
+                    
+                    // Clean up combat resources before ending
+                    this.combatService.deleteCombat(game.id);
+                    this.cleanupCombatRoom(combatId);
+                    return;
+                }
+                if (game.currentTurn === attackingPlayer.turn) {
+                    this.gameCountdownService.resumeCountdown(gameId);
+                    if (attackingPlayer.socketId.includes('virtual')) {
+                        // Virtual player won and can continue their turn
+                        this.virtualGameManager.executeVirtualPlayerBehavior(attackingPlayer, game);
+                    } else {
+                        this.server.to(attackingPlayer.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
+                    }
+                } else {
+                    this.gameCountdownService.emit(CountdownEvents.Timeout, gameId);
+                }
                 this.combatService.deleteCombat(game.id);
                 this.cleanupCombatRoom(combatId);
-                return;
-            } else {
-                if(game.settings.isFastElimination){
-                    const observationModeData: PlayerEnteredObservationModeData = {
-                        player: defendingPlayer,
-                        message: 'Vous avez perdu le combat et êtes maintenant en mode observation.'
-                    };
-                    this.server.to(defendingPlayer.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
-                }
-            }
-            if (game.currentTurn === attackingPlayer.turn) {
-                this.gameCountdownService.resumeCountdown(gameId);
-                if (attackingPlayer.socketId.includes('virtual')) {
-                    // Virtual player won and can continue their turn
-                    this.virtualGameManager.executeVirtualPlayerBehavior(attackingPlayer, game);
-                } else {
-                    this.server.to(attackingPlayer.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
-                }
-            } else {
-                this.gameCountdownService.emit(CountdownEvents.Timeout, gameId);
-            }
-            this.combatService.deleteCombat(game.id);
-            this.cleanupCombatRoom(combatId);
-        }, TIME_LIMIT_DELAY);
+            }, TIME_LIMIT_DELAY);
+        } catch (error) {
+            console.error(`[CombatGateway] Error in handleCombatLost:`, error);
+            this.gameManagerService.logGameStateDebug(gameId, 'HandleCombatLostError');
+            this.cleanupFailedCombat(gameId, combatId);
+        }
     }
 
     prepareNextTurn(gameId: string) {
@@ -387,15 +427,6 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             this.server.to(disconnectedPlayer.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
         }       
 
-
-        if(updatedGame.settings.isFastElimination) {
-            const observationModeData: PlayerEnteredObservationModeData = {
-                player: disconnectedPlayer,
-                message: 'Vous avez perdu le combat par déconnexion et êtes maintenant en mode observation.'
-            };
-            this.server.to(disconnectedPlayer.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
-        }       
-
         this.combatCountdownService.deleteCountdown(updatedGame.id);
 
         setTimeout(() => {
@@ -426,5 +457,38 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             this.combatService.deleteCombat(game.id);
             this.cleanupCombatRoom(combat.id);
         }, TIME_LIMIT_DELAY);
+    }
+
+    private cleanupFailedCombat(gameId: string, combatId: string | undefined): void {
+        console.log(`[CombatGateway] Cleaning up failed combat for game ${gameId}`);
+        
+        try {
+            // Delete combat countdown
+            this.combatCountdownService.deleteCountdown(gameId);
+            
+            // Delete combat
+            if (this.combatService.getCombatByGameId(gameId)) {
+                this.combatService.deleteCombat(gameId);
+            }
+            
+            // Cleanup combat room
+            if (combatId) {
+                this.cleanupCombatRoom(combatId);
+            }
+            
+            // Check if game should be terminated or continue
+            if (this.gameManagerService.shouldTerminateGame(gameId)) {
+                console.log(`[CombatGateway] Terminating game ${gameId} after combat failure - no active or observing players`);
+                this.gameCreationService.deleteRoom(gameId);
+                this.gameCountdownService.deleteCountdown(gameId);
+            } else {
+                // Resume game countdown and move to next turn
+                console.log(`[CombatGateway] Resuming game ${gameId} after combat failure`);
+                this.gameCountdownService.resumeCountdown(gameId);
+                this.gameCountdownService.emit(CountdownEvents.Timeout, gameId);
+            }
+        } catch (error) {
+            console.error(`[CombatGateway] Error cleaning up failed combat:`, error);
+        }
     }
 }

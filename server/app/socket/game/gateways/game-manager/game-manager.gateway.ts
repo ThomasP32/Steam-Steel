@@ -228,8 +228,55 @@ export class GameManagerGateway implements OnGatewayInit {
         if (activePlayer.socketId.includes('virtualPlayer')) {
             const delay = Math.floor(Math.random() * VIRTUAL_PLAYER_DELAY) + VIRTUAL_DELAY_CONSTANT;
             setTimeout(async () => {
-                await this.virtualGameManagerService.executeVirtualPlayerBehavior(activePlayer, game);
-                this.server.to(game.id).emit(GameManagerEvents.PositionToUpdate, { game: game, player: activePlayer });
+                try {
+                    // Validate game state before executing
+                    const validation = this.gameManagerService.validateGameState(gameId, activePlayer.socketId);
+                    
+                    if (validation.recovered) {
+                        console.log(`[GameManagerGateway] ✓ Recovered invalid position for virtual player, continuing turn...`);
+                        this.gameManagerService.logGameStateDebug(gameId, 'VirtualPlayerPositionRecovered');
+                    }
+                    
+                    if (!validation.valid) {
+                        console.warn(`[GameManagerGateway] Invalid game state for virtual player: ${validation.reason}`);
+                        this.gameManagerService.logGameStateDebug(gameId, 'VirtualPlayerTurnError');
+
+                        // Check if game should be terminated
+                        if (this.gameManagerService.shouldTerminateGame(gameId)) {
+                            console.log(`[GameManagerGateway] Terminating game ${gameId} - no active or observing players`);
+                            this.gameCreationService.deleteRoom(gameId);
+                            this.gameCountdownService.deleteCountdown(gameId);
+                        } else {
+                            // Move to next turn if game is still viable
+                            console.log(`[GameManagerGateway] Skipping to next turn due to invalid state`);
+                            this.prepareNextTurn(gameId);
+                        }
+                        return;
+                    }
+
+                    // Get fresh game and player references
+                    const currentGame = this.gameCreationService.getGameById(gameId);
+                    const currentPlayer = currentGame.players.find((p) => p.socketId === activePlayer.socketId);
+
+                    console.log(`[GameManagerGateway] Virtual player ${currentPlayer.name} executing turn...`);
+                    await this.virtualGameManagerService.executeVirtualPlayerBehavior(currentPlayer, currentGame);
+                    this.server.to(currentGame.id).emit(GameManagerEvents.PositionToUpdate, { game: currentGame, player: currentPlayer });
+                } catch (error) {
+                    console.error(`[GameManagerGateway] Error during virtual player turn:`, error);
+                    console.error(`[GameManagerGateway] Error stack:`, error.stack);
+                    this.gameManagerService.logGameStateDebug(gameId, 'VirtualPlayerException');
+
+                    // Check if game should be terminated
+                    if (this.gameManagerService.shouldTerminateGame(gameId)) {
+                        console.log(`[GameManagerGateway] Terminating game ${gameId} - no active or observing players`);
+                        this.gameCreationService.deleteRoom(gameId);
+                        this.gameCountdownService.deleteCountdown(gameId);
+                    } else {
+                        // Move to next turn if game is still viable
+                        console.log(`[GameManagerGateway] Skipping to next turn after error`);
+                        this.prepareNextTurn(gameId);
+                    }
+                }
             }, delay);
         } else {
             this.server.to(activePlayer.socketId).emit(GameTurnEvents.YourTurn, activePlayer);

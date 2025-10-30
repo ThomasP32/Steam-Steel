@@ -117,6 +117,13 @@ export class VirtualGameManagerService extends EventEmitter {
     }
 
     async executeAggressiveBehavior(activePlayer: Player, game: Game): Promise<void> {
+        // Validate game and player state
+        if (!game || !activePlayer?.position) {
+            console.warn('[VirtualGameManagerService] Invalid game or player state in executeAggressiveBehavior');
+            this.emit(VirtualPlayerEvents.VirtualPlayerFinishedMoving, game?.id);
+            return;
+        }
+
         const possibleMoves = this.gameManagerService.getMoves(game.id, activePlayer.socketId);
         const area = this.getAdjacentTilesToPossibleMoves(possibleMoves);
         const visiblePlayers = this.getPlayersInArea(area, game.players, activePlayer);
@@ -144,6 +151,13 @@ export class VirtualGameManagerService extends EventEmitter {
     }
 
     async executeDefensiveBehavior(activePlayer: Player, game: Game): Promise<void> {
+        // Validate game and player state
+        if (!game || !activePlayer?.position) {
+            console.warn('[VirtualGameManagerService] Invalid game or player state in executeDefensiveBehavior');
+            this.emit(VirtualPlayerEvents.VirtualPlayerFinishedMoving, game?.id);
+            return;
+        }
+
         const possibleMoves = this.gameManagerService.getMoves(game.id, activePlayer.socketId);
         const area = this.getAdjacentTilesToPossibleMoves(possibleMoves);
         const visiblePlayers = this.getPlayersInArea(area, game.players, activePlayer);
@@ -171,7 +185,7 @@ export class VirtualGameManagerService extends EventEmitter {
     }
 
     getPlayersInArea(area: Coordinate[], players: Player[], activePlayer: Player): Player[] {
-        const filteredPlayers = players.filter((player) => player !== activePlayer && player.isActive && !player.isObservationMode);
+        const filteredPlayers = players.filter((player) => player !== activePlayer && player.isActive && !player.isObservationMode && player.position);
         return filteredPlayers.filter((player) =>
             area.some((coordinate) => coordinate.x === player.position.x && coordinate.y === player.position.y),
         );

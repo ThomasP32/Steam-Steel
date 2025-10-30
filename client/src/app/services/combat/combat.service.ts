@@ -134,6 +134,7 @@ export class CombatService {
     listenForObservationMode(): void {
         this.socketSubscription.add(
             this.socketService.listen<PlayerEnteredObservationModeData>(CombatEvents.PlayerEnteredObservationMode).subscribe((data) => {
+                this.isCombatModalOpen.next(false);
                 this.playerService.setPlayer(data.player);
                 this.observationModeMessage.next(data.message || 'Vous êtes maintenant en mode observation.');
                 this.showObservationModeModal.next(true);
