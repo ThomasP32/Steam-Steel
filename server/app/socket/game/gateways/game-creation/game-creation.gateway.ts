@@ -162,7 +162,7 @@ export class GameGateway {
             // Check if this is CTF mode and no active non-observer players remain
             if (game.hasStarted && game.mode === Mode.Ctf) {
                 const activeNonObserverCount = game.players.filter(
-                    (p) => p.isActive && !p.isObservationMode
+                    (p) => p.isActive && p.isObservationMode !== true
                 ).length;
                 
                 if (activeNonObserverCount === 0) {

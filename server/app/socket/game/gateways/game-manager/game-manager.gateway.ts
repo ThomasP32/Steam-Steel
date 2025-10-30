@@ -210,7 +210,7 @@ export class GameManagerGateway implements OnGatewayInit {
         }
         const activePlayer = game.players.find((player) => player.turn === game.currentTurn);
         const involvedPlayers = game.players.map((player) => player.name);
-        if (!activePlayer?.isActive || activePlayer?.isObservationMode) {
+        if (!activePlayer?.isActive || activePlayer?.isObservationMode === true) {
             game.currentTurn++;
             if (game.currentTurn >= game.players.length) {
                 game.currentTurn = 0;

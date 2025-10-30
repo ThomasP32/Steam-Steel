@@ -85,7 +85,7 @@ export class CombatService {
                         this.opponent.next(data.challenger);
                     }
                     this.isCombatModalOpen.next(true);
-                } else if (currentPlayer.isObservationMode) {
+                } else if (currentPlayer.isObservationMode === true) {
                     // Player is observing - set both combatants
                     this.combatPlayer.next(data.challenger);
                     this.opponent.next(data.opponent);

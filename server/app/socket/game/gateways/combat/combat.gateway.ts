@@ -67,7 +67,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                 return;
             }
 
-            if (player?.isObservationMode || data.opponent?.isObservationMode) {
+            if (player?.isObservationMode === true || data.opponent?.isObservationMode === true) {
                 return;
             }
     
@@ -86,7 +86,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             }
             if (opponentSocket) {
                 // Add observers to combat room
-                const observers = game.players.filter((p) => p.isObservationMode);
+                const observers = game.players.filter((p) => p.isObservationMode === true);
                 const sockets = await this.server.in(data.gameId).fetchSockets();
                 for (const observer of observers) {
                     const observerSocket = sockets.find((socket) => socket.id === observer.socketId);
@@ -394,7 +394,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             // Check if this is CTF mode and no active non-observer players remain
             if (updatedGame.mode === Mode.Ctf) {
                 const activeNonObserverCount = updatedGame.players.filter(
-                    (p) => p.isActive && !p.isObservationMode
+                    (p) => p.isActive && p.isObservationMode !== true
                 ).length;
                 
                 if (activeNonObserverCount === 0) {
@@ -467,7 +467,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             // Check if this is CTF mode and no active non-observer players remain
             if (game.mode === Mode.Ctf) {
                 const activeNonObserverCount = game.players.filter(
-                    (p) => p.isActive && !p.isObservationMode
+                    (p) => p.isActive && p.isObservationMode !== true
                 ).length;
                 
                 if (activeNonObserverCount === 0) {

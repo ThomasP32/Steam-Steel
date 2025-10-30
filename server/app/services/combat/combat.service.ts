@@ -211,7 +211,7 @@ export class CombatService {
         }
         if (game.mode === Mode.Classic) {
             const activeNonObservingCount = game.players.filter(
-                (player) => player.isActive && !player.isObservationMode
+                (player) => player.isActive && player.isObservationMode !== true
               ).length;
             const allPlayers = game.players.map(p => `${p.name}(active:${p.isActive},obs:${p.isObservationMode})`).join(', ');
             console.log(`[ELIMINATION DEBUG] checkForGameWinner - Game: ${gameId}, Player: ${player.name}, Victories: ${player.specs.nVictories}/${N_WIN_VICTORIES}, ActiveNonObserving: ${activeNonObservingCount}, AllPlayers: [${allPlayers}]`);
@@ -226,7 +226,7 @@ export class CombatService {
         let winnerFound = false;
         console.log(`[ELIMINATION DEBUG] markClassicGameWinners - Marking winners for game ${gameId}`);
         for (const player of game.players) {
-            const isWinner = !winnerFound && this.checkForGameWinner(gameId, player) && player.isActive && !player.isObservationMode;
+            const isWinner = !winnerFound && this.checkForGameWinner(gameId, player) && player.isActive && player.isObservationMode !== true;
             if (isWinner) {
                 player.isGameWinner = true;
                 winnerFound = true;

@@ -126,9 +126,9 @@
 <div class="combat-modal">
     <div class="popup-overlay">
         <app-combat-modal 
-            [player]="player.isObservationMode ? combatPlayer : player" 
+            [player]="(player.isObservationMode === true) ? combatPlayer : player" 
             [opponent]="opponent" 
-            [isObserver]="player.isObservationMode || false">
+            [isObserver]="player.isObservationMode === true">
         </app-combat-modal>
     </div>
 </div>

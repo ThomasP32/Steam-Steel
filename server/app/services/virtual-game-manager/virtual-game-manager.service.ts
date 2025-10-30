@@ -185,7 +185,7 @@ export class VirtualGameManagerService extends EventEmitter {
     }
 
     getPlayersInArea(area: Coordinate[], players: Player[], activePlayer: Player): Player[] {
-        const filteredPlayers = players.filter((player) => player !== activePlayer && player.isActive && !player.isObservationMode && player.position);
+        const filteredPlayers = players.filter((player) => player !== activePlayer && player.isActive && player.isObservationMode !== true && player.position);
         return filteredPlayers.filter((player) =>
             area.some((coordinate) => coordinate.x === player.position.x && coordinate.y === player.position.y),
         );
@@ -219,7 +219,7 @@ export class VirtualGameManagerService extends EventEmitter {
 
         if (combat.challenger.socketId.includes('virtual') && combat.opponent.socketId.includes('virtual')) {
             // Add observers to combat room
-            const observers = game.players.filter((p) => p.isObservationMode);
+            const observers = game.players.filter((p) => p.isObservationMode === true);
             for (const observer of observers) {
                 const observerSocket = sockets.find((socket) => socket.id === observer.socketId);
                 if (observerSocket) {
@@ -231,7 +231,7 @@ export class VirtualGameManagerService extends EventEmitter {
         } else if (opponentSocket) {
             await opponentSocket.join(combat.id);
             // Add observers to combat room
-            const observers = game.players.filter((p) => p.isObservationMode);
+            const observers = game.players.filter((p) => p.isObservationMode === true);
             for (const observer of observers) {
                 const observerSocket = sockets.find((socket) => socket.id === observer.socketId);
                 if (observerSocket) {
