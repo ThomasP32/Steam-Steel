@@ -76,6 +76,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
     showExitModal: boolean = false;
     showKickedModal: boolean = false;
     showEndGameModal: boolean = false;
+    showNoActivePlayersModal: boolean = false;
     gameOverMessage: boolean = false;
     isCombatModalOpen: boolean = false;
     isInventoryModalOpen = false;
@@ -147,6 +148,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
             this.listenForInventoryFull();
             this.listenForCombatModal();
             this.listenForObservationModeModal();
+            this.listenForNoActivePlayers();
 
             this.activePlayers = this.gameService.game.players;
 
@@ -190,7 +192,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
     }
 
     areModalsOpen(): boolean {
-        return this.showExitModal || this.showKickedModal || this.isCombatModalOpen || this.isObservationModeModalOpen;
+        return this.showExitModal || this.showKickedModal || this.isCombatModalOpen || this.isObservationModeModalOpen || this.showNoActivePlayersModal;
     }
 
     navigateToEndOfGame(): void {
@@ -272,6 +274,17 @@ export class GamePageComponent implements OnInit, OnDestroy {
 
     closeObservationModeModal(): void {
         this.combatService.closeObservationModeModal();
+    }
+
+    private listenForNoActivePlayers(): void {
+        this.socketSubscription.add(
+            this.socketService.listen(GameCreationEvents.GameEndedNoActivePlayers).subscribe(() => {
+                this.showNoActivePlayersModal = true;
+                setTimeout(() => {
+                    this.leaveGame();
+                }, TIME_REDIRECTION);
+            }),
+        );
     }
 
     private listenForCountDown() {

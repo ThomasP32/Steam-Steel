@@ -1,6 +1,7 @@
 import { GameCreationService } from '@app/services/game-creation/game-creation.service';
 import { GameCreationEvents, JoinGameData, KickPlayerData, ToggleGameLockStateData } from '@common/events/game-creation.events';
 import { Game } from '@common/game';
+import { Mode } from '@common/map.types';
 import { Inject } from '@nestjs/common';
 import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
@@ -157,6 +158,19 @@ export class GameGateway {
             client.leave(gameId);
             client.leave(gameId + '-combat');
             this.server.to(game.id).emit(GameCreationEvents.PlayerLeft, game.players);
+
+            // Check if this is CTF mode and no active non-observer players remain
+            if (game.hasStarted && game.mode === Mode.Ctf) {
+                const activeNonObserverCount = game.players.filter(
+                    (p) => p.isActive && !p.isObservationMode
+                ).length;
+                
+                if (activeNonObserverCount === 0) {
+                    console.log(`[CTF] Last active player quit. Ending game ${game.id}`);
+                    this.server.to(game.id).emit(GameCreationEvents.GameEndedNoActivePlayers);
+                    this.gameCreationService.deleteRoom(game.id);
+                }
+            }
         } else {
             return;
         }

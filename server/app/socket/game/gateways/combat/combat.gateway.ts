@@ -6,6 +6,7 @@ import { CountdownEvents } from '@common/events/countdown.events';
 import { GameCreationEvents } from '@common/events/game-creation.events';
 import { ItemDroppedData, ItemsEvents } from '@common/events/items.events';
 import { Game, Player } from '@common/game';
+import { Mode } from '@common/map.types';
 import { Inject } from '@nestjs/common';
 import { OnGatewayDisconnect, OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
@@ -390,6 +391,21 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             }
             this.journalService.logMessage(game.id, `${player.name} a abandonné la partie.`, [player.name]);
 
+            // Check if this is CTF mode and no active non-observer players remain
+            if (updatedGame.mode === Mode.Ctf) {
+                const activeNonObserverCount = updatedGame.players.filter(
+                    (p) => p.isActive && !p.isObservationMode
+                ).length;
+                
+                if (activeNonObserverCount === 0) {
+                    console.log(`[CTF] Last active player quit. Ending game ${updatedGame.id}`);
+                    this.server.to(updatedGame.id).emit(GameCreationEvents.GameEndedNoActivePlayers);
+                    this.gameCreationService.deleteRoom(updatedGame.id);
+                    this.gameCountdownService.deleteCountdown(updatedGame.id);
+                    return;
+                }
+            }
+
             const combat = this.combatService.getCombatByGameId(updatedGame.id);
             if (combat) {
                 this.handleCombatDisconnection(client, updatedGame, combat);
@@ -446,6 +462,23 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                 this.combatService.deleteCombat(game.id);
                 this.cleanupCombatRoom(combat.id);
                 return;
+            }
+
+            // Check if this is CTF mode and no active non-observer players remain
+            if (game.mode === Mode.Ctf) {
+                const activeNonObserverCount = game.players.filter(
+                    (p) => p.isActive && !p.isObservationMode
+                ).length;
+                
+                if (activeNonObserverCount === 0) {
+                    console.log(`[CTF] Last active player quit during combat. Ending game ${game.id}`);
+                    this.server.to(game.id).emit(GameCreationEvents.GameEndedNoActivePlayers);
+                    this.gameCreationService.deleteRoom(game.id);
+                    this.gameCountdownService.deleteCountdown(game.id);
+                    this.combatService.deleteCombat(game.id);
+                    this.cleanupCombatRoom(combat.id);
+                    return;
+                }
             }
 
             if (game.currentTurn === winner.turn) {

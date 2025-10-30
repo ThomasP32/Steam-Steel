@@ -2,6 +2,7 @@ import { Player } from '@common/game';
 
 export enum GameCreationEvents {
     GameClosed = 'gameClosed',
+    GameEndedNoActivePlayers = 'gameEndedNoActivePlayers',
     PlayerLeft = 'playerLeft',
     CreateGame = 'createGame',
     GameCreated = 'gameCreated',
