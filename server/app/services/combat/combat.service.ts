@@ -99,17 +99,26 @@ export class CombatService {
     }
 
     combatWinStatsUpdate(winner: Player, gameId: string) {
-        if (winner.socketId === this.combatRooms[gameId].challenger.socketId) {
-            this.combatRooms[gameId].challenger.specs.nVictories++;
-            this.combatRooms[gameId].opponent.specs.nDefeats++;
+        const combat = this.getCombatByGameId(gameId);
+        if (!combat) {
+            console.warn(`[CombatService] combatWinStatsUpdate: Combat for game ${gameId} not found (likely already ended)`);
+            return;
+        }
+        if (winner.socketId === combat.challenger.socketId) {
+            combat.challenger.specs.nVictories++;
+            combat.opponent.specs.nDefeats++;
         } else {
-            this.combatRooms[gameId].opponent.specs.nVictories++;
-            this.combatRooms[gameId].challenger.specs.nDefeats++;
+            combat.opponent.specs.nVictories++;
+            combat.challenger.specs.nDefeats++;
         }
     }
 
     sendBackToInitPos(player: Player, game: Game) {
         const combat = this.getCombatByGameId(game.id);
+        if (!combat) {
+            console.warn(`[CombatService] sendBackToInitPos: Combat for game ${game.id} not found (likely already ended)`);
+            return;
+        }
         const currentPlayer = player.socketId === combat.challenger.socketId ? combat.challenger : combat.opponent;
 
         const isPositionOccupied = game.players.some(
@@ -158,7 +167,7 @@ export class CombatService {
             }
         }
         for (const player of game.players) {
-            if (player.isActive && player.position.x === pos.x && player.position.y === pos.y) {
+            if (player.isActive && player.position && player.position.x === pos.x && player.position.y === pos.y) {
                 return false;
             }
         }
@@ -172,6 +181,10 @@ export class CombatService {
 
     updatePlayersInGame(game: Game) {
         const combat = this.getCombatByGameId(game.id);
+        if (!combat) {
+            console.warn(`[CombatService] updatePlayersInGame: Combat for game ${game.id} not found (likely already ended)`);
+            return;
+        }
         game.players.forEach((player, index) => {
             if (player.socketId === combat.challenger.socketId) {
                 combat.challenger.specs.life = combat.challengerLife;
@@ -192,21 +205,38 @@ export class CombatService {
     }
 
     checkForGameWinner(gameId: string, player: Player): boolean {
-        if (this.gameCreationService.getGameById(gameId).mode === Mode.Classic) {
-            return player.specs.nVictories >= N_WIN_VICTORIES;
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            return false;
+        }
+        if (game.mode === Mode.Classic) {
+            const activeNonObservingCount = game.players.filter(
+                (player) => player.isActive && player.isObservationMode !== true
+              ).length;
+            const allPlayers = game.players.map(p => `${p.name}(active:${p.isActive},obs:${p.isObservationMode})`).join(', ');
+            console.log(`[ELIMINATION DEBUG] checkForGameWinner - Game: ${gameId}, Player: ${player.name}, Victories: ${player.specs.nVictories}/${N_WIN_VICTORIES}, ActiveNonObserving: ${activeNonObservingCount}, AllPlayers: [${allPlayers}]`);
+            const hasWon = player.specs.nVictories >= N_WIN_VICTORIES || activeNonObservingCount <= 1;
+            console.log(`[ELIMINATION DEBUG] Winner check result: ${hasWon} (byVictories: ${player.specs.nVictories >= N_WIN_VICTORIES}, byElimination: ${activeNonObservingCount <= 1})`);
+            return hasWon;
         }
         return false;
     }
 
     markClassicGameWinners(gameId: string, game: Game) {
         let winnerFound = false;
+        console.log(`[ELIMINATION DEBUG] markClassicGameWinners - Marking winners for game ${gameId}`);
         for (const player of game.players) {
-            if (!winnerFound && this.checkForGameWinner(gameId, player)) {
+            const isWinner = !winnerFound && this.checkForGameWinner(gameId, player) && player.isActive && player.isObservationMode !== true;
+            if (isWinner) {
                 player.isGameWinner = true;
                 winnerFound = true;
+                console.log(`[ELIMINATION DEBUG] Winner found: ${player.name} (active: ${player.isActive}, observing: ${player.isObservationMode})`);
             } else {
                 player.isGameWinner = false;
             }
+        }
+        if (!winnerFound) {
+            console.log(`[ELIMINATION DEBUG] No winner found for game ${gameId}`);
         }
     }
 }

@@ -116,7 +116,7 @@
             <h2>{{ winnerName }} a capturé le drapeau.</h2>
             <p>La partie est finie, vous serez redirigé.</p>
             } @else {
-            <h2>{{ winnerName }} a gagné 3 combats.</h2>
+            <h2>{{ winnerName }} a gagné.</h2>
             <p>La partie est finie, vous serez redirigé.</p>
             }
         </div>
@@ -125,7 +125,11 @@
 } @if(isCombatModalOpen){
 <div class="combat-modal">
     <div class="popup-overlay">
-        <app-combat-modal [player]="player" [opponent]="opponent"> </app-combat-modal>
+        <app-combat-modal 
+            [player]="(player.isObservationMode === true) ? combatPlayer : player" 
+            [opponent]="opponent" 
+            [isObserver]="player.isObservationMode === true">
+        </app-combat-modal>
     </div>
 </div>
 } @if(isInventoryModalOpen) {
@@ -141,6 +145,16 @@
             [message]="observationModeMessage" 
             [closeModal]="closeObservationModeModal.bind(this)">
         </app-observation-mode-modal>
+    </div>
+</div>
+} @if(showNoActivePlayersModal) {
+<div class="no-active-players-modal">
+    <div class="popup-overlay">
+        <div class="modal">
+            <h2>Partie Terminée</h2>
+            <p>Le dernier joueur actif a quitté la partie.</p>
+            <p>Vous serez redirigé vers le menu principal.</p>
+        </div>
     </div>
 </div>
 }}

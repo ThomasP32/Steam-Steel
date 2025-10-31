@@ -44,6 +44,23 @@
     z-index: 1;
 }
 
+.observation-mode {
+    position: relative;
+    opacity: 0.6;
+}
+
+.observation-mode::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: 70%;
+    height: 2px;
+    background-color: #b85c38;
+    transform: translateY(-50%);
+    z-index: 1;
+}
+
 .turn-arrow {
     position: absolute;
     left: -1.3vw;

@@ -39,6 +39,12 @@ export class GameCreationService {
     addPlayerToGame(player: Player, gameId: string): Game {
         const game = this.getGameById(gameId);
 
+        // Ensure isObservationMode is explicitly set to false if undefined
+        if (player.isObservationMode === undefined) {
+            player.isObservationMode = false;
+        }
+
+        // TODO dans quel monde est-ce que le player existe déjà???
         const exactMatchPlayers = game.players.filter((existingPlayer) => existingPlayer.name === player.name);
         if (exactMatchPlayers.length === 0) {
             this.gameRooms[gameId].players.push(player);

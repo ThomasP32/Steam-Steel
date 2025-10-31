@@ -13,6 +13,10 @@ export class GameManagerService {
 
     updatePosition(gameId: string, playerSocket: string, path: Coordinate[]): void {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[GameManagerService] updatePosition: Game ${gameId} not found (likely already ended)`);
+            return;
+        }
         const player = game.players.find((player) => player.socketId === playerSocket);
         if (player) {
             this.updatePlayerPosition(player, path, game);
@@ -31,6 +35,10 @@ export class GameManagerService {
 
     updateTurnCounter(gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[GameManagerService] updateTurnCounter: Game ${gameId} not found (likely already ended)`);
+            return;
+        }
         game.currentTurn++;
         if (game.currentTurn >= game.players.length) {
             game.currentTurn = 0;
@@ -39,6 +47,10 @@ export class GameManagerService {
 
     updatePlayerActions(gameId: string, playerSocket: string): void {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[GameManagerService] updatePlayerActions: Game ${gameId} not found (likely already ended)`);
+            return;
+        }
         const player = game.players.find((player) => player.socketId === playerSocket);
         if (player) {
             player.specs.actions--;
@@ -56,8 +68,13 @@ export class GameManagerService {
         },
     ][] {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[GameManagerService] getMoves: Game ${gameId} not found (likely already ended)`);
+            return [];
+        }
         const player = game.players.find((p) => p.socketId === playerSocket);
-        if (!player?.isActive) {
+        if (!player?.isActive || !player.position) {
+            console.warn(`[GameManagerService] getMoves: Player not found or invalid position`);
             return [];
         }
         const moves = this.runDijkstra(player.position, game, player.specs.movePoints);
@@ -67,6 +84,10 @@ export class GameManagerService {
 
     getMove(gameId: string, playerSocket: string, destination: Coordinate): Coordinate[] {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[GameManagerService] getMove: Game ${gameId} not found (likely already ended)`);
+            return [];
+        }
         const player = game.players.find((p) => p.socketId === playerSocket);
         let shortestPath: Coordinate[];
 
@@ -159,6 +180,10 @@ export class GameManagerService {
     }
 
     coordinateToKey(coord: Coordinate): string {
+        if (!coord) {
+            console.error('[GameManagerService] coordinateToKey: coordinate is undefined');
+            return '0,0';
+        }
         return `${coord.x},${coord.y}`;
     }
 
@@ -189,7 +214,7 @@ export class GameManagerService {
             }
         }
         for (const player of game.players) {
-            if (player.isActive && player.position.x === pos.x && player.position.y === pos.y) {
+            if (player.isActive && player.position && player.position.x === pos.x && player.position.y === pos.y) {
                 return false;
             }
         }
@@ -211,6 +236,7 @@ export class GameManagerService {
     }
 
     onIceTile(player: Player, gameId: string): boolean {
+        if (!player?.position) return false;
         return this.gameCreationService
             .getGameById(gameId)
             .tiles.some(
@@ -224,10 +250,14 @@ export class GameManagerService {
 
     getAdjacentPlayers(player: Player, gameId: string): Player[] {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[GameManagerService] getAdjacentPlayers: Game ${gameId} not found (likely already ended)`);
+            return [];
+        }
         const adjacentPlayers: Player[] = [];
-        if (game?.players) {
+        if (game?.players && player?.position) {
             game.players.forEach((otherPlayer) => {
-                if (otherPlayer.isActive) {
+                if (otherPlayer.isActive && !otherPlayer.isObservationMode && otherPlayer.position) {
                     if (otherPlayer.socketId !== player.socketId) {
                         const isAdjacent = DIRECTIONS.some(
                             (direction) =>
@@ -246,6 +276,14 @@ export class GameManagerService {
 
     getAdjacentDoors(player: Player, gameId: string): DoorTile[] {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[GameManagerService] getAdjacentDoors: Game ${gameId} not found (likely already ended)`);
+            return [];
+        }
+        if (!player?.position) {
+            console.warn(`[GameManagerService] getAdjacentDoors: Player has no position`);
+            return [];
+        }
         const adjacentDoors: DoorTile[] = [];
 
         const adjacentPlayers = this.getAdjacentPlayers(player, gameId);
@@ -256,7 +294,7 @@ export class GameManagerService {
             );
 
             const isOccupied = adjacentPlayers.some(
-                (adjPlayer) => adjPlayer.position.x === door.coordinate.x && adjPlayer.position.y === door.coordinate.y,
+                (adjPlayer) => adjPlayer.position && adjPlayer.position.x === door.coordinate.x && adjPlayer.position.y === door.coordinate.y,
             );
 
             if (isAdjacent && !isOccupied) {
@@ -269,6 +307,14 @@ export class GameManagerService {
 
     getAdjacentWalls(player: Player, gameId: string): Tile[] {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[GameManagerService] getAdjacentWalls: Game ${gameId} not found (likely already ended)`);
+            return [];
+        }
+        if (!player?.position) {
+            console.warn(`[GameManagerService] getAdjacentWalls: Player has no position`);
+            return [];
+        }
         const adjacentWalls: Tile[] = [];
 
         game.tiles.forEach((tile) => {
@@ -320,7 +366,7 @@ export class GameManagerService {
                 !this.isOutOfMap(newPosition, game.mapSize) &&
                 this.isReachableTile(newPosition, game) &&
                 !this.onTileItem(newPosition, game) &&
-                !game.players.some((player) => player.position.x === newPosition.x && player.position.y === newPosition.y) &&
+                !game.players.some((player) => player.position && player.position.x === newPosition.x && player.position.y === newPosition.y) &&
                 !isStartTile
             ) {
                 return newPosition;
@@ -332,13 +378,18 @@ export class GameManagerService {
     isGameResumable(gameId: string): boolean {
         return (
             this.gameCreationService.getGameById(gameId) &&
-            !!this.gameCreationService.getGameById(gameId).players.find((player) => player.isActive && !player.socketId.includes('virtual'))
+            !!this.gameCreationService.getGameById(gameId).players.find((player) => player.isActive && !player.isObservationMode)
         );
     }
 
     checkForWinnerCtf(player: Player, gameId: string): boolean {
-        if (this.gameCreationService.getGameById(gameId).mode === Mode.Ctf) {
-            if (player.inventory.includes(ItemCategory.Flag)) {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.warn(`[GameManagerService] checkForWinnerCtf: Game ${gameId} not found (likely already ended)`);
+            return false;
+        }
+        if (game && game.mode === Mode.Ctf) {
+            if (player.inventory.includes(ItemCategory.Flag) && player.position && player.initialPosition) {
                 return player.position.x === player.initialPosition.x && player.position.y === player.initialPosition.y;
             }
         }
@@ -355,5 +406,84 @@ export class GameManagerService {
                 player.isGameWinner = false;
             }
         }
+    }
+
+    shouldTerminateGame(gameId: string): boolean {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) return true;
+
+        const activeNonObserving = game.players.filter((p) => p.isActive && !p.isObservationMode);
+        const observers = game.players.filter((p) => p.isObservationMode);
+
+        // Terminate if no active players and no observers
+        return activeNonObserving.length === 0 && observers.length === 0;
+    }
+
+    validateGameState(gameId: string, playerSocketId: string): { valid: boolean; reason?: string; recovered?: boolean } {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            return { valid: false, reason: `Game ${gameId} not found` };
+        }
+
+        const player = game.players.find((p) => p.socketId === playerSocketId);
+        if (!player) {
+            return { valid: false, reason: `Player ${playerSocketId} not found in game` };
+        }
+
+        if (!player.isActive) {
+            return { valid: false, reason: `Player ${player.name} is not active` };
+        }
+
+        // Check if position is undefined or has invalid coordinates
+        if (!player.position || player.position.x === undefined || player.position.y === undefined) {
+            console.warn(`[GameManagerService] Player ${player.name} has invalid position, attempting recovery...`);
+            
+            // Attempt to recover by sending player to initial position
+            if (player.initialPosition && player.initialPosition.x !== undefined && player.initialPosition.y !== undefined) {
+                const isPositionOccupied = game.players.some(
+                    (otherPlayer) =>
+                        otherPlayer.socketId !== player.socketId &&
+                        otherPlayer.position &&
+                        otherPlayer.position.x === player.initialPosition.x &&
+                        otherPlayer.position.y === player.initialPosition.y,
+                );
+
+                if (!isPositionOccupied) {
+                    player.position = { x: player.initialPosition.x, y: player.initialPosition.y };
+                    console.log(`[GameManagerService] ✓ Recovered position for ${player.name} at initial position (${player.position.x}, ${player.position.y})`);
+                    return { valid: true, recovered: true };
+                } else {
+                    // Find closest available position
+                    const closestPosition = this.getFirstFreePosition(player.initialPosition, game);
+                    if (closestPosition) {
+                        player.position = closestPosition;
+                        console.log(`[GameManagerService] ✓ Recovered position for ${player.name} near initial position at (${player.position.x}, ${player.position.y})`);
+                        return { valid: true, recovered: true };
+                    }
+                }
+            }
+            
+            return { valid: false, reason: `Player ${player.name} has no position and recovery failed` };
+        }
+
+        return { valid: true };
+    }
+
+    logGameStateDebug(gameId: string, context: string): void {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            console.log(`[DEBUG ${context}] Game ${gameId} not found`);
+            return;
+        }
+
+        console.log(`[DEBUG ${context}] Game ${gameId}:`);
+        console.log(`  - Players: ${game.players.length}`);
+        game.players.forEach((p, i) => {
+            console.log(
+                `    ${i}. ${p.name} (${p.socketId.substring(0, 8)}...) - Active: ${p.isActive}, Observing: ${p.isObservationMode}, Position: ${p.position ? `(${p.position.x},${p.position.y})` : 'UNDEFINED'}`,
+            );
+        });
+        console.log(`  - Current turn: ${game.currentTurn}`);
+        console.log(`  - Turn count: ${game.nTurns}`);
     }
 }
