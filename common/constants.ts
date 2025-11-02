@@ -83,8 +83,8 @@ export const ALL_ITEMS: ItemCategory[] = [
 ];
 
 export const N_WIN_VICTORIES = 3;
-// TODO put back to 4
-export const DEFAULT_HP: number = 1;
+
+export const DEFAULT_HP: number = 4;
 
 export const DEFAULT_SPEED: number = 4;
 
