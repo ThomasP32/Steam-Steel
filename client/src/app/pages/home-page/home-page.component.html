@@ -19,11 +19,13 @@
             <button class="create-game-button" (click)="toggleJoinGameVisibility()">Rejoindre une partie</button>
             <button class="button" (click)="navigateToCreateGame()">Commencer une nouvelle partie</button>
             <button class="button" (click)="navigateToAdmin()">Administration des jeux</button>
-            <button class="button" (click)="toggleAccountModal()">Mon Compte</button>
             <button class="button" (click)="logout()">Déconnexion</button>
         </ng-container>
     </div>
     @if (isLoggedIn) {
+    <button class="account-button" aria-label="Account settings" (click)="isAccountModalVisible = true">
+        <i class="fas fa-user-cog" aria-hidden="true"></i>
+    </button>
     <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
         <i class="fas fa-comments" aria-hidden="true"></i>
     </button>

@@ -1,0 +1,103 @@
+.game-invitation-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.game-invitation-modal {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    border: 2px solid #3498db;
+    border-radius: 12px;
+    padding: 30px;
+    min-width: 400px;
+    max-width: 500px;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #ecf0f1;
+    cursor: pointer;
+    line-height: 1;
+    padding: 5px;
+
+    &:hover {
+        color: #e74c3c;
+    }
+}
+
+.invitation-content {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.invitation-title {
+    color: #3498db;
+    font-size: 24px;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.invitation-message {
+    color: #ecf0f1;
+    font-size: 16px;
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.game-name {
+    color: #f39c12;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 0;
+}
+
+.button-group {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.action-button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 120px;
+}
+
+.reject-button {
+    background-color: #e74c3c;
+    color: white;
+
+    &:hover {
+        background-color: #c0392b;
+        transform: translateY(-2px);
+    }
+}
+
+.accept-button {
+    background-color: #27ae60;
+    color: white;
+
+    &:hover {
+        background-color: #229954;
+        transform: translateY(-2px);
+    }
+}

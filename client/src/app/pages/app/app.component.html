@@ -1,2 +1,28 @@
 <button class="toggle-theme-btn" (click)="toggleTheme()">🌓</button>
+@if(isLoggedIn){
+<button class="friends-list-toggle-button" aria-label="Toggle friends list" (click)="toggleFriendsListVisibility()">
+    <i class="fas fa-user-friends" aria-hidden="true"></i>
+</button>
+}
+
 <router-outlet></router-outlet>
+
+@if (isFriendsListVisible && !isGamePage) {
+<div class="modal-overlay-friends">
+    <div class="modal-friends">
+        <span class="close-button" (click)="isFriendsListVisible = false">×</span>
+        <app-friends-list></app-friends-list>
+    </div>
+</div>
+} @if (isFriendsListVisible && isGamePage) {
+<div class="friends-list-wrapper">
+    <app-friends-list></app-friends-list>
+</div>
+}
+<app-game-invitation-modal
+    [invitation]="currentInvitation"
+    (accepted)="onInvitationAccepted($event)"
+    (rejected)="onInvitationRejected($event)"
+    (closed)="onInvitationClosed()"
+>
+</app-game-invitation-modal>

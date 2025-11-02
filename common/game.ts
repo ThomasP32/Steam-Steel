@@ -85,6 +85,7 @@ export interface GameClassic extends Map {
 
 interface GameSettings {
     isFastElimination: boolean;
+    isFriendsOnly: boolean;
 }
 
 export interface GameCtf extends GameClassic {

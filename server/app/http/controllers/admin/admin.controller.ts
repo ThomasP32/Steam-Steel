@@ -75,7 +75,6 @@ export class AdminController {
     async modifyMap(@Param('mapId') mapId: string, @Body() body: { mapDto: MapDto; username: string }, @Res() response: Response) {
         try {
             const { mapDto, username } = body;
-            console.log('Modify map - mapId:', mapId, 'creator:', mapDto.creator, 'current user:', username);
             const updatedMap = await this.adminService.modifyMap(mapId, mapDto, username);
             response.status(HttpStatus.OK).json(updatedMap);
         } catch (error) {

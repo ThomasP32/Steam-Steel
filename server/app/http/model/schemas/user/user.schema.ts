@@ -1,4 +1,5 @@
 import { Avatar } from '@common/game';
+import { FriendRequest } from '@common/user-friends';
 import { StatsUser } from '@common/userStats';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
@@ -28,6 +29,24 @@ export class User extends Document {
         type: Object,
     })
     stats: StatsUser;
+
+    @Prop({
+        default: 'offline',
+        enum: ['online', 'offline', 'ingame'],
+    })
+    status: string;
+
+    @Prop({
+        default: [],
+        type: [String],
+    })
+    friends: string[];
+
+    @Prop({
+        default: [],
+        type: [{ from: String, to: String, status: String }],
+    })
+    friendRequests: FriendRequest[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -24,12 +24,14 @@ import { PlayerService } from '@app/services/player-service/player.service';
 import { COUNTDOWN_PULSE, MAX_CHAR, TIME_DASH_OFFSET, TIME_LIMIT_DELAY, TIME_PULSE, TIME_REDIRECTION, TURN_DURATION } from '@common/constants';
 import { MovesMap } from '@common/directions';
 import { CountdownEvents } from '@common/events/countdown.events';
+import { FriendsEvents } from '@common/events/friends.events';
 import { GameCreationEvents } from '@common/events/game-creation.events';
 import { GameManagerEvents } from '@common/events/game-manager.events';
 import { ItemDroppedData, ItemsEvents } from '@common/events/items.events';
 import { Game, Player, Specs } from '@common/game';
 import { GamePageActiveView } from '@common/game-page';
 import { Coordinate, Map } from '@common/map.types';
+import { UserStatus } from '@common/user-friends';
 import { Subscription } from 'rxjs';
 @Component({
     selector: 'app-game-page',
@@ -155,7 +157,6 @@ export class GamePageComponent implements OnInit, OnDestroy {
             if (this.playerService.player.socketId === this.game.hostSocketId) {
                 this.socketService.sendMessage(GameManagerEvents.StartGame, this.gameService.game.id);
             }
-
         }
     }
 
@@ -184,11 +185,14 @@ export class GamePageComponent implements OnInit, OnDestroy {
     leaveGame(): void {
         this.showExitModal = false;
         this.playerService.resetPlayer();
-        this.characterService.resetCharacterAvailability();
-        this.socketService.disconnect();
-        this.router.navigate(['/main-menu']);
         this.channelService.removePartyChannel(this.game.id);
+        this.socketService.sendMessage(FriendsEvents.UpdateUserStatus, { status: UserStatus.Online });
 
+        setTimeout(() => {
+            this.characterService.resetCharacterAvailability();
+            this.socketService.disconnect();
+            this.router.navigate(['/main-menu']);
+        }, 100);
     }
 
     areModalsOpen(): boolean {
@@ -266,7 +270,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         this.combatService.showObservationModeModal$.subscribe((showModal) => {
             this.isObservationModeModalOpen = showModal;
         });
-        
+
         this.combatService.observationModeMessage$.subscribe((message) => {
             this.observationModeMessage = message;
         });

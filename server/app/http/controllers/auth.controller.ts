@@ -1,10 +1,12 @@
 import { JWT_SECRET } from '@common/constants';
 import { Avatar } from '@common/game';
+import { UserStatus } from '@common/user-friends';
 import { Body, Controller, Delete, Get, HttpStatus, Inject, Patch, Post, Req, Res } from '@nestjs/common';
 import { ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { AdminService } from '../services/admin/admin.service';
+import { FriendsService } from '../services/friends/friends.service';
 import { UserService } from '../services/user/user.service';
 
 @ApiTags('Auth')
@@ -12,6 +14,7 @@ import { UserService } from '../services/user/user.service';
 export class AuthController {
     @Inject(UserService) private readonly userService: UserService;
     @Inject(AdminService) private readonly adminService: AdminService;
+    @Inject(FriendsService) private readonly friendsService: FriendsService;
 
     @ApiCreatedResponse({
         description: 'Register a new user',
@@ -68,6 +71,10 @@ export class AuthController {
                 user: result.user,
                 token,
             });
+            const user = await this.userService.findById(userId);
+            if (user) {
+                await this.friendsService.updateUserStatus(user.username, UserStatus.Online);
+            }
         } catch (error) {
             response.status(HttpStatus.BAD_REQUEST).json({
                 success: false,
@@ -96,7 +103,7 @@ export class AuthController {
         this.userService.removeUserSession(userId);
 
         await this.adminService.deleteAllMapsByCreator(user.username);
-
+        await this.friendsService.removeUserFromAllFriendLists(user.username);
         await this.userService.deleteById(userId);
         return { success: true, message: 'Compte supprimé avec succès' };
     }
@@ -106,8 +113,12 @@ export class AuthController {
         const { userId, error } = await this.getUserIdFromToken(req);
         if (error) return { success: false, message: error };
 
-        this.userService.removeUserSession(userId);
+        const user = await this.userService.findById(userId);
+        if (user) {
+            await this.friendsService.updateUserStatus(user.username, UserStatus.Offline);
+        }
 
+        this.userService.removeUserSession(userId);
         return { success: true, message: 'Déconnexion réussie' };
     }
 

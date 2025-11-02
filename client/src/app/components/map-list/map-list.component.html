@@ -33,9 +33,11 @@
                     <i class="fas fa-trash"></i>
                 </button>
 
+                @if(map.state === publicSate) {
                 <button class="duplicate-button" (click)="onDuplicateMap(map)" title="Dupliquer">
                     <i class="fas fa-copy"></i>
                 </button>
+                }
             </div>
             <p class="lastModified">Dernière modification le {{ formatDate(map.lastModified) }}</p>
         </div>

@@ -1,0 +1,107 @@
+<div class="friends-container">
+    <div class="friends-header">
+        <div class="tabs-container">
+            <button class="tab-button" [class.active]="activeTab === 'friends'" (click)="switchTab('friends')">Amis ({{ friends.length }})</button>
+            <button class="tab-button" [class.active]="activeTab === 'requests'" (click)="switchTab('requests')">
+                Demandes @if (getFriendRequestsCount() > 0) {
+                <span class="notification-badge">{{ getFriendRequestsCount() }}</span>
+                }
+            </button>
+        </div>
+
+        @if (activeTab === 'friends') {
+        <div class="add-friend-section">
+            <div class="add-friend-form">
+                <input
+                    type="text"
+                    [(ngModel)]="newFriendUsername"
+                    placeholder="Nom d'utilisateur"
+                    class="friend-input"
+                    (keypress)="onKeyPress($event)"
+                    [disabled]="isAddingFriend"
+                />
+
+                <button (click)="addFriend()" [disabled]="isAddingFriend || !newFriendUsername.trim()" class="add-friend-btn">
+                    @if (isAddingFriend) {
+                    <i class="fas fa-spinner fa-spin"></i>
+                    } @else {
+                    <i class="fas fa-plus"></i>
+                    }
+                </button>
+            </div>
+
+            @if (friendError) {
+            <div class="error-message">{{ friendError }}</div>
+            }
+        </div>
+        }
+    </div>
+
+    @if (activeTab === 'friends') {
+    <div class="friends-list">
+        @if (friends.length === 0) {
+        <div class="no-friends">
+            <i class="fas fa-users"></i>
+            <p>Vous n'avez pas encore d'amis</p>
+            <p class="subtitle">Ajoutez des amis pour voir leur statut en ligne</p>
+        </div>
+        } @else { @for (friend of friends; track friend.username) {
+        <div class="friend-item">
+            <div class="friend-info">
+                <div class="friend-avatar">
+                    @if (getFriendAvatarUrl(friend)) {
+                    <img [src]="getFriendAvatarUrl(friend)" [alt]="friend.username + ' avatar'" class="avatar-image" />
+                    } @else {
+                    <i class="fas fa-user"></i>
+                    }
+                </div>
+
+                <div class="friend-details">
+                    <div class="friend-name">{{ friend.username }}</div>
+                    <div class="friend-status" [class]="getStatusClass(friend.status)">
+                        <span class="status-dot"></span>
+                        {{ getStatusText(friend.status) }}
+                    </div>
+                </div>
+            </div>
+
+            <button (click)="removeFriend(friend.username)" class="remove-friend-btn" title="Supprimer ami">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        } }
+    </div>
+    } @if (activeTab === 'requests') {
+    <div class="friend-requests-list">
+        @if (friendRequests.length === 0) {
+        <div class="no-requests">
+            <i class="fas fa-user-clock"></i>
+            <p>Aucune demande d'amitié en attente</p>
+            <p class="subtitle">Les demandes que vous recevez apparaîtront ici</p>
+        </div>
+        } @else { @for (request of friendRequests; track request.from) {
+        <div class="request-item">
+            <div class="request-info">
+                <div class="request-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+
+                <div class="request-details">
+                    <div class="request-name">{{ request.from }}</div>
+                    <div class="request-message">Souhaite être votre ami</div>
+                </div>
+            </div>
+
+            <div class="request-actions">
+                <button (click)="acceptFriendRequest(request.from)" class="accept-btn" title="Accepter">
+                    <i class="fas fa-check"></i>
+                </button>
+                <button (click)="rejectFriendRequest(request.from)" class="reject-btn" title="Refuser">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        } }
+    </div>
+    }
+</div>

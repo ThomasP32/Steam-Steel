@@ -5,6 +5,8 @@ import { Mode } from '@common/map.types';
 import { Inject } from '@nestjs/common';
 import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { FriendsService } from '../../../../http/services/friends/friends.service';
+import { UserService } from '../../../../http/services/user/user.service';
 import { JournalService } from '../../../../services/journal/journal.service';
 import { UserSocketService } from '../../../../services/user-socket/user-socket.service';
 
@@ -16,6 +18,8 @@ export class GameGateway {
     @Inject(GameCreationService) private readonly gameCreationService: GameCreationService;
     @Inject(JournalService) private readonly journalService: JournalService;
     @Inject(UserSocketService) private readonly userSocketSession: UserSocketService;
+    @Inject(FriendsService) private readonly friendsService: FriendsService;
+    @Inject(UserService) private readonly userService: UserService;
 
     @SubscribeMessage(GameCreationEvents.CreateGame)
     handleCreateGame(client: Socket, newGame: Game): void {
@@ -26,13 +30,25 @@ export class GameGateway {
     }
 
     @SubscribeMessage(GameCreationEvents.JoinGame)
-    handleJoinGame(client: Socket, data: JoinGameData): void {
+    async handleJoinGame(client: Socket, data: JoinGameData): Promise<void> {
         if (this.gameCreationService.doesGameExist(data.gameId)) {
             let game = this.gameCreationService.getGameById(data.gameId);
             if (game.isLocked) {
                 client.emit(GameCreationEvents.GameLocked, 'La partie est vérouillée, veuillez réessayer plus tard.');
                 return;
             }
+
+            if (game.settings.isFriendsOnly) {
+                const isVirtualPlayer = data.player.socketId.includes('virtualPlayer');
+                if (!isVirtualPlayer) {
+                    const isAuthorized = await this.checkIfPlayerCanJoinFriendsOnlyGame(game, data.player.name);
+                    if (!isAuthorized) {
+                        client.emit(GameCreationEvents.GameLocked, 'Cette partie est réservée aux amis du créateur.');
+                        return;
+                    }
+                }
+            }
+
             game = this.gameCreationService.addPlayerToGame(data.player, data.gameId);
             if (this.gameCreationService.isMaxPlayersReached(game.players, data.gameId)) {
                 this.gameCreationService.lockGame(data.gameId);
@@ -84,7 +100,7 @@ export class GameGateway {
     }
 
     @SubscribeMessage(GameCreationEvents.AccessGame)
-    handleAccessGame(client: Socket, gameId: string): void {
+    async handleAccessGame(client: Socket, gameId: string): Promise<void> {
         if (this.gameCreationService.doesGameExist(gameId)) {
             const game = this.gameCreationService.getGameById(gameId);
 
@@ -95,6 +111,21 @@ export class GameGateway {
                 client.emit(GameCreationEvents.GameLocked, 'La partie est vérouillée, veuillez réessayer plus tard.');
                 return;
             }
+
+            if (game.settings.isFriendsOnly) {
+                const userId = this.userSocketSession.getUserIdBySocket(client.id);
+                if (userId) {
+                    const user = await this.userService.findById(userId);
+                    if (user) {
+                        const isAuthorized = await this.checkIfPlayerCanJoinFriendsOnlyGame(game, user.username);
+                        if (!isAuthorized) {
+                            client.emit(GameCreationEvents.GameLocked, 'Cette partie est réservée aux amis du créateur.');
+                            return;
+                        }
+                    }
+                }
+            }
+
             client.join(gameId);
             client.emit(GameCreationEvents.GameAccessed);
         } else {
@@ -161,10 +192,8 @@ export class GameGateway {
 
             // Check if this is CTF mode and no active non-observer players remain
             if (game.hasStarted && game.mode === Mode.Ctf) {
-                const activeNonObserverCount = game.players.filter(
-                    (p) => p.isActive && p.isObservationMode !== true
-                ).length;
-                
+                const activeNonObserverCount = game.players.filter((p) => p.isActive && p.isObservationMode !== true).length;
+
                 if (activeNonObserverCount === 0) {
                     console.log(`[CTF] Last active player quit. Ending game ${game.id}`);
                     this.server.to(game.id).emit(GameCreationEvents.GameEndedNoActivePlayers);
@@ -173,6 +202,34 @@ export class GameGateway {
             }
         } else {
             return;
+        }
+    }
+
+    private async checkIfPlayerCanJoinFriendsOnlyGame(game: Game, playerUsername: string): Promise<boolean> {
+        try {
+            const hostSocketId = game.hostSocketId;
+            const hostUserId = this.userSocketSession.getUserIdBySocket(hostSocketId);
+
+            if (!hostUserId) {
+                return false;
+            }
+
+            const hostUser = await this.userService.findById(hostUserId);
+            if (!hostUser) {
+                return false;
+            }
+
+            if (hostUser.username === playerUsername) {
+                return true;
+            }
+
+            const hostFriends = await this.friendsService.getFriends(hostUserId);
+            const isFriend = hostFriends.some((friend) => friend.username === playerUsername);
+
+            return isFriend;
+        } catch (error) {
+            console.error('Error checking friend status:', error);
+            return false;
         }
     }
 }
