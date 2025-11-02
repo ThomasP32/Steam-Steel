@@ -48,6 +48,10 @@ export class AccountComponent implements OnInit {
         return `${mins}m ${secs}s`;
     }
 
+    statutInFrench(): string {
+        return this.userInfo?.user?.status === 'online' ? 'en ligne' : 'hors ligne';
+    }
+
     resetEditFields() {
         if (this.userInfo?.user) {
             this.editEmail = this.userInfo.user.email;

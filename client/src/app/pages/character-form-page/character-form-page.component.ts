@@ -10,9 +10,11 @@ import { SocketService } from '@app/services/communication-socket/communication-
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { PlayerService } from '@app/services/player-service/player.service';
 import { TIME_REDIRECTION } from '@common/constants';
+import { FriendsEvents } from '@common/events/friends.events';
 import { GameCreationEvents, JoinGameData } from '@common/events/game-creation.events';
 import { Bonus, Game, Player } from '@common/game';
 import { Map } from '@common/map.types';
+import { UserStatus } from '@common/user-friends';
 import { firstValueFrom, Subscription } from 'rxjs';
 @Component({
     selector: 'app-character-form-page',
@@ -150,6 +152,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
             this.socketService.listen<Player>(GameCreationEvents.YouJoined).subscribe((updatedPlayer: Player) => {
                 this.playerService.setPlayer(updatedPlayer);
                 this.router.navigate([`${this.gameId}/waiting-room/player`]);
+                this.socketService.sendMessage(FriendsEvents.UpdateUserStatus, { status: UserStatus.InGame });
             }),
         );
         this.socketSubscription.add(
@@ -221,6 +224,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
                             this.router.navigate(['/create-game']);
                         }, TIME_REDIRECTION);
                     } else {
+                        this.socketService.sendMessage(FriendsEvents.UpdateUserStatus, { status: UserStatus.InGame });
                         this.router.navigate([`${this.mapName}/waiting-room/host`], {
                             state: { gameSettings: this.gameSettings },
                         });

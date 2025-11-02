@@ -1,0 +1,16 @@
+export enum FriendsEvents {
+    FriendStatusUpdate = 'friendStatusUpdate',
+    FriendAdded = 'friendAdded',
+    FriendRemoved = 'friendRemoved',
+    FriendRequestSent = 'friendRequestSent',
+    FriendRequestReceived = 'friendRequestReceived',
+    FriendRequestAccepted = 'friendRequestAccepted',
+    FriendRequestRejected = 'friendRequestRejected',
+    FriendListUpdated = 'friendListUpdated',
+    FriendRequestsUpdated = 'friendRequestsUpdated',
+    UpdateUserStatus = 'updateUserStatus',
+    InviteAllOnlineFriends = 'inviteAllOnlineFriends',
+    GameInvitationReceived = 'gameInvitationReceived',
+    GameInvitationAccepted = 'gameInvitationAccepted',
+    GameInvitationRejected = 'gameInvitationRejected',
+}

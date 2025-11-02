@@ -19,6 +19,7 @@ export class MapListComponent implements OnDestroy {
     currentMapId: string | null = null;
     showDeleteModal = false;
     private readonly unsubscribe$ = new Subject<void>();
+    publicSate = MapState.Public;
 
     constructor(
         private readonly router: Router,

@@ -1,6 +1,8 @@
+import { JWT_SECRET } from '@common/constants';
 import { Avatar } from '@common/game';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import * as jwt from 'jsonwebtoken';
 import { Model } from 'mongoose';
 import { User } from '../../model/schemas/user/user.schema';
 
@@ -217,5 +219,28 @@ export class UserService {
         }
 
         return null;
+    }
+
+    async validateToken(token: string): Promise<User | null> {
+        try {
+            const decoded: any = jwt.verify(token, JWT_SECRET);
+            if (!decoded || !decoded.userId) {
+                return null;
+            }
+            return await this.findById(decoded.userId);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    async getUserById(id: string): Promise<User | null> {
+        return this.userModel.findById(id).exec();
+    }
+
+    async getUsersWithFriend(friendUsername: string): Promise<User[]> {
+        const friendUser = await this.findByUsername(friendUsername);
+        if (!friendUser) return [];
+
+        return this.userModel.find({ friends: friendUser._id.toString() }).exec();
     }
 }

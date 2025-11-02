@@ -48,6 +48,13 @@ export class ChatroomComponent implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         this.getPlayerName();
+
+        this.authService.authState$.subscribe((isAuthenticated) => {
+            if (isAuthenticated) {
+                this.getPlayerName();
+            }
+        });
+
         this.channelService.availableChannels$.subscribe((channels) => {
             this.availableChannels = channels;
         });
@@ -69,9 +76,7 @@ export class ChatroomComponent implements OnInit, OnDestroy {
             }
         });
 
-        if (!this.isInGame) {
-            this.socketService.sendMessage(ChatEvents.JoinChatRoom, 'global');
-        }
+        
 
         this.messageSubscription = this.socketService.listen<Message[]>(ChatEvents.PreviousMessages).subscribe((messages: Message[]) => {
             this.messages = messages;

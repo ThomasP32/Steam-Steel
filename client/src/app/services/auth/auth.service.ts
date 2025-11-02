@@ -102,6 +102,11 @@ export class AuthService {
             }),
         );
         const body = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
+
+        if (body && body.success !== false) {
+            this.authStateSubject.next(true);
+        }
+
         return body;
     }
 

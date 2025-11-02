@@ -1,0 +1,18 @@
+<div class="game-invitation-modal-overlay" *ngIf="invitation">
+    <div class="game-invitation-modal">
+        <button class="close-button" (click)="onClose()">×</button>
+
+        <div class="invitation-content">
+            <h3 class="invitation-title">Invitation de partie</h3>
+            <p class="invitation-message">
+                <strong>{{ invitation.inviterName }}</strong> vous invite à rejoindre une partie
+            </p>
+            <p class="game-name">Partie: {{ invitation.gameName }}</p>
+        </div>
+
+        <div class="button-group">
+            <button class="action-button reject-button" (click)="onReject()">Refuser</button>
+            <button class="action-button accept-button" (click)="onAccept()">Rejoindre</button>
+        </div>
+    </div>
+</div>

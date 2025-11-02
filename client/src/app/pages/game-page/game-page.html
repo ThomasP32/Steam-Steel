@@ -36,13 +36,11 @@
         <app-game-map [player]="player" [loadedMap]="game" [moves]="moves" [isYourTurn]="isYourTurn" (tileClicked)="onTileClickToMove($event)">
         </app-game-map>
     </div>
-
     <app-game-players-list
         [players]="game.players"
         [hostSocketId]="game.hostSocketId"
         [currentPlayerTurn]="currentPlayerTurn"
     ></app-game-players-list>
-
     <div class="top-container">
         <div class="countdown-endturn-container">
             <div class="countdown-timer" [ngClass]="{ 'pulse': isPulsing }">
@@ -125,10 +123,11 @@
 } @if(isCombatModalOpen){
 <div class="combat-modal">
     <div class="popup-overlay">
-        <app-combat-modal 
-            [player]="(player.isObservationMode === true) ? combatPlayer : player" 
-            [opponent]="opponent" 
-            [isObserver]="player.isObservationMode === true">
+        <app-combat-modal
+            [player]="(player.isObservationMode === true) ? combatPlayer : player"
+            [opponent]="opponent"
+            [isObserver]="player.isObservationMode === true"
+        >
         </app-combat-modal>
     </div>
 </div>
@@ -141,9 +140,7 @@
 } @if(isObservationModeModalOpen) {
 <div class="observation-mode-modal">
     <div class="popup-overlay">
-        <app-observation-mode-modal 
-            [message]="observationModeMessage" 
-            [closeModal]="closeObservationModeModal.bind(this)">
+        <app-observation-mode-modal [message]="observationModeMessage" [closeModal]="closeObservationModeModal.bind(this)">
         </app-observation-mode-modal>
     </div>
 </div>

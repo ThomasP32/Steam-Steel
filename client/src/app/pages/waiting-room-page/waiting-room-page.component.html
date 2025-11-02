@@ -26,7 +26,15 @@
                 {{ isGameLocked ? 'Fermée' : 'Ouverte' }}
             </button>
         </div>
-        } @else {
+
+        @if (gameSettings.isFriendsOnly) {
+        <div class="invite-friends-section">
+            <button class="invite-friends-button" (click)="inviteAllOnlineFriends()">
+                <i class="fas fa-user-friends"></i>
+                Inviter tous mes amis en ligne
+            </button>
+        </div>
+        } } @else {
         <div class="game-status">
             <h2>La partie est</h2>
             <h3>

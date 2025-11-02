@@ -46,6 +46,7 @@
         </div>
     </ng-template>
     <div *ngIf="userInfo?.user?.stats && !editMode">
+        <h3>Statut : {{ statutInFrench() }}</h3>
         <h3>Statistiques</h3>
         <p><b>Classique :</b> {{ userInfo.user.stats.classique.gamesPlayed }} parties jouées, {{ userInfo.user.stats.classique.gamesWon }} gagnées</p>
         <p><b>CTF :</b> {{ userInfo.user.stats.ctf.gamesPlayed }} parties jouées, {{ userInfo.user.stats.ctf.gamesWon }} gagnées</p>

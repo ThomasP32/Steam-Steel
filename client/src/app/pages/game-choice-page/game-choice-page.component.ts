@@ -26,7 +26,10 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
     };
     isChatVisible: boolean = false;
     showGameOptionsModal: boolean = false;
-    gameSettings: { isFastElimination: boolean } = { isFastElimination: false };
+    gameSettings: { isFastElimination: boolean; isFriendsOnly: boolean } = {
+        isFastElimination: false,
+        isFriendsOnly: false,
+    };
 
     private readonly router: Router = inject(Router);
     private readonly unsubscribe$ = new Subject<void>();
@@ -54,7 +57,12 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
     }
 
     private async loadMaps(): Promise<void> {
-        this.maps = await firstValueFrom(this.communicationMapService.basicGet<Map[]>('map'));
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            this.maps = await firstValueFrom(this.communicationMapService.basicGet<Map[]>(`map/user/visible?token=${token}`));
+        } else {
+            this.maps = await firstValueFrom(this.communicationMapService.basicGet<Map[]>('map'));
+        }
     }
 
     selectMap(mapName: string) {
@@ -75,7 +83,7 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
         this.selectedMap = undefined;
     }
 
-    onGameOptionsNext(options: { isFastElimination: boolean }): void {
+    onGameOptionsNext(options: { isFastElimination: boolean; isFriendsOnly: boolean }): void {
         this.gameSettings = options;
         this.showGameOptionsModal = false;
         if (this.selectedMap) {

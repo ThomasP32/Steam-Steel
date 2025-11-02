@@ -47,6 +47,10 @@ export class JoinGameModalComponent implements OnInit, AfterViewInit, OnDestroy 
         const value = input.value.replace(/[^0-9]/g, '');
         input.value = value;
 
+        if (this.errorMessage) {
+            this.errorMessage = null;
+        }
+
         if (value.length === 1 && index < 4) {
             const nextInput = this.codeInputs.toArray()[index];
             if (nextInput) {

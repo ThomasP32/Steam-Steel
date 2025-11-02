@@ -370,8 +370,8 @@
 
 .chat-toggle-button {
     position: fixed;
-    top: 12px;
-    right: 12px;
+    top: 22px;
+    right: 22px;
     z-index: 1200;
     width: 44px;
     height: 44px;
@@ -404,4 +404,42 @@
     z-index: 1500;
     overflow: hidden;
     transition: height 0.3s ease-in-out;
+}
+
+.invite-friends-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.invite-friends-button {
+    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+    border: 3px solid #1e8449;
+    color: white;
+    padding: 12px 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    font-family: 'Press Start 2P', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    &:hover {
+        background: linear-gradient(135deg, #229954 0%, #27ae60 100%);
+        border-color: #145a32;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    &:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    i {
+        font-size: 1rem;
+    }
 }

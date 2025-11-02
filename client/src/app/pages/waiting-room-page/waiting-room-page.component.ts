@@ -8,13 +8,16 @@ import { ChannelService } from '@app/services/channel/channel.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
+import { FriendsService } from '@app/services/friends/friends.service';
 import { GameService } from '@app/services/game/game.service';
 import { MapConversionService } from '@app/services/map-conversion/map-conversion.service';
 import { PlayerService } from '@app/services/player-service/player.service';
 import { TIME_LIMIT_DELAY, WaitingRoomParameters } from '@common/constants';
+import { FriendsEvents } from '@common/events/friends.events';
 import { GameCreationEvents, ToggleGameLockStateData } from '@common/events/game-creation.events';
 import { Game, GameCtf, Player } from '@common/game';
 import { Map, Mode } from '@common/map.types';
+import { UserStatus } from '@common/user-friends';
 import { firstValueFrom, Subscription } from 'rxjs';
 
 @Component({
@@ -37,6 +40,7 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         private readonly router: Router,
         private readonly mapConversionService: MapConversionService,
         private readonly channelService: ChannelService,
+        private readonly friendsService: FriendsService,
     ) {
         this.communicationMapService = communicationMapService;
         this.gameService = gameService;
@@ -47,6 +51,7 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         this.router = router;
         this.mapConversionService = mapConversionService;
         this.channelService = channelService;
+        this.friendsService = friendsService;
     }
 
     waitingRoomCode: string;
@@ -67,7 +72,7 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     maxPlayers: number;
     showProfileModal: boolean = false;
     isChatVisible: boolean = false;
-    gameSettings: { isFastElimination: boolean } = { isFastElimination: false };
+    gameSettings: { isFastElimination: boolean; isFriendsOnly: boolean } = { isFastElimination: false, isFriendsOnly: false };
 
     async ngOnInit(): Promise<void> {
         if (!this.socketService.isSocketAlive()) {
@@ -77,6 +82,7 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
             this.router.navigate(['/main-menu']);
             return;
         }
+
         const player = this.playerService.player;
         this.playerPreview = this.characterService.getAvatarPreview(player.avatar);
         this.playerName = player.name;
@@ -124,10 +130,13 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     exitGame(): void {
         this.channelService.removePartyChannel(this.waitingRoomCode);
 
-        this.socketService.sendMessage(GameCreationEvents.LeaveGame, this.waitingRoomCode);
-        this.characterService.resetCharacterAvailability();
-        this.socketService.disconnect();
-        this.router.navigate(['/main-menu']);
+        this.socketService.sendMessage(FriendsEvents.UpdateUserStatus, { status: UserStatus.Online });
+
+        setTimeout(() => {
+            this.characterService.resetCharacterAvailability();
+            this.socketService.disconnect();
+            this.router.navigate(['/main-menu']);
+        }, 100);
     }
 
     getMapName(): void {
@@ -217,10 +226,8 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
                 this.dialogBoxMessage = 'Vous avez été exclu';
                 this.showExitModal = true;
                 setTimeout(() => {
-                    this.router.navigate(['/main-menu']);
+                    this.exitGame();
                 }, TIME_LIMIT_DELAY);
-                this.socketService.disconnect();
-                this.characterService.resetCharacterAvailability();
             }),
         );
 
@@ -268,6 +275,12 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
 
     closeProfileModal(): void {
         this.showProfileModal = false;
+    }
+
+    inviteAllOnlineFriends(): void {
+        if (this.waitingRoomCode && this.mapName) {
+            this.friendsService.inviteAllOnlineFriends(this.waitingRoomCode, this.mapName);
+        }
     }
 
     ngOnDestroy(): void {

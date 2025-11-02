@@ -24,8 +24,7 @@ export class GameService {
         this.game = newGame;
     }
 
-    createNewCtfGame(map: Map, gameId: string, gameSettings?: { isFastElimination: boolean }): GameCtf {
-        const isFastElimination = gameSettings?.isFastElimination ?? false;
+    createNewCtfGame(map: Map, gameId: string, gameSettings?: { isFastElimination: boolean, isFriendsOnly: boolean }): GameCtf {
         return {
             ...map,
             id: gameId,
@@ -41,13 +40,13 @@ export class GameService {
             nPlayersCtf: [],
             mode: Mode.Ctf,
             settings: {
-                isFastElimination,
+                isFastElimination: gameSettings?.isFastElimination ?? false,
+                isFriendsOnly: gameSettings?.isFriendsOnly ?? false,
             },
         };
     }
 
-    createNewGame(map: Map, gameId: string, gameSettings?: { isFastElimination: boolean }): Game {
-        const isFastElimination = gameSettings?.isFastElimination ?? false;
+    createNewGame(map: Map, gameId: string, gameSettings?: { isFastElimination: boolean, isFriendsOnly: boolean }): Game {
         return {
             ...map,
             id: gameId,
@@ -61,7 +60,8 @@ export class GameService {
             isLocked: false,
             hasStarted: false,
             settings: {
-                isFastElimination,
+                isFastElimination: gameSettings?.isFastElimination ?? false,
+                isFriendsOnly: gameSettings?.isFriendsOnly ?? false,
             },
         };
     }
