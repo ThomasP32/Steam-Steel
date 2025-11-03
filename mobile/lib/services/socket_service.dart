@@ -67,10 +67,19 @@ class SocketService {
   }
 
   Stream<T> listen<T>(String event) {
-    if (!_controllers.containsKey(event)) {
-      _controllers[event] = StreamController<T>.broadcast();
-    }
-    return _controllers[event]!.stream as Stream<T>;
+    // { changed code }
+    // Previously this code may have returned something like `return _controllers[event]!.stream as Stream<T>;`
+    // which caused a runtime cast of the Stream object and produced the `_BroadcastStream<dynamic>` error.
+    // Instead, map elements to T so the Stream object stays a Stream<dynamic> internally.
+    final controller = _controllers.putIfAbsent(
+      event,
+      StreamController<dynamic>.broadcast,
+    );
+    return controller.stream.map<T>((dynamic e) {
+      // perform a checked cast at element level; if it fails it will throw at the moment of use,
+      // but avoids casting the Stream object itself which produced the original runtime error.
+      return e as T;
+    });
   }
 
   void dispose() {

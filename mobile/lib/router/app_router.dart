@@ -24,6 +24,14 @@ class AppRouter {
         },
       ),
       GoRoute(
+        path: '/:mapName/waiting-room/host',
+        name: 'waiting-room-host',
+        builder: (context, state) {
+          final mapName = state.pathParameters['mapName'] ?? '';
+          return WaitingRoomScreen(mapName: mapName);
+        },
+      ),
+      GoRoute(
         path: '/:gameId/choose-character',
         name: 'choose-character',
         builder: (context, state) {
@@ -50,6 +58,13 @@ class AppRouter {
           final gameId = state.pathParameters['gameId'] ?? '';
           final mapName = state.pathParameters['mapName'] ?? '';
           return GameScreen(gameId: gameId, mapName: mapName);
+        },
+      ),
+      GoRoute(
+        path: '/create-game/:mapName/choose-character',
+        builder: (context, state) {
+          final mapName = state.pathParameters['mapName'] ?? '';
+          return CharacterCreationScreen(mapName: mapName);
         },
       ),
     ],

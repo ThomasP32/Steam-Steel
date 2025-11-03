@@ -62,6 +62,8 @@ const int MINIMUM_MOVES = 1;
 
 const double CONTINUE_ODDS = 0.4;
 
+const double HALF = 0.5;
+
 const List<String> CHAT_REACTIONS = ['👍', '❤️', '🤡', '💀'];
 
 enum ProfileType {
@@ -71,4 +73,20 @@ enum ProfileType {
 
   const ProfileType(this.value);
   final String value;
+}
+
+enum BotName {
+  atlas('Atlas'),
+  nova('Nova'),
+  cipher('Cipher'),
+  echo('Echo'),
+  zephyr('Zephyr'),
+  vortex('Vortex'),
+  blaze('Blaze'),
+  phoenix('Phoenix'),
+  titan('Titan'),
+  shadow('Shadow');
+
+  const BotName(this.displayName);
+  final String displayName;
 }

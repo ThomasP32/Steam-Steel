@@ -4,12 +4,9 @@
     @if(player){
     <div class="inventory">
         @for (item of player.inventory ; track item) {
-        <div class="inventory-container">
-            <button class="inventory-button" (click)="dropItem(item)">Jeter</button>
             <div class="inventory-slot">
-                <img [src]="imageService.getItemImage(item)" [alt]="item" class="item-image" />
+                <img [src]="imageService.getItemImage(item)" [alt]="item" class="item-image" (click)="dropItem(item)" />
             </div>
-        </div>
         }
     </div>
     }

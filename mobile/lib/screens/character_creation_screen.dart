@@ -1,15 +1,22 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/game.dart';
+import 'package:mobile/common/map_types.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/character_creation_service.dart';
 import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
+import 'package:mobile/utils/debug_logger.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 class CharacterCreationScreen extends StatefulWidget {
-  const CharacterCreationScreen({required this.gameId, super.key});
-  final String gameId;
+  const CharacterCreationScreen({this.gameId, this.mapName, super.key});
+  final String? gameId;
+  final String? mapName;
 
   @override
   State<CharacterCreationScreen> createState() =>
@@ -23,12 +30,12 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     speed: DEFAULT_SPEED,
     attack: DEFAULT_ATTACK,
     defense: DEFAULT_DEFENSE,
-    attackBonus: Bonus.d4,
     defenseBonus: Bonus.d4,
   );
   String? lifeOrSpeedBonus;
   String? attackOrDefenseBonus;
   bool _isSubmitting = false;
+  StreamSubscription<dynamic>? _gameLockedSub;
 
   String _diceAsset(Bonus bonus) => 'lib/assets/icons/d${bonus.value}.png';
   final CharacterCreationService _creationService = CharacterCreationService();
@@ -37,8 +44,10 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   void initState() {
     super.initState();
     _loadUserName();
-    if (widget.gameId.isNotEmpty) {
-      _creationService.startListening(widget.gameId);
+    _listenToGameLocked();
+
+    if (widget.gameId != null && widget.gameId!.isNotEmpty) {
+      _creationService.startListening(widget.gameId!);
     }
   }
 
@@ -49,6 +58,32 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
         name = user.username;
       });
     }
+  }
+
+  void _listenToGameLocked() {
+    _gameLockedSub = SocketService().listen<dynamic>('gameLocked').listen((
+      message,
+    ) {
+      if (!mounted) return;
+      final errorMessage =
+          (message is String && message.isNotEmpty)
+              ? message
+              : 'La partie est vérouillée, veuillez réessayer plus tard.';
+      setState(() {
+        _isSubmitting = false;
+      });
+      try {
+        showTopSnackBar(
+          Overlay.of(context),
+          CustomSnackBar.error(message: errorMessage),
+        );
+      } on Exception catch (e) {
+        DebugLogger.log(
+          'Failed to show gameLocked snack: $e',
+          tag: 'CharacterCreation',
+        );
+      }
+    });
   }
 
   void _addBonus(String type) {
@@ -65,37 +100,127 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     });
   }
 
-  void _onSubmit() {
+  Future<void> _onSubmit() async {
     if (_isSubmitting) return;
     setState(() {
       _isSubmitting = true;
     });
 
-    _creationService.joinGame(
-      gameId: widget.gameId,
-      name: name,
-      socketId: SocketService().socketId ?? '',
-      avatar: _creationService.selectedAvatar.value,
-      specs: _specs,
-      onSuccess: (player) {
-        if (!mounted) return;
-        PlayerService().setPlayer(player);
+    var finalSpecs = _specs;
+    if (lifeOrSpeedBonus != null) {
+      finalSpecs = _creationService.assignBonus(finalSpecs, lifeOrSpeedBonus!);
+    }
+    if (attackOrDefenseBonus != null) {
+      finalSpecs = _creationService.assignDice(
+        finalSpecs,
+        attackOrDefenseBonus!,
+      );
+    }
+
+    if (widget.mapName != null && widget.mapName!.isNotEmpty) {
+      final player = Player(
+        socketId: SocketService().socketId ?? '',
+        name: name.isNotEmpty ? name : 'Hôte',
+        avatar: Avatar.values[_creationService.selectedAvatar.value - 1],
+        specs: finalSpecs,
+        inventory: [],
+        position: [Coordinate(0, 0)],
+        turn: 0,
+        visitedTiles: [],
+      );
+      try {
+        final ps = PlayerService()
+        ..setPlayer(player);
+      } catch (_) {}
+
+      try {
+        final encoded = Uri.encodeComponent(widget.mapName!);
+        GoRouter.of(context).go('/$encoded/waiting-room/host');
+      } on Exception catch (e) {
+        DebugLogger.log(
+          'Navigation to waiting-room host failed: $e',
+          tag: 'CharacterCreation',
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
+        }
+      }
+      return;
+    }
+
+    if (widget.gameId == null || widget.gameId!.isEmpty) {
+      setState(() {
+        _isSubmitting = false;
+      });
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.error(message: 'Aucun code de partie fourni'),
+      );
+      return;
+    }
+
+    try {
+      await _creationService.joinGame(
+        gameId: widget.gameId!,
+        name: name.isNotEmpty ? name : 'Joueur',
+        socketId: SocketService().socketId ?? '',
+        avatar: _creationService.selectedAvatar.value,
+        specs: finalSpecs,
+        onSuccess: (player) {
+          try {
+            PlayerService().setPlayer(player);
+          } catch (_) {}
+
+          try {
+            GoRouter.of(context).go('/${widget.gameId}/waiting-room/player');
+          } on Exception catch (e) {
+            DebugLogger.log(
+              'Navigation to waiting-room player failed: $e',
+              tag: 'CharacterCreation',
+            );
+          } finally {
+            if (mounted) {
+              setState(() {
+                _isSubmitting = false;
+              });
+            }
+          }
+        },
+        onTimeout: () {
+          if (!mounted) return;
+          setState(() {
+            _isSubmitting = false;
+          });
+          showTopSnackBar(
+            Overlay.of(context),
+            const CustomSnackBar.error(
+              message: 'Impossible de rejoindre la partie',
+            ),
+          );
+        },
+      );
+    } on Exception catch (e) {
+      DebugLogger.log('joinGame failed: $e', tag: 'CharacterCreation');
+      if (mounted) {
         setState(() {
           _isSubmitting = false;
         });
-        GoRouter.of(context).go('/${widget.gameId}/waiting-room/player');
-      },
-      onTimeout: () {
-        if (!mounted) return;
-        setState(() {
-          _isSubmitting = false;
-        });
-      },
-    );
+      }
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.error(
+          message: "Erreur lors de l'inscription à la partie",
+        ),
+      );
+    }
   }
 
   @override
   void dispose() {
+    _gameLockedSub?.cancel();
     _creationService.reset();
     super.dispose();
   }
@@ -115,16 +240,23 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
             fit: BoxFit.cover,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(flex: 3, child: _buildStatsPanel()),
-              const SizedBox(width: 16),
-              Expanded(flex: 4, child: _buildCenterPanel(canSubmit)),
-              const SizedBox(width: 16),
-              Expanded(flex: 3, child: _buildAvatarGrid()),
-            ],
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(flex: 3, child: _buildStatsPanel()),
+                  const SizedBox(width: 16),
+                  Expanded(flex: 4, child: _buildCenterPanel(canSubmit)),
+                  const SizedBox(width: 16),
+                  Expanded(flex: 3, child: _buildAvatarGrid()),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -135,13 +267,14 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SizedBox(height: 20),
         ElevatedButton(
           onPressed: () {
             if (mounted) context.go('/');
           },
           child: const Text('Retour'),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 50),
         const Text(
           'Stats',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -206,7 +339,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
           height: 48,
           fit: BoxFit.contain,
           errorBuilder:
-              (_, __, ___) =>
+              (_, _, _) =>
                   const Text('d4', style: TextStyle(color: Colors.white70)),
         ),
       ],
@@ -253,7 +386,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
             ElevatedButton(
               onPressed: canSubmit ? _onSubmit : null,
               child: Text(
-                widget.gameId.isEmpty
+                widget.gameId?.isEmpty ?? true
                     ? 'Créer une partie'
                     : 'Rejoindre la partie',
               ),

@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/game.dart';
+import 'package:mobile/common/map_types.dart';
 import 'package:mobile/services/socket_service.dart';
+import 'package:mobile/utils/debug_logger.dart';
 
 class CharacterCreationService {
   factory CharacterCreationService() => _instance;
@@ -143,11 +146,14 @@ class CharacterCreationService {
       socketId: socketId,
       name: name,
       avatar: Avatar.values[(avatar - 1).clamp(0, Avatar.values.length - 1)],
+      position: [Coordinate(0, 0)],
+      inventory: [],
+      visitedTiles: [],
       specs: specs,
     );
   }
 
-  void joinGame({
+  Future<void> joinGame({
     required String gameId,
     required String name,
     required String socketId,
@@ -155,17 +161,42 @@ class CharacterCreationService {
     required Specs specs,
     required void Function(Player) onSuccess,
     required VoidCallback onTimeout,
-  }) {
+  }) async {
+    if (SocketService().socketId == null) {
+      DebugLogger.log(
+        '[CharacterCreationService] Socket not connected, reconnecting...',
+      );
+      await SocketService().connect();
+
+      var attempts = 0;
+      while (SocketService().socketId == null && attempts < 30) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        attempts++;
+      }
+
+      DebugLogger.log(
+        '[CharacterCreationService] Reconnected after ${attempts * 100}ms, new socketId: ${SocketService().socketId}',
+      );
+
+      if (SocketService().socketId == null) {
+        DebugLogger.log(
+          '[CharacterCreationService] Failed to reconnect socket after 3 seconds',
+        );
+        onTimeout();
+        return;
+      }
+    }
+
     final player = buildPlayerPayload(
       name: name,
-      socketId: socketId,
+      socketId: SocketService().socketId ?? socketId,
       avatar: avatar,
       specs: specs,
     );
 
     final localPlayer = buildLocalPlayer(
       name: name,
-      socketId: socketId,
+      socketId: SocketService().socketId ?? socketId,
       avatar: avatar,
       specs: specs,
     );
@@ -173,7 +204,13 @@ class CharacterCreationService {
     final payload = {'gameId': gameId, 'player': player};
 
     StreamSubscription<dynamic>? youJoinedSub;
+    StreamSubscription<dynamic>? gameLockedSub;
+
     youJoinedSub = SocketService().listen<dynamic>('youJoined').listen((data) {
+      DebugLogger.log('[CharacterCreationService] Received youJoined event');
+      try {
+        gameLockedSub?.cancel();
+      } catch (_) {}
       if (data is Map<String, dynamic>) {
         final serverPlayer = _parsePlayerFromJson(data);
         onSuccess(serverPlayer ?? localPlayer);
@@ -183,12 +220,20 @@ class CharacterCreationService {
       youJoinedSub?.cancel();
     });
 
-    SocketService().send('joinGame', payload);
-
-    Future.delayed(const Duration(seconds: 8), () {
-      youJoinedSub?.cancel();
+    gameLockedSub = SocketService().listen<dynamic>('gameLocked').listen((
+      reason,
+    ) {
+      DebugLogger.log(
+        '[CharacterCreationService] Received gameLocked event: $reason',
+      );
+      try {
+        youJoinedSub?.cancel();
+      } catch (_) {}
+      gameLockedSub?.cancel();
       onTimeout();
     });
+
+    SocketService().send('joinGame', payload);
   }
 
   Player? _parsePlayerFromJson(Map<String, dynamic> json) {
@@ -218,7 +263,7 @@ class CharacterCreationService {
           actions: specs['actions'] as int? ?? DEFAULT_ACTIONS,
         ),
       );
-    } catch (e) {
+    } on Exception {
       return null;
     }
   }

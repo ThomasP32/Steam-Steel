@@ -125,7 +125,7 @@ class _AvatarPickerState extends State<AvatarPicker> {
       File(path),
       fit: BoxFit.cover,
       errorBuilder:
-          (_, __, ___) => Icon(Icons.broken_image, color: Colors.grey.shade500),
+          (_, _, _) => Icon(Icons.broken_image, color: Colors.grey.shade500),
     );
   }
 }

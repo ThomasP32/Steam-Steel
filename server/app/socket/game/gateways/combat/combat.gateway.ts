@@ -441,7 +441,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                 message: 'Vous avez perdu le combat par déconnexion et êtes maintenant en mode observation.'
             };
             this.server.to(disconnectedPlayer.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
-        }       
+        }
 
         this.combatCountdownService.deleteCountdown(updatedGame.id);
 

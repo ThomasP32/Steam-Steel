@@ -108,14 +108,9 @@ export class GameManagerService {
             return [];
         } else {
             const finalPath: Coordinate[] = [];
-            const hasSkates = player.inventory.includes(ItemCategory.IceSkates);
             shortestPath.shift();
             for (const position of shortestPath) {
                 if (this.onTileItem(position, game)) {
-                    finalPath.push(position);
-                    break;
-                } else if (this.getTileWeight(position, game) === 0 && Math.random() <= 0.1 && !hasSkates) {
-                    this.hasFallen = true;
                     finalPath.push(position);
                     break;
                 } else {

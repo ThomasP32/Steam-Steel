@@ -92,7 +92,6 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
             this.isHost = true;
             this.getMapName();
             this.generateRandomNumber();
-            // Get game settings from navigation state
             if (window.history.state?.gameSettings) {
                 this.gameSettings = window.history.state.gameSettings;
             }
