@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/services/api_client.dart';
 import 'package:mobile/utils/debug_logger.dart';
+import 'package:mobile/widgets/chat_widget.dart';
 
 class GameCreationScreen extends StatefulWidget {
   const GameCreationScreen({super.key});
@@ -64,7 +65,7 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
 
   int getMapPlayers(int width) {
     if (width <= 10) return 2;
-    if (width <= 20) return 4;
+    if (width <= 15) return 4;
     return 6;
   }
 
@@ -80,7 +81,8 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
       return;
     }
 
-    Navigator.of(context).pop(selectedMap);
+    final encoded = Uri.encodeComponent(selectedMap!);
+    context.go('/create-game/$encoded/choose-character');
   }
 
   Widget _buildImage(String? imagePreview) {
@@ -111,197 +113,276 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Choisis ton jeu')),
-      body: Column(
-        children: [
-          Expanded(
-            child:
-                loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : RefreshIndicator(
-                      onRefresh: _loadMaps,
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.all(12),
-                        child: Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children:
-                              maps.map<Widget>((map) {
-                                final name =
-                                    map['name'] as String? ?? 'Unknown';
-                                final desc =
-                                    map['description'] as String? ?? '';
-                                final image = map['imagePreview'] as String?;
-                                final size =
-                                    (map['mapSize'] ?? 0)
-                                        as Map<String, dynamic>?;
-                                final width =
-                                    (size != null && size['x'] != null)
-                                        ? (size['x'] as int)
-                                        : 0;
-                                final players = getMapPlayers(width);
-                                final isSelected = selectedMap == name;
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('lib/assets/backgrounds/backgroundcombat.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
 
-                                return GestureDetector(
-                                  onTap: () => selectMap(name),
-                                  child: Container(
-                                    width:
-                                        MediaQuery.of(context).size.width > 800
-                                            ? 240
-                                            : MediaQuery.of(
-                                                      context,
-                                                    ).size.width /
-                                                    2 -
-                                                24,
-                                    height: 200,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color:
-                                            isSelected
-                                                ? Colors.blueAccent
-                                                : Colors.transparent,
-                                        width: 3,
-                                      ),
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          color: Colors.black12,
-                                          blurRadius: 4,
-                                          offset: Offset(0, 2),
-                                        ),
-                                      ],
-                                      color: Colors.white,
-                                    ),
-                                    child: Stack(
-                                      children: [
-                                        Positioned.fill(
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              5,
-                                            ),
-                                            child: _buildImage(image),
-                                          ),
-                                        ),
-                                        Positioned(
-                                          left: 8,
-                                          top: 8,
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.black45,
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              '$players joueurs',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Positioned(
-                                          bottom: 0,
-                                          left: 0,
-                                          right: 0,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: const BoxDecoration(
-                                              gradient: LinearGradient(
-                                                colors: [
-                                                  Colors.black54,
-                                                  Colors.transparent,
-                                                ],
-                                                begin: Alignment.bottomCenter,
-                                                end: Alignment.topCenter,
-                                              ),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Text(
-                                                  name,
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  'Mode de jeu: ${map['mode'] ?? ''}',
-                                                  style: const TextStyle(
-                                                    color: Colors.white70,
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                                if (desc.isNotEmpty)
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                          top: 6,
-                                                        ),
-                                                    child: Text(
-                                                      desc,
-                                                      maxLines: 2,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                        ),
+        child: Stack(
+          children: [
+            // Place ChatWidget like on the main page so it renders its
+            // built-in toggle button at the same top-right spot.
+            const Positioned.fill(child: ChatWidget()),
+            Column(
+              children: [
+                SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 8.0,
+                    ),
+                    // use a Stack so the title remains perfectly centered
+                    child: SizedBox(
+                      height: kToolbarHeight,
+                      child: Stack(
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton(
+                              onPressed: () => context.go('/'),
+                              child: const Text('Retour'),
+                            ),
+                          ),
+                          const Center(
+                            child: Text(
+                              'CHOISIS TON JEU',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                if (userError)
-                  const Text(
-                    'Aucun jeu selectionné. Sélectionnez un jeu.',
-                    style: TextStyle(color: Colors.red),
                   ),
-                if (gameChoiceError)
-                  const Text(
-                    "Le jeu n'est plus disponible.",
-                    style: TextStyle(color: Colors.red),
+                ),
+
+                Expanded(
+                  child:
+                      loading
+                          ? const Center(child: CircularProgressIndicator())
+                          : RefreshIndicator(
+                            onRefresh: _loadMaps,
+                            child: SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(12),
+                              child: Wrap(
+                                spacing: 12,
+                                runSpacing: 12,
+                                children:
+                                    maps.map<Widget>((map) {
+                                      final name =
+                                          map['name'] as String? ?? 'Unknown';
+                                      final desc =
+                                          map['description'] as String? ?? '';
+                                      final image =
+                                          map['imagePreview'] as String?;
+                                      final size =
+                                          (map['mapSize'] ?? 0)
+                                              as Map<String, dynamic>?;
+                                      final width =
+                                          (size != null && size['x'] != null)
+                                              ? (size['x'] as int)
+                                              : 0;
+                                      final players = getMapPlayers(width);
+                                      final isSelected = selectedMap == name;
+
+                                      return GestureDetector(
+                                        onTap: () => selectMap(name),
+                                        child: Container(
+                                          // compute a single card dimension and use it for both width & height
+                                          width:
+                                              (() {
+                                                final screenW =
+                                                    MediaQuery.of(
+                                                      context,
+                                                    ).size.width;
+                                                return screenW > 800
+                                                    ? 240.0
+                                                    : screenW / 2 - 24.0;
+                                              })(),
+                                          height:
+                                              (() {
+                                                final screenW =
+                                                    MediaQuery.of(
+                                                      context,
+                                                    ).size.width;
+                                                return screenW > 800
+                                                    ? 240.0
+                                                    : screenW / 2 - 24.0;
+                                              })(),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            border: Border.all(
+                                              color:
+                                                  isSelected
+                                                      ? Colors.blueAccent
+                                                      : Colors.transparent,
+                                              width: 3,
+                                            ),
+                                            boxShadow: const [
+                                              BoxShadow(
+                                                color: Colors.black12,
+                                                blurRadius: 4,
+                                                offset: Offset(0, 2),
+                                              ),
+                                            ],
+                                            color: Colors.white,
+                                          ),
+                                          child: Stack(
+                                            children: [
+                                              Positioned.fill(
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  child: _buildImage(image),
+                                                ),
+                                              ),
+                                              Positioned(
+                                                right: 8,
+                                                top: 8,
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.black45,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    players == 2
+                                                        ? '$players joueurs'
+                                                        : '2 à $players joueurs',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              Positioned(
+                                                bottom: 0,
+                                                left: 0,
+                                                right: 0,
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(
+                                                    8,
+                                                  ),
+                                                  decoration:
+                                                      const BoxDecoration(
+                                                        gradient: LinearGradient(
+                                                          colors: [
+                                                            Colors.black54,
+                                                            Colors.transparent,
+                                                          ],
+                                                          begin:
+                                                              Alignment
+                                                                  .bottomCenter,
+                                                          end:
+                                                              Alignment
+                                                                  .topCenter,
+                                                        ),
+                                                      ),
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                        name,
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                      Text(
+                                                        'Mode de jeu: ${map['mode'] ?? ''}',
+                                                        style: const TextStyle(
+                                                          color: Colors.white70,
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                      if (desc.isNotEmpty)
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets.only(
+                                                                top: 6,
+                                                              ),
+                                                          child: Text(
+                                                            desc,
+                                                            maxLines: 2,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                            style:
+                                                                const TextStyle(
+                                                                  color:
+                                                                      Colors
+                                                                          .white,
+                                                                  fontSize: 12,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                              ),
+                            ),
+                          ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    children: [
+                      if (userError)
+                        const Text(
+                          'Aucun jeu selectionné. Sélectionnez un jeu.',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      if (gameChoiceError)
+                        const Text(
+                          "Le jeu n'est plus disponible.",
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          ElevatedButton(
+                            onPressed: _onNext,
+                            child: const Text('Suivant'),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => context.go('/'),
-                      child: const Text('Annuler'),
-                    ),
-                    ElevatedButton(
-                      onPressed: _onNext,
-                      child: const Text('Suivant'),
-                    ),
-                  ],
                 ),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

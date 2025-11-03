@@ -2,12 +2,23 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/assets/theme/diagonal_painter.dart';
+import 'package:mobile/common/constants.dart';
+import 'package:mobile/common/game.dart';
+import 'package:mobile/common/map_types.dart';
 import 'package:mobile/services/countdown_service.dart';
 import 'package:mobile/services/game_service.dart';
+import 'package:mobile/services/game_turn_service.dart';
 import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
+import 'package:mobile/widgets/game/action_button_widget.dart';
+import 'package:mobile/widgets/game/combat_modal_widget.dart';
+import 'package:mobile/widgets/game/door_selector_widget.dart';
+import 'package:mobile/widgets/game/end_game_alert_widget.dart';
+import 'package:mobile/widgets/game/inventory_modal_widget.dart';
+import 'package:mobile/widgets/game/player_left_modal_widget.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({required this.gameId, required this.mapName, super.key});
@@ -22,25 +33,79 @@ class _GameScreenState extends State<GameScreen> {
   bool _showGameInfo = false;
   bool _showChat = false;
   final GameService _gameService = GameService();
+  final GameTurnService _gameTurnService = GameTurnService();
   final CountdownService _countdownService = CountdownService();
-  StreamSubscription<dynamic>? _gameInitializedSub;
   StreamSubscription<dynamic>? _countdownSub;
-  StreamSubscription<String>? _playerTurnSub;
   StreamSubscription<int>? _delaySub;
+  StreamSubscription<dynamic>? _inventoryFullSub;
+  StreamSubscription<dynamic>? _itemDroppedSub;
+  StreamSubscription<dynamic>? _combatStartedSub;
+  StreamSubscription<dynamic>? _playerLeftSub;
   dynamic _countdown = 30;
   static const int _turnDuration = 30;
   String _currentPlayerName = 'Aucun';
   int _startTurnCountdown = 3;
   bool _delayFinished = true;
+  Map<String, dynamic>? _selectedMove;
+  List<dynamic>? _previewPath;
+  bool _isProcessingClick = false;
+  VoidCallback? _playerTurnListener;
+  VoidCallback? _possibleMovesListener;
+  VoidCallback? _possibleDoorsListener;
+  VoidCallback? _possibleWallsListener;
+  bool _pendingInventoryFull = false;
+  bool _showCombatModal = false;
+  Map<String, dynamic>? _combatChallenger;
+  Map<String, dynamic>? _combatOpponent;
+  VoidCallback? _gameFinishedListener;
+  bool _showPlayerLeftModal = false;
 
   @override
   void initState() {
     super.initState();
+    _ensureGameDataLoaded();
+    _gameTurnService.initialize(widget.gameId);
     _listenToGameEvents();
-    _listenToPlayerTurn();
+    _listenToPlayerTurnUpdates();
     _listenToStartTurnDelay();
+    _listenToInventoryFull();
+    _listenToItemDropped();
+    _listenToCombatStarted();
+    _listenToDoorUpdates();
+    _listenToWallUpdates();
+    _listenToGameFinished();
+    _listenToPlayerLeft();
     _countdownService.initialize();
     _listenToCountdown();
+    final turnName = _gameTurnService.playerTurnNotifier.value;
+    if (turnName.isNotEmpty) {
+      _currentPlayerName = turnName;
+    } else {
+      final initialName = _gameService.getActivePlayerName();
+      if (initialName != 'Aucun') {
+        _currentPlayerName = initialName;
+      }
+    }
+  }
+
+  void _ensureGameDataLoaded() {
+    if (_gameService.currentGame == null) {
+      SocketService().send('getGameData', widget.gameId);
+      SocketService().listen<dynamic>('currentGame').listen((data) {
+        if (!mounted) return;
+        if (data is Map<String, dynamic>) {
+          _gameService.updateFromJson(data);
+          setState(() {
+            final turnName = _gameTurnService.playerTurnNotifier.value;
+            if (turnName.isNotEmpty) {
+              _currentPlayerName = turnName;
+            } else {
+              _currentPlayerName = _gameService.getActivePlayerName();
+            }
+          });
+        }
+      });
+    }
   }
 
   void _listenToCountdown() {
@@ -51,69 +116,69 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
-  void _listenToPlayerTurn() {
-    _playerTurnSub = SocketService().listen<String>('playerTurn').listen((
-      playerName,
-    ) {
+  void _listenToPlayerTurnUpdates() {
+    _playerTurnListener = () {
       if (!mounted) return;
-      DebugLogger.log(
-        'GameScreen: playerTurn event -> $playerName',
-        tag: 'GameScreen',
-      );
       setState(() {
-        _currentPlayerName = playerName;
+        _currentPlayerName = _gameTurnService.playerTurnNotifier.value;
       });
-    });
+    };
+    _gameTurnService.playerTurnNotifier.addListener(_playerTurnListener!);
 
-    SocketService().listen<dynamic>('yourTurn').listen((data) {
+    _possibleMovesListener = () {
       if (!mounted) return;
-      DebugLogger.log('GameScreen: yourTurn event -> $data', tag: 'GameScreen');
-      if (data is Map<String, dynamic>) {
-        final playerName = data['name'] as String?;
-        if (playerName != null) {
-          setState(() {
-            _currentPlayerName = playerName;
-          });
-        }
-      }
-    });
-
-    SocketService().listen<dynamic>('startTurn').listen((_) {
-      if (!mounted) return;
-      DebugLogger.log('GameScreen: startTurn event', tag: 'GameScreen');
-      final activePlayerName = _gameService.getActivePlayerName();
-      DebugLogger.log(
-        'GameScreen: active player from game -> $activePlayerName',
-        tag: 'GameScreen',
-      );
-      if (activePlayerName != 'Aucun') {
-        setState(() {
-          _currentPlayerName = activePlayerName;
-        });
-      }
-    });
+      setState(() {
+        _selectedMove = null;
+        _previewPath = null;
+      });
+    };
+    _gameTurnService.possibleMovesNotifier.addListener(_possibleMovesListener!);
   }
 
   void _listenToGameEvents() {
-    _gameInitializedSub = SocketService()
-        .listen<dynamic>('gameInitialized')
-        .listen((data) {
-          if (!mounted) return;
-          if (data is Map<String, dynamic>) {
-            _gameService.updateFromJson(data);
-            final activePlayerName = _gameService.getActivePlayerName();
-            if (activePlayerName != 'Aucun') {
-              _currentPlayerName = activePlayerName;
+    SocketService().listen<dynamic>('positionToUpdate').listen((data) {
+      if (!mounted) return;
+      if (data is Map<String, dynamic>) {
+        final gameData = data['game'] as Map<String, dynamic>?;
+        final playerData = data['player'] as Map<String, dynamic>?;
+
+        if (gameData != null) {
+          _gameService.updateFromJson(gameData);
+        }
+
+        if (playerData != null) {
+          final currentPlayer = PlayerService().player;
+          final updatedSocketId = playerData['socketId']?.toString() ?? '';
+
+          if (updatedSocketId == currentPlayer.socketId) {
+            PlayerService().setPlayerFromJson(playerData);
+
+            if (_pendingInventoryFull &&
+                PlayerService().player.inventory.length > INVENTORY_SIZE) {
+              _pendingInventoryFull = false;
+              _showInventoryModal();
             }
-            setState(() {});
+
+            if (_gameTurnService.isYourTurn) {
+              final updatedPlayer = PlayerService().player;
+
+              SocketService().send('getCombats', widget.gameId);
+              if (updatedPlayer.specs.actions > 0) {
+                SocketService().send('getAdjacentDoors', widget.gameId);
+              }
+              SocketService().send('getMovements', widget.gameId);
+            }
           }
-        });
+        }
+
+        setState(() {});
+      }
+    });
   }
 
   void _listenToStartTurnDelay() {
     _delaySub = SocketService().listen<int>('delay').listen((delay) {
       if (!mounted) return;
-      DebugLogger.log('GameScreen: delay event -> $delay', tag: 'GameScreen');
       setState(() {
         _startTurnCountdown = delay;
         if (delay == 0) {
@@ -126,13 +191,307 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
+  void _listenToInventoryFull() {
+    _inventoryFullSub = SocketService().listen<dynamic>('inventoryFull').listen(
+      (_) {
+        if (!mounted) return;
+        _gameTurnService.pendingInventoryModal = true;
+        _pendingInventoryFull = true;
+      },
+    );
+  }
+
+  void _showInventoryModal() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => InventoryModalWidget(
+            player: PlayerService().player,
+            gameId: widget.gameId,
+            getItemAssetPath: _getItemAssetPath,
+          ),
+    );
+  }
+
+  void _listenToItemDropped() {
+    _itemDroppedSub = SocketService().listen<dynamic>('itemDropped').listen((
+      data,
+    ) {
+      if (!mounted) return;
+      if (data is Map<String, dynamic>) {
+        final updatedGameData = data['updatedGame'] as Map<String, dynamic>?;
+        final updatedPlayerData =
+            data['updatedPlayer'] as Map<String, dynamic>?;
+
+        if (updatedGameData != null) {
+          _gameService.updateFromJson(updatedGameData);
+        }
+
+        if (updatedPlayerData != null) {
+          final currentPlayer = PlayerService().player;
+          final updatedSocketId =
+              updatedPlayerData['socketId']?.toString() ?? '';
+
+          if (updatedSocketId == currentPlayer.socketId) {
+            PlayerService().setPlayerFromJson(updatedPlayerData);
+            _gameTurnService.notifyInventoryActionCompleted();
+          }
+        }
+
+        setState(() {});
+      }
+    });
+  }
+
+  void _listenToCombatStarted() {
+    _combatStartedSub = SocketService().listen<dynamic>('combatStarted').listen(
+      (data) {
+        if (!mounted) return;
+        if (data is Map<String, dynamic>) {
+          final challenger = data['challenger'] as Map<String, dynamic>?;
+          final opponent = data['opponent'] as Map<String, dynamic>?;
+
+          if (challenger != null && opponent != null) {
+            setState(() {
+              _combatChallenger = challenger;
+              _combatOpponent = opponent;
+              _showCombatModal = true;
+            });
+          }
+        }
+      },
+    );
+
+    SocketService().listen<dynamic>('combatFinished').listen((data) {
+      if (!mounted) return;
+      setState(() {
+        _showCombatModal = false;
+        _combatChallenger = null;
+        _combatOpponent = null;
+      });
+    });
+
+    SocketService().listen<dynamic>('combatFinishedByEvasion').listen((data) {
+      if (!mounted) return;
+      setState(() {
+        _showCombatModal = false;
+        _combatChallenger = null;
+        _combatOpponent = null;
+      });
+    });
+
+    SocketService().listen<dynamic>('combatFinishedNormally').listen((data) {
+      if (!mounted) return;
+      setState(() {
+        _showCombatModal = false;
+        _combatChallenger = null;
+        _combatOpponent = null;
+      });
+    });
+  }
+
+  void _listenToDoorUpdates() {
+    _possibleDoorsListener = () {
+      if (!mounted) return;
+      setState(() {});
+    };
+    _gameTurnService.possibleDoorsNotifier.addListener(_possibleDoorsListener!);
+
+    SocketService().listen<dynamic>('doorToggled').listen((data) {
+      if (!mounted) return;
+      if (data is Map<String, dynamic>) {
+        final gameData = data['game'] as Map<String, dynamic>?;
+        final playerData = data['player'] as Map<String, dynamic>?;
+
+        if (gameData != null) {
+          _gameService.updateFromJson(gameData);
+        }
+
+        if (playerData != null) {
+          final currentPlayer = PlayerService().player;
+          final updatedSocketId = playerData['socketId']?.toString() ?? '';
+
+          if (updatedSocketId == currentPlayer.socketId) {
+            PlayerService().setPlayerFromJson(playerData);
+            _gameTurnService.resumeTurn();
+          }
+        }
+
+        setState(() {});
+      }
+    });
+  }
+
+  void _listenToWallUpdates() {
+    _possibleWallsListener = () {
+      if (!mounted) return;
+      setState(() {});
+    };
+    _gameTurnService.possibleWallsNotifier.addListener(_possibleWallsListener!);
+
+    SocketService().listen<dynamic>('wallBroken').listen((data) {
+      if (!mounted) return;
+      if (data is Map<String, dynamic>) {
+        final gameData = data['game'] as Map<String, dynamic>?;
+        final playerData = data['player'] as Map<String, dynamic>?;
+
+        if (gameData != null) {
+          _gameService.updateFromJson(gameData);
+        }
+
+        if (playerData != null) {
+          final currentPlayer = PlayerService().player;
+          final updatedSocketId = playerData['socketId']?.toString() ?? '';
+
+          if (updatedSocketId == currentPlayer.socketId) {
+            PlayerService().setPlayerFromJson(playerData);
+            _gameTurnService.resumeTurn();
+          }
+        }
+
+        setState(() {});
+      }
+    });
+  }
+
+  void _listenToGameFinished() {
+    _gameFinishedListener = () {
+      if (!mounted) return;
+      if (_gameTurnService.gameFinishedNotifier.value) {
+        _handleGameFinished();
+      }
+    };
+    _gameTurnService.gameFinishedNotifier.addListener(_gameFinishedListener!);
+  }
+
+  void _handleGameFinished() {
+    final gameData = _gameTurnService.gameFinishedDataNotifier.value;
+    final updatedGame = gameData?['updatedGame'] as Map<String, dynamic>?;
+
+    if (updatedGame != null) {
+      _gameService.updateFromJson(updatedGame);
+    }
+
+    setState(() {});
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        _navigateToMainMenu();
+      }
+    });
+  }
+
+  void _navigateToMainMenu() {
+    try {
+      SocketService().send('leaveGame', widget.gameId);
+    } on Exception catch (e) {
+      DebugLogger.log('leaveGame error: $e', tag: 'GameScreen');
+    }
+
+    if (context.mounted) {
+      GoRouter.of(context).go('/');
+    }
+  }
+
+  void _listenToPlayerLeft() {
+    _playerLeftSub = SocketService().listen<dynamic>('playerLeft').listen((
+      data,
+    ) {
+      if (!mounted) return;
+      if (data is List<dynamic>) {
+        final players =
+            data
+                .whereType<Map<String, dynamic>>()
+                .map(PlayerService.parsePlayer)
+                .toList();
+
+        final game = _gameService.currentGame;
+        if (game != null) {
+          final updatedGame = GameClassic(
+            id: game.id,
+            hostSocketId: game.hostSocketId,
+            players: players,
+            currentTurn: game.currentTurn,
+            nDoorsManipulated: game.nDoorsManipulated,
+            duration: game.duration,
+            nTurns: game.nTurns,
+            debug: game.debug,
+            isLocked: game.isLocked,
+            hasStarted: game.hasStarted,
+            mapSize: game.mapSize,
+            tiles: game.tiles,
+            doorTiles: game.doorTiles,
+            items: game.items,
+            startTiles: game.startTiles,
+            name: game.name,
+            description: game.description,
+            imagePreview: game.imagePreview,
+            mode: game.mode,
+          );
+          _gameService.setGame(updatedGame);
+        }
+
+        final activePlayers =
+            players.where((p) => p.isActive && p.socketId.isNotEmpty).toList();
+        final allVirtual =
+            activePlayers.isNotEmpty &&
+            activePlayers.every((p) => p.socketId.contains('virtualPlayer'));
+
+        if (activePlayers.length <= 1 || allVirtual) {
+          setState(() {
+            _showPlayerLeftModal = true;
+          });
+
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted) {
+              _navigateToMainMenu();
+            }
+          });
+        }
+
+        setState(() {});
+      }
+    });
+  }
+
   @override
   void dispose() {
-    _gameInitializedSub?.cancel();
-    _countdownSub?.cancel();
-    _playerTurnSub?.cancel();
-    _delaySub?.cancel();
+    _deleteSubs();
+    if (_playerTurnListener != null) {
+      _gameTurnService.playerTurnNotifier.removeListener(_playerTurnListener!);
+    }
+    if (_possibleMovesListener != null) {
+      _gameTurnService.possibleMovesNotifier.removeListener(
+        _possibleMovesListener!,
+      );
+    }
+    if (_possibleDoorsListener != null) {
+      _gameTurnService.possibleDoorsNotifier.removeListener(
+        _possibleDoorsListener!,
+      );
+    }
+    if (_possibleWallsListener != null) {
+      _gameTurnService.possibleWallsNotifier.removeListener(
+        _possibleWallsListener!,
+      );
+    }
+    if (_gameFinishedListener != null) {
+      _gameTurnService.gameFinishedNotifier.removeListener(
+        _gameFinishedListener!,
+      );
+    }
+    _gameTurnService.dispose();
     super.dispose();
+  }
+
+  void _deleteSubs() {
+    _countdownSub?.cancel();
+    _delaySub?.cancel();
+    _inventoryFullSub?.cancel();
+    _itemDroppedSub?.cancel();
+    _combatStartedSub?.cancel();
+    _playerLeftSub?.cancel();
   }
 
   void _toggleGameInfo() {
@@ -171,11 +530,17 @@ class _GameScreenState extends State<GameScreen> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(dialogContext).pop();
-                SocketService().send('leaveGame', widget.gameId);
-                SocketService().disconnect();
-                GoRouter.of(context).go('/');
+                try {
+                  SocketService().send('leaveGame', widget.gameId);
+                  await Future.delayed(const Duration(milliseconds: 100));
+                } on Exception catch (e) {
+                  DebugLogger.log('leaveGame error: $e', tag: 'GameScreen');
+                }
+                if (context.mounted) {
+                  GoRouter.of(context).go('/');
+                }
               },
               child: const Text('Quitter'),
             ),
@@ -185,8 +550,113 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  void _handleCombatAction() {
+    final opponents = _gameTurnService.possibleOpponentsNotifier.value;
+
+    DebugLogger.log(
+      'Combat action triggered: opponents=${opponents.length}, isYourTurn=${_gameTurnService.isYourTurn}, hasCombatAvailable=${_gameTurnService.hasCombatAvailable}',
+      tag: 'GameScreen',
+    );
+
+    if (opponents.isEmpty) {
+      DebugLogger.log('No opponents available', tag: 'GameScreen');
+      return;
+    }
+
+    if (opponents.length == 1) {
+      DebugLogger.log(
+        'Starting combat with single opponent: ${opponents[0]}',
+        tag: 'GameScreen',
+      );
+      _gameTurnService.startCombat(widget.gameId, opponents[0]);
+    } else {
+      DebugLogger.log(
+        'Showing opponent selection for ${opponents.length} opponents',
+        tag: 'GameScreen',
+      );
+      _showCombatSelectionModal(opponents);
+    }
+  }
+
+  void _showCombatSelectionModal(List<dynamic> opponents) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF2C3E50),
+          title: const Text(
+            'Choisir un adversaire',
+            style: TextStyle(color: Colors.white, fontSize: 18),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: opponents.length,
+              itemBuilder: (context, index) {
+                final opponent = opponents[index];
+                final opponentName = opponent['name'] as String? ?? 'Joueur';
+                final avatarValue = opponent['avatar']?['value'] ?? '1';
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF34495E),
+                      padding: const EdgeInsets.all(12),
+                    ),
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      _gameTurnService.startCombat(widget.gameId, opponent);
+                    },
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: Colors.grey.shade900,
+                          child: Image.asset(
+                            'lib/assets/previewcharacters/${avatarValue}_preview.png',
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            opponentName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward, color: Colors.orange),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text(
+                'Annuler',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isGameFinished = _gameTurnService.gameFinishedNotifier.value;
+
     return Scaffold(
       body: Stack(
         children: [
@@ -196,10 +666,10 @@ class _GameScreenState extends State<GameScreen> {
               fit: BoxFit.cover,
             ),
           ),
-          Center(child: _buildMapGrid()),
+          Positioned(top: -40, left: 320, child: _buildMapGrid()),
           Positioned(
             top: 16,
-            left: 0,
+            left: 880,
             right: 0,
             child: Center(child: _buildTimer()),
           ),
@@ -310,6 +780,18 @@ class _GameScreenState extends State<GameScreen> {
                       ],
                     ),
                   ),
+                const SizedBox(height: 40),
+                Container(
+                  width: 270,
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(color: Colors.transparent),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: _buildPlayerList(),
+                  ),
+                ),
               ],
             ),
           ),
@@ -323,6 +805,78 @@ class _GameScreenState extends State<GameScreen> {
                 });
               },
             ),
+          Positioned(
+            left: 16,
+            bottom: 16,
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _gameTurnService.yourTurnNotifier,
+              builder: (context, isYourTurn, _) {
+                return ValueListenableBuilder<List<dynamic>>(
+                  valueListenable: _gameTurnService.possibleOpponentsNotifier,
+                  builder: (context, opponents, _) {
+                    final hasCombat = opponents.isNotEmpty && isYourTurn;
+                    DebugLogger.log(
+                      'Combat button: opponents=${opponents.length}, isYourTurn=$isYourTurn, enabled=$hasCombat',
+                      tag: 'GameScreen',
+                    );
+                    return ActionButton(
+                      iconPath: 'lib/assets/icons/fighting.png',
+                      onPressed: _handleCombatAction,
+                      isEnabled: hasCombat,
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          if (PlayerService().player.inventory.contains(
+            ItemCategory.wallBreaker,
+          ))
+            Positioned(
+              left: 86,
+              bottom: 16,
+              child: ActionButton(
+                iconPath: 'lib/assets/items/wallbreaker.png',
+                onPressed: _handleWallAction,
+                isEnabled:
+                    _gameTurnService.isYourTurn &&
+                    _gameTurnService.possibleWallsNotifier.value.isNotEmpty &&
+                    (_gameTurnService.possibleActions['wall'] ?? false) &&
+                    PlayerService().player.specs.actions > 0,
+              ),
+            ),
+          Positioned(
+            left:
+                PlayerService().player.inventory.contains(
+                      ItemCategory.wallBreaker,
+                    )
+                    ? 156
+                    : 86,
+            bottom: 16,
+            child: ActionButton(
+              iconPath: 'lib/assets/icons/door.png',
+              onPressed: _handleDoorAction,
+              isEnabled:
+                  _gameTurnService.isYourTurn &&
+                  _gameTurnService.possibleDoorsNotifier.value.isNotEmpty &&
+                  (_gameTurnService.possibleActions['door'] ?? false) &&
+                  PlayerService().player.specs.actions > 0,
+            ),
+          ),
+          Positioned(
+            left:
+                PlayerService().player.inventory.contains(
+                      ItemCategory.wallBreaker,
+                    )
+                    ? 226
+                    : 156,
+            bottom: 16,
+            child: ActionButton(
+              iconPath: 'lib/assets/icons/endturn_icon.png',
+              onPressed: () => _gameTurnService.endTurn(widget.gameId),
+              isEnabled: _gameTurnService.isYourTurn,
+            ),
+          ),
           if (!_delayFinished)
             ColoredBox(
               color: Colors.black.withValues(alpha: 0.7),
@@ -351,7 +905,7 @@ class _GameScreenState extends State<GameScreen> {
                         _startTurnCountdown.toString(),
                         style: const TextStyle(
                           color: Colors.orange,
-                          fontSize: 64,
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -360,6 +914,17 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
             ),
+          if (_showCombatModal &&
+              _combatChallenger != null &&
+              _combatOpponent != null)
+            CombatModalWidget(
+              challenger: _combatChallenger!,
+              opponent: _combatOpponent!,
+              gameId: widget.gameId,
+            ),
+          if (_showPlayerLeftModal) const PlayerLeftModalWidget(),
+          if (isGameFinished)
+            EndGameAlertWidget(game: _gameService.currentGame),
         ],
       ),
     );
@@ -370,37 +935,28 @@ class _GameScreenState extends State<GameScreen> {
     final timeLeft = _countdown is int ? _countdown as int : 0;
     final progress = timeLeft / _turnDuration;
 
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        color: const Color(0xFF2C3E50),
-        border: Border.all(color: Colors.orange, width: 2),
-        shape: BoxShape.circle,
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          SizedBox(
-            width: 64,
-            height: 64,
-            child: CircularProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
-              strokeWidth: 4,
-              backgroundColor: const Color(0xFF1A252F),
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
-            ),
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          width: 64,
+          height: 64,
+          child: CircularProgressIndicator(
+            value: progress.clamp(0.0, 1.0),
+            strokeWidth: 4,
+            backgroundColor: const Color(0xFF1A252F),
+            valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
           ),
-          Text(
-            displayTime,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+        ),
+        Text(
+          displayTime,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -412,7 +968,9 @@ class _GameScreenState extends State<GameScreen> {
 
     final mapSize = game.mapSize;
     final gridSize = mapSize.x;
-    const tileSize = 60.0;
+
+    final tileSize = 700.0 / gridSize;
+
     final needsInteractiveViewer = gridSize > 10;
 
     final gridWidget = DecoratedBox(
@@ -435,43 +993,31 @@ class _GameScreenState extends State<GameScreen> {
       ),
     );
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final availableHeight = constraints.maxHeight - 120;
-        final availableWidth = constraints.maxWidth - 40;
-        final gridTotalSize = gridSize * tileSize;
-
-        // Calculate offset to center the grid
-        final offsetX = (availableWidth - gridTotalSize) / 2;
-        final offsetY = (availableHeight - gridTotalSize) / 2;
-
-        return Padding(
-          padding: const EdgeInsets.only(top: 60, left: 20, right: 20),
-          child:
-              needsInteractiveViewer
-                  ? SizedBox(
-                    height: availableHeight,
-                    width: availableWidth,
-                    child: ClipRect(
-                      child: InteractiveViewer(
-                        constrained: false,
-                        boundaryMargin: const EdgeInsets.all(20),
-                        minScale: 0.5,
-                        maxScale: 2,
-                        child: Transform.translate(
-                          offset: Offset(
-                            offsetX > 0 ? offsetX : 0,
-                            offsetY > 0 ? offsetY : 0,
-                          ),
-                          child: gridWidget,
-                        ),
-                      ),
-                    ),
-                  )
-                  : gridWidget,
-        );
-      },
-    );
+    if (needsInteractiveViewer) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 40, left: 20, right: 20),
+        child: SizedBox(
+          width: 700,
+          height: 700,
+          child: ClipRect(
+            child: InteractiveViewer(
+              constrained: false,
+              panEnabled: false,
+              scaleEnabled: false,
+              boundaryMargin: const EdgeInsets.all(20),
+              minScale: 0.5,
+              maxScale: 2,
+              child: gridWidget,
+            ),
+          ),
+        ),
+      );
+    } else {
+      return Padding(
+        padding: const EdgeInsets.only(top: 60, left: 20, right: 20),
+        child: gridWidget,
+      );
+    }
   }
 
   Widget _buildTile(int row, int col, double tileSize, dynamic game) {
@@ -501,6 +1047,19 @@ class _GameScreenState extends State<GameScreen> {
       return pos.isNotEmpty && pos[0].x == row && pos[0].y == col;
     }, orElse: () => null);
 
+    final isYourTurn = _gameTurnService.isYourTurn;
+    final isPossibleMove =
+        isYourTurn && _gameTurnService.isPossibleMove(row, col);
+    final isInPreviewPath =
+        isYourTurn &&
+        (_previewPath?.any((coord) {
+              if (coord is Map<String, dynamic>) {
+                return coord['x'] == row && coord['y'] == col;
+              }
+              return false;
+            }) ??
+            false);
+
     String? tileAsset;
     if (door != null) {
       final isOpened = door.isOpened as bool? ?? false;
@@ -526,59 +1085,150 @@ class _GameScreenState extends State<GameScreen> {
       tileAsset = 'lib/assets/tiles/floor.png';
     }
 
-    return Container(
-      width: tileSize,
-      height: tileSize,
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF654321)),
-      ),
-      child: Stack(
-        children: [
-          // Base tile
-          Image.asset(
-            tileAsset,
-            width: tileSize,
-            height: tileSize,
-            fit: BoxFit.cover,
-          ),
-
-          // Starting point overlay
-          if (startPoint != null)
-            Center(
-              child: Image.asset(
-                'lib/assets/tiles/startingpoint.png',
-                width: tileSize * 0.6,
-                height: tileSize * 0.6,
-                fit: BoxFit.contain,
-              ),
+    return GestureDetector(
+      onTap: isPossibleMove ? () => _onTileClick(row, col) : null,
+      child: Container(
+        width: tileSize,
+        height: tileSize,
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFF654321)),
+        ),
+        child: Stack(
+          children: [
+            Image.asset(
+              tileAsset,
+              width: tileSize,
+              height: tileSize,
+              fit: BoxFit.cover,
             ),
 
-          // Item overlay
-          if (item != null)
-            Center(
-              child: Icon(
-                Icons.star,
-                color: Colors.yellow,
-                size: tileSize * 0.4,
-              ),
-            ),
-
-          // Player overlay
-          if (player != null)
-            Center(
-              child: CircleAvatar(
-                radius: tileSize * 0.3,
-                backgroundColor: Colors.transparent,
+            if (startPoint != null)
+              Center(
                 child: Image.asset(
-                  'lib/assets/pixelcharacters/${player.avatar.value}_pixelated.png',
+                  'lib/assets/tiles/startingpoint.png',
                   width: tileSize,
                   height: tileSize,
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                 ),
               ),
-            ),
-        ],
+
+            if (item != null)
+              Center(
+                child: Image.asset(
+                  _getItemAssetPath(item.category as ItemCategory),
+                  width: tileSize * 0.7,
+                  height: tileSize * 0.7,
+                  fit: BoxFit.contain,
+                ),
+              ),
+
+            if (player != null)
+              Center(
+                child: CircleAvatar(
+                  radius: tileSize,
+                  backgroundColor: Colors.transparent,
+                  child: Image.asset(
+                    'lib/assets/pixelcharacters/${player.avatar.value}_pixelated.png',
+                    width: tileSize,
+                    height: tileSize,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+
+            if (isPossibleMove && !isInPreviewPath)
+              CustomPaint(
+                size: Size(tileSize, tileSize),
+                painter: DiagonalStripePainter(),
+              ),
+
+            if (isInPreviewPath)
+              CustomPaint(
+                size: Size(tileSize, tileSize),
+                painter: PathPreviewPainter(),
+              ),
+          ],
+        ),
       ),
+    );
+  }
+
+  void _onTileClick(int row, int col) {
+    if (_isProcessingClick) return;
+    _isProcessingClick = true;
+
+    final key = '$row,$col';
+    final moveData = _gameTurnService.possibleMovesNotifier.value[key];
+
+    if (moveData == null) {
+      _isProcessingClick = false;
+      return;
+    }
+
+    if (_selectedMove != null && _selectedMove!['key'] == key) {
+      final player = PlayerService().player;
+      DebugLogger.log(
+        'Executing move to: ($row, $col) by player turn ${player.turn}',
+        tag: 'GameScreen',
+      );
+      SocketService().send('moveToPosition', {
+        'playerTurn': player.turn,
+        'gameId': widget.gameId,
+        'destination': {'x': row, 'y': col},
+      });
+      setState(() {
+        _selectedMove = null;
+        _previewPath = null;
+      });
+    } else {
+      setState(() {
+        _selectedMove = {'key': key, 'data': moveData};
+        _previewPath = moveData['path'] as List<dynamic>?;
+      });
+      DebugLogger.log(
+        'Selected tile ($row, $col), path preview: $_previewPath',
+        tag: 'GameScreen',
+      );
+    }
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _isProcessingClick = false;
+    });
+  }
+
+  void _handleDoorAction() {
+    final doors = _gameTurnService.possibleDoorsNotifier.value;
+    if (doors.isEmpty) return;
+
+    if (doors.length == 1) {
+      _gameTurnService.toggleDoor(doors.first);
+    } else {
+      _showDoorSelector(doors);
+    }
+  }
+
+  void _handleWallAction() {
+    final walls = _gameTurnService.possibleWallsNotifier.value;
+    if (walls.isEmpty) return;
+
+    _gameTurnService.breakWall(walls.first);
+  }
+
+  void _showDoorSelector(List<DoorTile> doors) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return DoorSelectorWidget(
+          doors: doors,
+          onDoorSelected: (door) {
+            Navigator.of(context).pop();
+            _gameTurnService.toggleDoor(door);
+          },
+          onCancel: () => Navigator.of(context).pop(),
+          getItemAssetPath: _getItemAssetPath,
+        );
+      },
     );
   }
 
@@ -660,9 +1310,9 @@ class _GameScreenState extends State<GameScreen> {
           const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(child: _buildInventorySlot()),
+              Expanded(child: _buildInventorySlot(0)),
               const SizedBox(width: 8),
-              Expanded(child: _buildInventorySlot()),
+              Expanded(child: _buildInventorySlot(1)),
             ],
           ),
           const SizedBox(height: 16),
@@ -752,24 +1402,40 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _buildInventorySlot() {
-    return Container(
-      height: 60,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A252F),
-        border: Border.all(color: Colors.grey),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: const Center(
-        child: Text(
-          'Vide',
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: 12,
-            fontStyle: FontStyle.italic,
+  Widget _buildInventorySlot(int index) {
+    return ValueListenableBuilder<Player>(
+      valueListenable: PlayerService().notifier,
+      builder: (context, player, _) {
+        final hasItem = player.inventory.length > index;
+        final item = hasItem ? player.inventory[index] : null;
+
+        return Container(
+          height: 60,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A252F),
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(6),
           ),
-        ),
-      ),
+          child: Center(
+            child:
+                item != null
+                    ? Image.asset(
+                      _getItemAssetPath(item),
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.contain,
+                    )
+                    : const Text(
+                      'Vide',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+          ),
+        );
+      },
     );
   }
 
@@ -836,5 +1502,136 @@ class _GameScreenState extends State<GameScreen> {
         ],
       ),
     );
+  }
+
+  List<Widget> _buildPlayerList() {
+    final game = _gameService.currentGame;
+    if (game == null || game.players.isEmpty) {
+      return [
+        const Text(
+          'Aucun joueur',
+          style: TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+      ];
+    }
+
+    return game.players.map((player) {
+      final isActivePlayer = player.name == _currentPlayerName;
+      final avatarIndex = (player.avatar.index + 1).clamp(1, 12);
+      final hasFlag = player.inventory.contains(ItemCategory.flag);
+
+      return Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color:
+              isActivePlayer
+                  ? Colors.orange.withValues(alpha: 0.2)
+                  : Colors.transparent,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const SizedBox(width: 8),
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.grey.shade900,
+                  child: Image.asset(
+                    'lib/assets/previewcharacters/${avatarIndex}_preview.png',
+                    width: 32,
+                    height: 32,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    player.name.isNotEmpty ? player.name : 'Joueur',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight:
+                          isActivePlayer ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Row(
+                children: [
+                  if (isActivePlayer) ...[
+                    Image.asset(
+                      'lib/assets/icons/arrow.png',
+                      width: 30,
+                      height: 30,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  if (hasFlag) ...[
+                    Image.asset(
+                      'lib/assets/icons/flag_player.png',
+                      width: 30,
+                      height: 30,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Image.asset(
+                    'lib/assets/icons/trophy_icon.png',
+                    width: 22,
+                    height: 22,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${player.specs.nVictories}',
+                    style: TextStyle(
+                      color:
+                          isActivePlayer
+                              ? Colors.orange.shade200
+                              : Colors.white70,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  String _getItemAssetPath(ItemCategory category) {
+    switch (category) {
+      case ItemCategory.sword:
+        return 'lib/assets/items/sword.png';
+      case ItemCategory.armor:
+        return 'lib/assets/items/armor.png';
+      case ItemCategory.flask:
+        return 'lib/assets/items/flask.png';
+      case ItemCategory.wallBreaker:
+        return 'lib/assets/items/wallbreaker.png';
+      case ItemCategory.iceSkates:
+        return 'lib/assets/items/iceskates.png';
+      case ItemCategory.amulet:
+        return 'lib/assets/items/amulet.png';
+      case ItemCategory.flag:
+        return 'lib/assets/items/flag.png';
+      case ItemCategory.random:
+        return 'lib/assets/items/randomitem.png';
+      case ItemCategory.startingPoint:
+        return 'lib/assets/items/startingPoint.png';
+    }
   }
 }

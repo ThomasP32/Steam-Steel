@@ -64,6 +64,21 @@ class GameService {
     }
   }
 
+  String? getFlagHolderName() {
+    final game = currentGame;
+    if (game == null || game.players.isEmpty) return null;
+
+    try {
+      final flagHolder = game.players.firstWhere(
+        (p) => p.inventory.contains(ItemCategory.flag),
+        orElse: () => throw Exception('No flag holder'),
+      );
+      return flagHolder.name;
+    } on Exception {
+      return null;
+    }
+  }
+
   GameClassic _parseGameFromJson(Map<String, dynamic> json) {
     final mode = json['mode'] as String?;
 
@@ -175,6 +190,7 @@ class GameService {
       name: json['name'] as String? ?? '',
       avatar: Avatar.values[(json['avatar'] as int? ?? 1) - 1],
       isActive: json['isActive'] as bool? ?? true,
+      isGameWinner: json['isGameWinner'] as bool? ?? false,
       specs: Specs(
         life: specsJson['life'] as int? ?? 0,
         evasions: specsJson['evasions'] as int? ?? 0,
@@ -196,7 +212,7 @@ class GameService {
         nItemsUsed: specsJson['nItemsUsed'] as int? ?? 0,
       ),
       inventory:
-          inventoryJson.map((i) => _parseItemCategory(i as String)).toList(),
+          inventoryJson.map((i) => parseItemCategory(i as String)).toList(),
       position:
           positionJson != null
               ? [Coordinate(positionJson['x'] as int, positionJson['y'] as int)]
@@ -206,11 +222,11 @@ class GameService {
           visitedJson
               .map((v) => Coordinate(v['x'] as int, v['y'] as int))
               .toList(),
-      profile: _parseProfileType(json['profile'] as String?),
+      profile: parseProfileType(json['profile'] as String?),
     );
   }
 
-  ItemCategory _parseItemCategory(String category) {
+  static ItemCategory parseItemCategory(String category) {
     switch (category.toLowerCase()) {
       case 'sword':
         return ItemCategory.sword;
@@ -231,7 +247,7 @@ class GameService {
     }
   }
 
-  ProfileType _parseProfileType(String? profile) {
+  static ProfileType parseProfileType(String? profile) {
     if (profile == null) return ProfileType.normal;
     switch (profile.toLowerCase()) {
       case 'aggressive':
@@ -246,8 +262,8 @@ class GameService {
   Tile _parseTile(Map<String, dynamic> json) {
     final coordJson = json['coordinate'] as Map<String, dynamic>;
     final coord = Coordinate(coordJson['x'] as int, coordJson['y'] as int);
-    final category = _parseTileCategory(json['category'] as String);
-    return Tile(coord, category);
+    final category = parseTileCategory(json['category'] as String);
+    return Tile(coord, category: category);
   }
 
   DoorTile _parseDoorTile(Map<String, dynamic> json) {
@@ -260,11 +276,11 @@ class GameService {
   Item _parseItem(Map<String, dynamic> json) {
     final coordJson = json['coordinate'] as Map<String, dynamic>;
     final coord = Coordinate(coordJson['x'] as int, coordJson['y'] as int);
-    final category = _parseItemCategory(json['category'] as String);
+    final category = parseItemCategory(json['category'] as String);
     return Item(coord, category);
   }
 
-  TileCategory _parseTileCategory(String category) {
+  static TileCategory parseTileCategory(String category) {
     switch (category.toLowerCase()) {
       case 'water':
         return TileCategory.water;

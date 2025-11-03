@@ -1,149 +1,118 @@
 import 'package:flutter/foundation.dart';
-import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/game.dart';
-import 'package:mobile/services/socket_service.dart';
+import 'package:mobile/common/map_types.dart';
+import 'package:mobile/services/game_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 
 class PlayerService {
   factory PlayerService() => _instance;
-  PlayerService._internal() {
-    resetPlayer();
-  }
-  static final PlayerService _instance = PlayerService._internal();
+  PlayerService._();
+  static final PlayerService _instance = PlayerService._();
 
-  late Player player;
-
-  /// Notifier you can listen to from widgets to react to changes.
-  final ValueNotifier<Player?> notifier = ValueNotifier<Player?>(null);
-
-  void createPlayer() {
-    final playerSpecs = Specs(
-      life: player.specs.life,
-      speed: player.specs.speed,
-      attack: player.specs.attack,
-      defense: player.specs.defense,
-      attackBonus: player.specs.attackBonus,
-      defenseBonus: player.specs.defenseBonus,
-      movePoints: player.specs.speed,
-      evasions: DEFAULT_EVASIONS,
-      actions: DEFAULT_ACTIONS,
-    );
-
-    final p = Player(
-      socketId: SocketService().socketId ?? '',
-      name: player.name,
-      avatar: player.avatar,
-      specs: playerSpecs,
-    );
-
-    player = p;
-    notifier.value = player;
-  }
-
-  void setPlayer(Player p) {
-    player = p;
-    notifier.value = player;
-  }
-
-  void setPlayerName(String name) {
-    player.name = name.trim();
-    notifier.value = player;
-  }
-
-  void setPlayerAvatar(Avatar avatar) {
-    player.avatar = avatar;
-    notifier.value = player;
-  }
-
-  void resetPlayer() {
-    final playerSpecs = Specs(
-      life: DEFAULT_HP,
-      speed: DEFAULT_SPEED,
-      attack: DEFAULT_ATTACK,
-      defense: DEFAULT_DEFENSE,
-      attackBonus: Bonus.d6,
-      defenseBonus: Bonus.d4,
-      evasions: DEFAULT_EVASIONS,
-      actions: DEFAULT_ACTIONS,
-    );
-
-    final p = Player(
+  final ValueNotifier<Player> notifier = ValueNotifier(
+    Player(
       socketId: '',
       name: '',
       avatar: Avatar.avatar1,
-      specs: playerSpecs,
-    );
+      specs: Specs(
+        life: 0,
+        speed: 0,
+        attack: 0,
+        defense: 0,
+        attackBonus: Bonus.d4,
+        defenseBonus: Bonus.d6,
+        evasions: 0,
+        actions: 0,
+        movePoints: 0,
+        nVictories: 0,
+        nDefeats: 0,
+        nCombats: 0,
+        nEvasions: 0,
+        nLifeTaken: 0,
+        nLifeLost: 0,
+        nItemsUsed: 0,
+      ),
+    ),
+  );
 
-    player = p;
-    notifier.value = player;
+  Player get player => notifier.value;
+
+  void setPlayer(Player newPlayer) {
+    DebugLogger.log(
+      'PlayerService: setting player ${newPlayer.name}',
+      tag: 'PlayerService',
+    );
+    notifier.value = newPlayer;
   }
 
-  /// Convenience: update from a JSON-like map (server payload).
-  void setPlayerFromJson(Map<String, dynamic> j) {
+  void setPlayerFromJson(Map<String, dynamic> json) {
     try {
-      final specsJson = (j['specs'] as Map<String, dynamic>?) ?? {};
-      int readInt(dynamic v, [int fallback = 0]) {
-        if (v == null) return fallback;
-        if (v is int) return v;
-        if (v is double) return v.toInt();
-        if (v is String) return int.tryParse(v) ?? fallback;
-        return fallback;
-      }
-
-      final specs = Specs(
-        life: readInt(specsJson['life'], DEFAULT_HP),
-        speed: readInt(specsJson['speed'], DEFAULT_SPEED),
-        attack: readInt(specsJson['attack'], DEFAULT_ATTACK),
-        defense: readInt(specsJson['defense'], DEFAULT_DEFENSE),
-        attackBonus:
-            (readInt(specsJson['attackBonus'], Bonus.d4.value) ==
-                    Bonus.d6.value)
-                ? Bonus.d6
-                : Bonus.d4,
-        defenseBonus:
-            (readInt(specsJson['defenseBonus'], Bonus.d6.value) ==
-                    Bonus.d6.value)
-                ? Bonus.d6
-                : Bonus.d4,
-        movePoints: readInt(specsJson['movePoints']),
-        evasions: readInt(specsJson['evasions'], DEFAULT_EVASIONS),
-        actions: readInt(specsJson['actions'], DEFAULT_ACTIONS),
-      );
-
-      // socketId and name may come as int or string depending on server; coerce to String
-      final socketId = j['socketId']?.toString() ?? '';
-      final name = j['name']?.toString() ?? '';
-
-      // avatar may be sent as number (index) or string enum name
-      final avatarRaw = j['avatar'];
-      Avatar avatar;
-      if (avatarRaw is int) {
-        final idx = (avatarRaw - 1).clamp(0, Avatar.values.length - 1);
-        avatar = Avatar.values[idx];
-      } else if (avatarRaw is String) {
-        avatar = Avatar.values.firstWhere(
-          (a) =>
-              a.name == avatarRaw ||
-              a.name.toLowerCase() == avatarRaw.toLowerCase(),
-          orElse: () => Avatar.avatar1,
-        );
-      } else {
-        avatar = Avatar.avatar1;
-      }
-
-      final p = Player(
-        socketId: socketId,
-        name: name,
-        avatar: avatar,
-        specs: specs,
-      );
-
-      setPlayer(p);
+      final newPlayer = parsePlayer(json);
+      setPlayer(newPlayer);
     } on Exception catch (e) {
       DebugLogger.log(
-        'PlayerService.setPlayerFromJson: exception $e',
+        'PlayerService: failed to parse player: $e',
         tag: 'PlayerService',
       );
     }
+  }
+
+  static Player parsePlayer(Map<String, dynamic> json) {
+    final specsJson = json['specs'] as Map<String, dynamic>? ?? {};
+    final inventoryJson = json['inventory'] as List<dynamic>? ?? [];
+    final positionJson = json['position'] as Map<String, dynamic>?;
+    final visitedJson = json['visitedTiles'] as List<dynamic>? ?? [];
+
+    return Player(
+      socketId: json['socketId'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      avatar: Avatar.values[(json['avatar'] as int? ?? 1) - 1],
+      isActive: json['isActive'] as bool? ?? true,
+      isGameWinner: json['isGameWinner'] as bool? ?? false,
+      specs: Specs(
+        life: specsJson['life'] as int? ?? 0,
+        evasions: specsJson['evasions'] as int? ?? 0,
+        speed: specsJson['speed'] as int? ?? 0,
+        attack: specsJson['attack'] as int? ?? 0,
+        defense: specsJson['defense'] as int? ?? 0,
+        attackBonus:
+            (specsJson['attackBonus'] as int? ?? 4) == 6 ? Bonus.d6 : Bonus.d4,
+        defenseBonus:
+            (specsJson['defenseBonus'] as int? ?? 6) == 6 ? Bonus.d6 : Bonus.d4,
+        movePoints: specsJson['movePoints'] as int? ?? 0,
+        actions: specsJson['actions'] as int? ?? 0,
+        nVictories: specsJson['nVictories'] as int? ?? 0,
+        nDefeats: specsJson['nDefeats'] as int? ?? 0,
+        nCombats: specsJson['nCombats'] as int? ?? 0,
+        nEvasions: specsJson['nEvasions'] as int? ?? 0,
+        nLifeTaken: specsJson['nLifeTaken'] as int? ?? 0,
+        nLifeLost: specsJson['nLifeLost'] as int? ?? 0,
+        nItemsUsed: specsJson['nItemsUsed'] as int? ?? 0,
+      ),
+      inventory:
+          inventoryJson
+              .map((i) => GameService.parseItemCategory(i.toString()))
+              .toList(),
+      position:
+          positionJson != null
+              ? [Coordinate(positionJson['x'] as int, positionJson['y'] as int)]
+              : [],
+      turn: json['turn'] as int? ?? 0,
+      visitedTiles:
+          visitedJson
+              .map((v) => Coordinate(v['x'] as int, v['y'] as int))
+              .toList(),
+      profile: GameService.parseProfileType(json['profile'] as String?),
+    );
+  }
+
+  void clearPlayer() {
+    DebugLogger.log('PlayerService: clearing player', tag: 'PlayerService');
+    notifier.value = Player(
+      socketId: '',
+      name: '',
+      avatar: Avatar.avatar1,
+      specs: Specs(),
+    );
   }
 }

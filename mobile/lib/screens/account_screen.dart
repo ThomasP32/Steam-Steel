@@ -254,7 +254,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   actionsAlignment: MainAxisAlignment.center,
                   actions: [
                     TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(null),
+                      onPressed: () => Navigator.of(ctx).pop(),
                       child: const Text('Annuler'),
                     ),
                     ElevatedButton(
@@ -287,7 +287,7 @@ class _AuthScreenState extends State<AuthScreen> {
           context,
         ).showSnackBar(const SnackBar(content: Text('Compte mis à jour')));
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -417,8 +417,8 @@ class _AuthScreenState extends State<AuthScreen> {
         if (idx < 1 || idx > 12) idx = 1;
         avatarWidget = Image.asset(
           'lib/assets/characters/$idx.png',
-          width: 80,
-          height: 80,
+          width: 250,
+          height: 250,
           fit: BoxFit.cover,
         );
       }
@@ -450,7 +450,7 @@ class _AuthScreenState extends State<AuthScreen> {
           Row(
             children: [
               avatarWidget,
-              const SizedBox(width: 12),
+              const SizedBox(width: 50),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -574,12 +574,20 @@ class _AuthScreenState extends State<AuthScreen> {
         return false;
       },
       child: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Expanded(child: SingleChildScrollView(child: pageContent)),
-            ],
+        body: DecoratedBox(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('lib/assets/backgrounds/backgroundcombat.png'),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Expanded(child: SingleChildScrollView(child: pageContent)),
+              ],
+            ),
           ),
         ),
       ),

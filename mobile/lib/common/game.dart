@@ -6,24 +6,27 @@ class Player {
     required this.socketId,
     required this.name,
     required this.avatar,
-    this.position = const [],
-    this.inventory = const [],
-    this.turn = 0,
     this.isActive = true,
+    this.isGameWinner = false,
+    required this.specs,
+    this.inventory = const [],
+    this.position = const [],
+    this.turn = 0,
     this.visitedTiles = const [],
     this.profile = ProfileType.normal,
-    Specs? specs,
-  }) : specs = specs ?? Specs();
-  String socketId;
-  String name;
-  Avatar avatar;
-  bool isActive;
-  Specs specs;
-  List<ItemCategory> inventory;
-  List<Coordinate> position;
-  int turn;
-  List<Coordinate> visitedTiles;
-  ProfileType profile;
+  });
+
+  final String socketId;
+  final String name;
+  final Avatar avatar;
+  final bool isActive;
+  final bool isGameWinner;
+  final Specs specs;
+  final List<ItemCategory> inventory;
+  final List<Coordinate> position;
+  final int turn;
+  final List<Coordinate> visitedTiles;
+  final ProfileType profile;
 }
 
 enum Avatar {

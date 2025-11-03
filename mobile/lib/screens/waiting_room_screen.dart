@@ -4,156 +4,71 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/services/game_service.dart';
+import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
-import 'package:mobile/utils/debug_logger.dart';
+import 'package:mobile/services/waiting_room_service.dart';
+import 'package:mobile/widgets/chat_widget.dart';
+import 'package:mobile/widgets/waiting_room/profile_modal_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 class WaitingRoomScreen extends StatefulWidget {
-  const WaitingRoomScreen({required this.gameId, super.key});
+  const WaitingRoomScreen({this.gameId, this.mapName, super.key});
 
-  final String gameId;
+  final String? gameId;
+  final String? mapName;
 
   @override
   State<WaitingRoomScreen> createState() => _WaitingRoomScreenState();
 }
 
-class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
-  final List<Player> _players = [];
-  String _mapName = 'En attente...';
-  bool _isLocked = false;
-  int _maxPlayers = 2;
-  final GameService _gameService = GameService();
+class _WaitingRoomScreenState extends State<WaitingRoomScreen>
+    with SingleTickerProviderStateMixin {
+  final _service = WaitingRoomService();
+  final _gameService = GameService();
+  final _playerService = PlayerService();
+  late AnimationController _gearController;
 
-  StreamSubscription<dynamic>? _playersSub;
-  StreamSubscription<dynamic>? _lockedSub;
   StreamSubscription<dynamic>? _closedSub;
   StreamSubscription<dynamic>? _gameInitializedSub;
   StreamSubscription<dynamic>? _playerKickedSub;
-  StreamSubscription<dynamic>? _currentGameSub;
+
+  VoidCallback? _playerListener;
+  String _playerName = '';
 
   @override
   void initState() {
     super.initState();
-    _requestPlayers();
-    _requestGameData();
-    _listenToCurrentPlayers();
-    _listenToCurrentGame();
-    _listenToGameLocked();
+
+    final local = _playerService.notifier.value;
+    if (local != null && local.name.isNotEmpty) {
+      _playerName = local.name;
+    }
+
+    _playerListener = () {
+      final p = _playerService.notifier.value;
+      if (p != null && mounted && p.name.isNotEmpty && p.name != _playerName) {
+        setState(() => _playerName = p.name);
+      }
+    };
+    _playerService.notifier.addListener(_playerListener!);
+
+    _gearController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 6),
+    )..repeat();
+
+    _service.initialize(widget.gameId, widget.mapName);
+
     _listenToGameClosed();
     _listenToGameInitialized();
     _listenToPlayerKicked();
   }
 
-  void _requestPlayers() {
-    try {
-      SocketService().send('getPlayers', widget.gameId);
-    } on Exception catch (e) {
-      DebugLogger.log('getPlayers emit failed: $e', tag: 'WaitingRoom');
-    }
-  }
-
-  void _requestGameData() {
-    try {
-      SocketService().send('getGameData', widget.gameId);
-    } on Exception catch (e) {
-      DebugLogger.log('getGameData emit failed: $e', tag: 'WaitingRoom');
-    }
-  }
-
-  void _listenToCurrentPlayers() {
-    _playersSub = SocketService().listen<dynamic>('currentPlayers').listen((
-      data,
-    ) {
-      try {
-        final list =
-            (data is List)
-                ? data.whereType<Map<String, dynamic>>().toList()
-                : <Map<String, dynamic>>[];
-        final parsed =
-            list.map((j) {
-              return Player(
-                socketId: (j['socketId'] ?? '').toString(),
-                name: (j['name'] ?? '').toString(),
-                avatar: _avatarFromRaw(j['avatar']),
-              );
-            }).toList();
-        if (!mounted) return;
-        setState(() {
-          _players
-            ..clear()
-            ..addAll(parsed);
-        });
-      } on Exception catch (e) {
-        DebugLogger.log('currentPlayers parse failed: $e', tag: 'WaitingRoom');
-      }
-    });
-  }
-
-  void _listenToCurrentGame() {
-    _currentGameSub = SocketService().listen<dynamic>('currentGame').listen((
-      data,
-    ) {
-      try {
-        if (data is Map<String, dynamic>) {
-          final mapSize = data['mapSize'] as Map<String, dynamic>?;
-          if (mapSize != null) {
-            final x = mapSize['x'] as int?;
-            if (x != null) {
-              final maxPlayers = _getMaxPlayersFromMapSize(x);
-              if (!mounted) return;
-              setState(() {
-                _maxPlayers = maxPlayers;
-              });
-            }
-          }
-          final name = data['name'] as String?;
-          if (name != null && name.isNotEmpty) {
-            if (!mounted) return;
-            setState(() {
-              _mapName = name;
-            });
-          }
-        }
-      } on Exception catch (e) {
-        DebugLogger.log('currentGame parse failed: $e', tag: 'WaitingRoom');
-      }
-    });
-  }
-
-  int _getMaxPlayersFromMapSize(int mapSize) {
-    switch (mapSize) {
-      case 10:
-        return 2;
-      case 15:
-        return 4;
-      case 20:
-        return 6;
-      default:
-        return 2;
-    }
-  }
-
-  void _listenToGameLocked() {
-    _lockedSub = SocketService().listen<dynamic>('gameLocked').listen((
-      payload,
-    ) {
-      final locked =
-          (payload is bool && payload) ||
-          (payload is String && payload.toLowerCase() == 'true');
-      if (!mounted) return;
-      setState(() => _isLocked = locked);
-    });
-  }
-
   void _listenToGameClosed() {
     _closedSub = SocketService().listen<dynamic>('gameClosed').listen((_) {
       if (!mounted) return;
-      try {
-        GoRouter.of(context).go('/');
-      } on Exception catch (e) {
-        DebugLogger.log('navigate home failed: $e', tag: 'WaitingRoom');
-      }
+      GoRouter.of(context).go('/');
     });
   }
 
@@ -162,25 +77,33 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
         .listen<dynamic>('gameInitialized')
         .listen((data) {
           if (!mounted) return;
-          DebugLogger.log(
-            'gameInitialized received, navigating away from waiting room',
-            tag: 'WaitingRoom',
-          );
+
           if (data is Map<String, dynamic>) {
             _gameService.updateFromJson(data);
-            final mapNameFromData = data['name'] as String?;
-            if (mapNameFromData != null && mapNameFromData.isNotEmpty) {
-              _mapName = mapNameFromData;
+
+            final players = data['players'] as List<dynamic>?;
+            if (players != null && players.isNotEmpty) {
+              final currentSocketId = SocketService().socketId;
+              final myPlayerData =
+                  players.firstWhere(
+                        (p) =>
+                            (p as Map<String, dynamic>)['socketId'] ==
+                            currentSocketId,
+                        orElse: () => null,
+                      )
+                      as Map<String, dynamic>?;
+              if (myPlayerData != null) {
+                _playerService.setPlayerFromJson(myPlayerData);
+              }
             }
           }
-          try {
-            GoRouter.of(context).go('/game/${widget.gameId}/$_mapName');
-          } on Exception catch (e) {
-            DebugLogger.log(
-              'navigate on gameInitialized failed: $e',
-              tag: 'WaitingRoom',
-            );
+
+          if (_service.isHost.value) {
+            SocketService().send('startGame', _service.gameId.value);
           }
+
+          GoRouter.of(context)
+              .go('/game/${_service.gameId.value}/${_service.mapName.value}');
         });
   }
 
@@ -189,184 +112,400 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
       _,
     ) {
       if (!mounted) return;
-      DebugLogger.log(
-        'playerKicked received, disconnecting and navigating to home',
-        tag: 'WaitingRoom',
-      );
-      try {
-        SocketService().disconnect();
-        GoRouter.of(context).go('/');
-        showTopSnackBar(
-          Overlay.of(context),
-          const CustomSnackBar.error(
-            message: 'Vous avez été expulsé de la partie',
-          ),
-        );
-      } on Exception catch (e) {
-        DebugLogger.log(
-          'navigate on playerKicked failed: $e',
-          tag: 'WaitingRoom',
-        );
-      }
-    });
-  }
 
-  Avatar _avatarFromRaw(dynamic raw) {
-    if (raw == null) return Avatar.avatar1;
-    if (raw is int) {
-      final idx = (raw - 1).clamp(0, Avatar.values.length - 1);
-      return Avatar.values[idx];
-    }
-    if (raw is String) {
-      return Avatar.values.firstWhere(
-        (a) => a.name.toLowerCase() == raw.toLowerCase(),
-        orElse: () => Avatar.avatar1,
+      SocketService().disconnect();
+      GoRouter.of(context).go('/');
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.error(
+          message: 'Vous avez été expulsé de la partie',
+        ),
       );
-    }
-    return Avatar.avatar1;
+    });
   }
 
   @override
   void dispose() {
-    _playersSub?.cancel();
-    _lockedSub?.cancel();
+    if (_playerListener != null) {
+      _playerService.notifier.removeListener(_playerListener!);
+    }
+    _gearController.dispose();
     _closedSub?.cancel();
     _gameInitializedSub?.cancel();
     _playerKickedSub?.cancel();
-    _currentGameSub?.cancel();
+    _service.reset();
     super.dispose();
   }
 
   Widget _buildPlayerRow(Player p) {
     final idx = (p.avatar.index + 1).clamp(1, 12);
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: Colors.grey.shade900,
-        radius: 22,
-        child: Image.asset(
-          'lib/assets/previewcharacters/${idx}_preview.png',
-          width: 44,
-          height: 44,
-          fit: BoxFit.cover,
-        ),
+    final isAI = p.socketId.startsWith('virtualPlayer');
+    final isSelected =
+        _service.selectedPlayerSocketId.value == p.socketId;
+    final isFirstPlayer =
+        _service.players.value.isNotEmpty &&
+        _service.players.value[0].socketId == p.socketId;
+    final canKick = _service.isHost.value && !isFirstPlayer;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        border:
+            isFirstPlayer
+                ? Border.all(color: Colors.orange, width: 2)
+                : null,
       ),
-      title: Text(p.name.isNotEmpty ? p.name : 'Joueur'),
+      child: ListTile(
+        selected: isSelected,
+        onTap:
+            canKick
+                ? () {
+                  _service.selectedPlayerSocketId.value =
+                      isSelected ? null : p.socketId;
+                }
+                : null,
+        leading: CircleAvatar(
+          backgroundColor: Colors.grey.shade900,
+          radius: 22,
+          child: Image.asset(
+            'lib/assets/previewcharacters/${idx}_preview.png',
+            width: 44,
+            height: 44,
+            fit: BoxFit.cover,
+          ),
+        ),
+        title: Row(
+          children: [
+            Text(p.name.isNotEmpty ? p.name : 'Joueur'),
+            if (isAI) ...[
+              const SizedBox(width: 8),
+              Image.asset('lib/assets/icons/robot.png', width: 30, height: 30),
+            ],
+          ],
+        ),
+        trailing:
+            isSelected && canKick
+                ? ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => _service.kickPlayer(p.socketId),
+                  child: const Text('Exclure'),
+                )
+                : null,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Salle d'attente")),
-      body: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            if (_isLocked)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                color: Colors.redAccent,
-                child: const Text(
-                  'Fermée',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Card(
+                    elevation: 6,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
+                          _buildHeader(),
+                          const SizedBox(height: 12),
+                          _buildPlayersList(),
+                          const SizedBox(height: 12),
+                          _buildFooter(),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            const SizedBox(height: 8),
-            Card(
-              elevation: 6,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Code:',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                widget.gameId,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
+              ],
+            ),
+          ),
+          const Positioned(top: 18, left: 50, child: ChatWidget()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return ValueListenableBuilder(
+      valueListenable: _service.gameId,
+      builder: (context, gameId, _) {
+        return ValueListenableBuilder(
+          valueListenable: _service.isLocked,
+          builder: (context, isLocked, _) {
+            return ValueListenableBuilder(
+              valueListenable: _service.isHost,
+              builder: (context, isHost, _) {
+                return ValueListenableBuilder(
+                  valueListenable: _service.players,
+                  builder: (context, players, _) {
+                    return ValueListenableBuilder(
+                      valueListenable: _service.maxPlayers,
+                      builder: (context, maxPlayers, _) {
+                        return ValueListenableBuilder(
+                          valueListenable: _service.mapName,
+                          builder: (context, mapName, _) {
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Code:',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        gameId,
+                                        style: const TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
+                                if (isHost) ...[
+                                  const Text(
+                                    'La partie est',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed:
+                                        (isLocked &&
+                                                players.length == maxPlayers)
+                                            ? null
+                                            : () =>
+                                                _service.toggleLock(!isLocked),
+                                    child: Text(
+                                      isLocked ? 'fermée' : 'ouverte',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ),
+                                ] else ...[
+                                  const Text(
+                                    'La partie est',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                  Text(
+                                    isLocked ? ' fermée' : ' ouverte',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(width: 24),
+                                Expanded(
+                                  child: Padding(
+                                     padding: const EdgeInsets.only(right: 55),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        const Text(
+                                          'Carte:',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          mapName,
+                                          style: const TextStyle(fontSize: 18),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPlayersList() {
+    return Expanded(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.orange.shade700),
+          color: Colors.grey.shade800,
+        ),
+        child: ValueListenableBuilder(
+          valueListenable: _service.players,
+          builder: (context, players, _) {
+            return ValueListenableBuilder(
+              valueListenable: _service.isHost,
+              builder: (context, isHost, _) {
+                return ValueListenableBuilder(
+                  valueListenable: _service.maxPlayers,
+                  builder: (context, maxPlayers, _) {
+                    return ValueListenableBuilder(
+                      valueListenable: _service.isLocked,
+                      builder: (context, isLocked, _) {
+                        if (players.isEmpty) {
+                          return const Center(child: Text('Aucun joueur'));
+                        }
+
+                        final showAddButton =
+                            isHost &&
+                            players.length < maxPlayers &&
+                            !isLocked;
+
+                        return ListView.builder(
+                          itemCount:
+                              showAddButton ? players.length + 1 : players.length,
+                          itemBuilder: (ctx, i) {
+                            if (i < players.length) {
+                              return ValueListenableBuilder(
+                                valueListenable:
+                                    _service.selectedPlayerSocketId,
+                                builder: (context, _, __) {
+                                  return _buildPlayerRow(players[i]);
+                                },
+                              );
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: ElevatedButton(
+                                onPressed: _onAddVirtualPlayer,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  side: BorderSide.none,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                child: const Icon(Icons.add, size: 24),
                               ),
-                            ],
-                          ),
-                        ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const Text(
-                                'Carte:',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                _mapName,
-                                style: const TextStyle(fontSize: 18),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      height: 260,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.orange.shade700),
-                        color: Colors.grey.shade800,
-                      ),
-                      child:
-                          _players.isEmpty
-                              ? const Center(child: Text('Aucun joueur'))
-                              : ListView.builder(
-                                itemCount: _players.length,
-                                itemBuilder:
-                                    (ctx, i) => _buildPlayerRow(_players[i]),
-                              ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return ValueListenableBuilder(
+      valueListenable: _service.isHost,
+      builder: (context, isHost, _) {
+        return ValueListenableBuilder(
+          valueListenable: _service.players,
+          builder: (context, players, _) {
+            return ValueListenableBuilder(
+              valueListenable: _service.isLocked,
+              builder: (context, isLocked, _) {
+                return ValueListenableBuilder(
+                  valueListenable: _service.maxPlayers,
+                  builder: (context, maxPlayers, _) {
+                    return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         ElevatedButton.icon(
                           onPressed: () {
-                            try {
-                              SocketService().send('leaveGame', widget.gameId);
-                            } on Exception catch (_) {}
+                            _service.leaveGame();
                             GoRouter.of(context).go('/');
                           },
-                          icon: const Icon(Icons.exit_to_app),
                           label: const Text('Quitter la partie'),
                         ),
+                        if (isHost && players.length > 1 && isLocked) ...[
+                          ElevatedButton(
+                            onPressed: _service.initializeGame,
+                            child: const Text('Commencer la partie'),
+                          ),
+                        ] else if (isHost && players.length > 1) ...[
+                          const Text(
+                            'Vérouillez la salle pour commencer',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ] else ...[
+                          RotationTransition(
+                            turns: _gearController,
+                            child: const Image(
+                              image: AssetImage('lib/assets/icons/gear.png'),
+                              width: 80,
+                              height: 80,
+                            ),
+                          ),
+                          const Text(
+                            "En attente d'autres joueurs...",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ],
                         Text(
-                          '${_players.length}/$_maxPlayers joueurs',
+                          '${players.length}/$maxPlayers joueurs',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _onAddVirtualPlayer() async {
+    await showDialog<void>(
+      context: context,
+      builder:
+          (context) => ProfileModalWidget(
+            activePlayers: _service.players.value,
+            onSubmit: _service.addVirtualPlayer,
+          ),
     );
   }
 }

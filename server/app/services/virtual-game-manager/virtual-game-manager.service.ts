@@ -15,7 +15,7 @@ import { GameManagerEvents } from '@common/events/game-manager.events';
 import { ItemsEvents } from '@common/events/items.events';
 import { VirtualPlayerEvents } from '@common/events/virtualPlayer.events';
 import { Game, Player } from '@common/game';
-import { Coordinate, Item, ItemCategory } from '@common/map.types';
+import { Coordinate, Item } from '@common/map.types';
 import { Injectable } from '@nestjs/common';
 import { Inject } from '@nestjs/common/decorators/core/inject.decorator';
 import { Server } from 'socket.io';
@@ -55,7 +55,6 @@ export class VirtualGameManagerService extends EventEmitter {
 
     calculateVirtualPlayerPath(player: Player, game: Game): Coordinate[] {
         const possibleMoves = this.gameManagerService.getMoves(game.id, player.socketId);
-        const hasSkates = player.inventory.includes(ItemCategory.IceSkates);
         const finalPath: Coordinate[] = [];
         if (possibleMoves.length <= MINIMUM_MOVES) {
             this.emit(VirtualPlayerEvents.VirtualPlayerFinishedMoving, game.id);
@@ -64,13 +63,7 @@ export class VirtualGameManagerService extends EventEmitter {
         const randomMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
         randomMove[1].path[randomMove[1].path.length - MINIMUM_MOVES];
         for (const position of randomMove[1].path) {
-            if (this.gameManagerService.getTileWeight(position, game) === 0 && Math.random() <= 0.1 && !hasSkates) {
-                this.hasFallen = true;
-                finalPath.push(position);
-                break;
-            } else {
-                finalPath.push(position);
-            }
+            finalPath.push(position);
         }
         return finalPath;
     }
@@ -364,7 +357,6 @@ export class VirtualGameManagerService extends EventEmitter {
         );
         const pathToTargetPlayer = this.gameManagerService.getMove(game.id, activePlayer.socketId, validMove);
         await this.updatePosition(activePlayer, pathToTargetPlayer, game.id, wasOnIceTile);
-        if (this.gameManagerService.hasFallen) this.emit(VirtualPlayerEvents.VirtualPlayerFinishedMoving, game.id);
         const possibleOpponents = this.gameManagerService.getAdjacentPlayers(activePlayer, game.id);
         if (possibleOpponents.length > 0 && activePlayer.specs.actions > 0) {
             const opponent = possibleOpponents[Math.floor(Math.random() * possibleOpponents.length)];
@@ -379,7 +371,6 @@ export class VirtualGameManagerService extends EventEmitter {
         const targetItem = visibleItems[randomItemIndex];
         const pathToTargetItem = this.gameManagerService.getMove(game.id, activePlayer.socketId, targetItem.coordinate);
         await this.updatePosition(activePlayer, pathToTargetItem, game.id, wasOnIceTile);
-        if (this.gameManagerService.hasFallen) this.emit(VirtualPlayerEvents.VirtualPlayerFinishedMoving, game.id);
     }
 
     checkAndToggleDoor(player: Player, game: Game): void {

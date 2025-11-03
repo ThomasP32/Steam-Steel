@@ -329,7 +329,35 @@ class _ChatWidgetState extends State<ChatWidget>
 
   void _toggle() {
     if (!_visible) {
-      _showChat();
+      setState(() {
+        _messages.clear();
+        _loading = true;
+      });
+      try {
+        _overlayEntry = _createOverlayEntry();
+        Overlay.of(context).insert(_overlayEntry!);
+      } on Object catch (e) {
+        DebugLogger.log('overlay insert failed: $e', tag: 'ChatWidget');
+      }
+      setState(() => _visible = true);
+      _ctrl.forward().then((_) {
+        try {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            try {
+              FocusScope.of(context).requestFocus(_inputFocusNode);
+            } on Object catch (e) {
+              DebugLogger.log('requestFocus failed: $e', tag: 'ChatWidget');
+            }
+          });
+        } on Object catch (e) {
+          DebugLogger.log(
+            'postFrame requestFocus failed: $e',
+            tag: 'ChatWidget',
+          );
+        }
+      });
+      _getMessagesFromDB();
     } else {
       _hideChat();
     }

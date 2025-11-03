@@ -331,7 +331,7 @@ class AuthService {
       if (responseBody is Map && responseBody['message'] != null) {
         throw Exception(responseBody['message'].toString());
       }
-    } catch (_) {
+    } on Exception {
       if (r.body.isNotEmpty) throw Exception(r.body);
     }
     throw Exception('Update failed ${r.statusCode}');

@@ -17,7 +17,6 @@ import { GameCreationEvents } from '@common/events/game-creation.events';
 import { GameManagerEvents } from '@common/events/game-manager.events';
 import { GameTurnEvents } from '@common/events/game-turn.events';
 import { DropItemData, ItemDroppedData, ItemsEvents } from '@common/events/items.events';
-import { VirtualPlayerEvents } from '@common/events/virtualPlayer.events';
 import { Game, Player } from '@common/game';
 import { Coordinate, Tile } from '@common/map.types';
 import { Inject } from '@nestjs/common';
@@ -87,13 +86,6 @@ export class GameManagerGateway implements OnGatewayInit {
                     `Le drapeau a été récupéré par ${player.name}.`,
                     game.players.map((player) => player.name),
                 );
-            } else if (this.gameManagerService.hasFallen) {
-                this.server.to(client.id).emit(GameManagerEvents.YouFell);
-                this.gameManagerService.hasFallen = false;
-                if (player.socketId.includes('virtualPlayer')) {
-                    this.server.to(data.gameId).emit(VirtualPlayerEvents.VirtualPlayerFinishedMoving, data.gameId);
-                    this.gameManagerService.hasFallen = false;
-                }
             } else {
                 this.server.to(client.id).emit(GameManagerEvents.YouFinishedMoving);
             }
@@ -176,7 +168,7 @@ export class GameManagerGateway implements OnGatewayInit {
     endTurn(client: Socket, gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
         const player = game.players.find((player) => player.turn === game.currentTurn);
-        if (player.socketId !== client.id) {
+         if (player.socketId !== client.id) {
             return;
         }
         player.specs.movePoints = player.specs.speed;

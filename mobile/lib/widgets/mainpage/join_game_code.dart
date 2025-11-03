@@ -109,6 +109,36 @@ class _JoinGameCodeState extends State<JoinGameCode> {
     }
   }
 
+  Future<void> _sendAccessGame(String code) async {
+    if (SocketService().socketId == null) {
+      DebugLogger.log(
+        'JoinGameCode: Socket not connected, reconnecting...',
+        tag: 'JoinGameCode',
+      );
+      await SocketService().connect();
+
+      var attempts = 0;
+      while (SocketService().socketId == null && attempts < 30) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        attempts++;
+      }
+
+      DebugLogger.log(
+        'JoinGameCode: Reconnected after ${attempts * 100}ms, new socketId: ${SocketService().socketId}',
+        tag: 'JoinGameCode',
+      );
+
+      if (SocketService().socketId == null) {
+        DebugLogger.log(
+          'JoinGameCode: Failed to reconnect socket after 3 seconds',
+          tag: 'JoinGameCode',
+        );
+        return;
+      }
+    }
+    _socketService?.send('accessGame', code);
+  }
+
   SocketService? _socketService;
   final List<StreamSubscription<dynamic>> _subs = [];
   Timer? _accessTimeout;
@@ -172,9 +202,8 @@ class _JoinGameCodeState extends State<JoinGameCode> {
                       setState(() {
                         _isLoading = true;
                       });
-                      _socketService?.send('accessGame', code);
+                      _sendAccessGame(code);
 
-                      // Set timeout in case server doesn't respond
                       _accessTimeout?.cancel();
                       _accessTimeout = Timer(const Duration(seconds: 5), () {
                         if (!mounted || !_isLoading) return;

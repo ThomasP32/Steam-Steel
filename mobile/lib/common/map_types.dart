@@ -51,7 +51,7 @@ enum GameDescriptions {
     'Drapeau de Victoire : Capturez-le et ramenez-le à votre point de départ pour triompher.',
   ),
   iceSkates(
-    'Patins Stabilisateurs : Immunisé aux chutes et pénalités sur glace. Glissez avec maîtrise.',
+    'Patins Stabilisateurs : Immunisé aux pénalités sur glace. Glissez avec maîtrise.',
   ),
   sword(
     "Lame d'Agilité : +2 en attaque et +1 en vitesse. Parfait pour un combat rapide et décisif.",
@@ -89,7 +89,7 @@ enum GameDescriptions {
 }
 
 class Tile {
-  Tile(this.coordinate, this.category);
+  Tile(this.coordinate, {required this.category});
   final Coordinate coordinate;
   final TileCategory category;
 }

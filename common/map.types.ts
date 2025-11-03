@@ -38,7 +38,7 @@ export enum GameDescriptions {
     Amulet = "Amulette de Résilience : Augmente votre vitalité de 2 lorsque vous affrontez un adversaire avec plus d'attaque.",
     Armor = 'Armure Renforcée : +2 en défense, mais réduit votre vitesse de 1. Conçue pour les stratèges prudents.',
     Flag = 'Drapeau de Victoire : Capturez-le et ramenez-le à votre point de départ pour triompher.',
-    IceSkates = 'Patins Stabilisateurs : Immunisé aux chutes et pénalités sur glace. Glissez avec maîtrise.',
+    IceSkates = 'Patins Stabilisateurs : Immunisé aux pénalités sur glace. Glissez avec maîtrise.',
     Sword = "Lame d'Agilité : +2 en attaque et +1 en vitesse. Parfait pour un combat rapide et décisif.",
     WallBreaker = 'Destructeur de Murs : Détruit instantanément tous les murs adjacents. Ouvrez votre chemin avec style.',
     Flask = 'Potion de Résurrection : Lorsque vous tombez à 2 vies en combat, gagnez un boost de +2 en attaque pour un dernier effort héroïque.',
