@@ -113,6 +113,7 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: DecoratedBox(
         decoration: const BoxDecoration(
           image: DecorationImage(
@@ -123,9 +124,6 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
 
         child: Stack(
           children: [
-            // Place ChatWidget like on the main page so it renders its
-            // built-in toggle button at the same top-right spot.
-            const Positioned.fill(child: ChatWidget()),
             Column(
               children: [
                 SafeArea(
@@ -381,6 +379,7 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
                 ),
               ],
             ),
+            const Positioned(top: 18, right: 12, child: ChatWidget()),
           ],
         ),
       ),

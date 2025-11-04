@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/map_types.dart';
+import 'package:mobile/services/channel_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 
@@ -217,6 +217,9 @@ class CharacterCreationService {
       } else {
         onSuccess(localPlayer);
       }
+
+      ChannelService().createPartyChannel(gameId);
+
       youJoinedSub?.cancel();
     });
 

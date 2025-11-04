@@ -10,6 +10,7 @@ import 'package:mobile/services/character_creation_service.dart';
 import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
+import 'package:mobile/widgets/chat_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
@@ -129,8 +130,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
         visitedTiles: [],
       );
       try {
-        final ps = PlayerService()
-        ..setPlayer(player);
+        final ps = PlayerService()..setPlayer(player);
       } catch (_) {}
 
       try {
@@ -233,32 +233,58 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
         !_isSubmitting;
 
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('lib/assets/backgrounds/backgroundcombat.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height,
+      resizeToAvoidBottomInset: false,
+      body: Stack(
+        children: [
+          DecoratedBox(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(
+                  'lib/assets/backgrounds/backgroundcombat.png',
+                ),
+                fit: BoxFit.cover,
+              ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(flex: 3, child: _buildStatsPanel()),
-                  const SizedBox(width: 16),
-                  Expanded(flex: 4, child: _buildCenterPanel(canSubmit)),
-                  const SizedBox(width: 16),
-                  Expanded(flex: 3, child: _buildAvatarGrid()),
-                ],
+            child: SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.of(context).size.height,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(flex: 3, child: _buildStatsPanel()),
+                      const SizedBox(width: 16),
+                      Expanded(flex: 4, child: _buildCenterPanel(canSubmit)),
+                      const SizedBox(width: 16),
+                      Expanded(flex: 3, child: _buildAvatarGrid()),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+          Positioned(
+            top: 0,
+            left: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 8.0,
+                ),
+                child: TextButton(
+                  onPressed: () {
+                    if (mounted) context.go('/');
+                  },
+                  child: const Text('Retour'),
+                ),
+              ),
+            ),
+          ),
+          const Positioned(top: 18, right: 12, child: ChatWidget()),
+        ],
       ),
     );
   }
@@ -267,14 +293,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 20),
-        ElevatedButton(
-          onPressed: () {
-            if (mounted) context.go('/');
-          },
-          child: const Text('Retour'),
-        ),
-        const SizedBox(height: 50),
+        const SizedBox(height: 10),
         const Text(
           'Stats',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

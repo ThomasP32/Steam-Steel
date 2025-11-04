@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/common/game.dart';
+import 'package:mobile/services/channel_service.dart';
 import 'package:mobile/services/game_service.dart';
 import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
@@ -102,25 +103,38 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
             SocketService().send('startGame', _service.gameId.value);
           }
 
-          GoRouter.of(context)
-              .go('/game/${_service.gameId.value}/${_service.mapName.value}');
+          GoRouter.of(
+            context,
+          ).go('/game/${_service.gameId.value}/${_service.mapName.value}');
         });
   }
 
   void _listenToPlayerKicked() {
     _playerKickedSub = SocketService().listen<dynamic>('playerKicked').listen((
       _,
-    ) {
+    ) async {
       if (!mounted) return;
 
-      SocketService().disconnect();
-      GoRouter.of(context).go('/');
-      showTopSnackBar(
-        Overlay.of(context),
-        const CustomSnackBar.error(
-          message: 'Vous avez été expulsé de la partie',
-        ),
-      );
+      try {
+        // Quitter le salon de la partie avant de partir
+        if (widget.gameId != null) {
+          await ChannelService().removeGameChannel(widget.gameId!);
+        }
+        // Déconnecter pour nettoyer l'état de la partie
+        SocketService().disconnect();
+        // Reconnecter immédiatement pour garder le chat fonctionnel
+        await SocketService().connect();
+
+        GoRouter.of(context).go('/');
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.error(
+            message: 'Vous avez été expulsé de la partie',
+          ),
+        );
+      } on Exception catch (_) {
+        // Erreur lors de la navigation, ignorer
+      }
     });
   }
 
@@ -134,14 +148,19 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
     _gameInitializedSub?.cancel();
     _playerKickedSub?.cancel();
     _service.reset();
+
+    final gameId = widget.gameId ?? _service.gameId.value;
+    if (gameId.isNotEmpty) {
+      ChannelService().removeGameChannel(gameId);
+    }
+
     super.dispose();
   }
 
   Widget _buildPlayerRow(Player p) {
     final idx = (p.avatar.index + 1).clamp(1, 12);
     final isAI = p.socketId.startsWith('virtualPlayer');
-    final isSelected =
-        _service.selectedPlayerSocketId.value == p.socketId;
+    final isSelected = _service.selectedPlayerSocketId.value == p.socketId;
     final isFirstPlayer =
         _service.players.value.isNotEmpty &&
         _service.players.value[0].socketId == p.socketId;
@@ -151,9 +170,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         border:
-            isFirstPlayer
-                ? Border.all(color: Colors.orange, width: 2)
-                : null,
+            isFirstPlayer ? Border.all(color: Colors.orange, width: 2) : null,
       ),
       child: ListTile(
         selected: isSelected,
@@ -201,6 +218,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           Padding(
@@ -227,7 +245,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
               ],
             ),
           ),
-          const Positioned(top: 18, left: 50, child: ChatWidget()),
+          const Positioned(top: 18, right: 12, child: ChatWidget()),
         ],
       ),
     );
@@ -320,9 +338,10 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                                 const SizedBox(width: 24),
                                 Expanded(
                                   child: Padding(
-                                     padding: const EdgeInsets.only(right: 55),
+                                    padding: const EdgeInsets.only(right: 55),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
                                       children: [
                                         const Text(
                                           'Carte:',
@@ -378,13 +397,13 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                         }
 
                         final showAddButton =
-                            isHost &&
-                            players.length < maxPlayers &&
-                            !isLocked;
+                            isHost && players.length < maxPlayers && !isLocked;
 
                         return ListView.builder(
                           itemCount:
-                              showAddButton ? players.length + 1 : players.length,
+                              showAddButton
+                                  ? players.length + 1
+                                  : players.length,
                           itemBuilder: (ctx, i) {
                             if (i < players.length) {
                               return ValueListenableBuilder(
@@ -404,8 +423,9 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                                   foregroundColor: Colors.white,
                                   elevation: 0,
                                   side: BorderSide.none,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
                                 ),
                                 child: const Icon(Icons.add, size: 24),
                               ),
@@ -442,6 +462,11 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                       children: [
                         ElevatedButton.icon(
                           onPressed: () {
+                            final gameId =
+                                widget.gameId ?? _service.gameId.value;
+                            if (gameId.isNotEmpty) {
+                              ChannelService().removeGameChannel(gameId);
+                            }
                             _service.leaveGame();
                             GoRouter.of(context).go('/');
                           },

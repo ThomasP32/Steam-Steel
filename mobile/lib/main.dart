@@ -107,6 +107,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           Positioned.fill(
@@ -115,7 +116,6 @@ class HomeScreen extends StatelessWidget {
               fit: BoxFit.cover,
             ),
           ),
-          const Positioned.fill(child: ChatWidget()),
           Column(
             children: [
               Expanded(
@@ -192,6 +192,19 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          ValueListenableBuilder(
+            valueListenable: AuthService().notifier,
+            builder: (context, user, _) {
+              if (user != null) {
+                return const Positioned(
+                  top: 18,
+                  right: 12,
+                  child: ChatWidget(),
+                );
+              }
+              return const SizedBox.shrink();
+            },
           ),
         ],
       ),

@@ -6,6 +6,7 @@ import 'package:mobile/assets/theme/diagonal_painter.dart';
 import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/map_types.dart';
+import 'package:mobile/services/channel_service.dart';
 import 'package:mobile/services/countdown_service.dart';
 import 'package:mobile/services/game_service.dart';
 import 'package:mobile/services/game_turn_service.dart';
@@ -31,7 +32,6 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   bool _showGameInfo = false;
-  bool _showChat = false;
   final GameService _gameService = GameService();
   final GameTurnService _gameTurnService = GameTurnService();
   final CountdownService _countdownService = CountdownService();
@@ -389,6 +389,10 @@ class _GameScreenState extends State<GameScreen> {
       DebugLogger.log('leaveGame error: $e', tag: 'GameScreen');
     }
 
+    if (widget.gameId.isNotEmpty) {
+      ChannelService().removeGameChannel(widget.gameId);
+    }
+
     if (context.mounted) {
       GoRouter.of(context).go('/');
     }
@@ -500,12 +504,6 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
-  void _toggleChat() {
-    setState(() {
-      _showChat = !_showChat;
-    });
-  }
-
   void quitGame() {
     showDialog<void>(
       context: context,
@@ -532,6 +530,8 @@ class _GameScreenState extends State<GameScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
+                await ChannelService().removeGameChannel(widget.gameId);
+                SocketService().send('leaveGame', widget.gameId);
                 try {
                   SocketService().send('leaveGame', widget.gameId);
                   await Future.delayed(const Duration(milliseconds: 100));
@@ -658,6 +658,7 @@ class _GameScreenState extends State<GameScreen> {
     final isGameFinished = _gameTurnService.gameFinishedNotifier.value;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           Positioned.fill(
@@ -694,25 +695,6 @@ class _GameScreenState extends State<GameScreen> {
                           ),
                           padding: EdgeInsets.zero,
                         ),
-                        onPressed: _toggleChat,
-                        child: const Icon(
-                          Icons.chat_bubble_outline,
-                          color: Color(0xFFC0C0C0),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2C3E50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
                         onPressed: _toggleGameInfo,
                         child: const Icon(
                           Icons.info_outline,
@@ -738,6 +720,11 @@ class _GameScreenState extends State<GameScreen> {
                           color: Color(0xFFC0C0C0),
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 18),
+                      child: SizedBox(child: ChatWidget()),
                     ),
                   ],
                 ),
@@ -795,16 +782,6 @@ class _GameScreenState extends State<GameScreen> {
               ],
             ),
           ),
-          if (_showChat)
-            ChatWidget(
-              initiallyVisible: true,
-              showToggleButton: false,
-              onClose: () {
-                setState(() {
-                  _showChat = false;
-                });
-              },
-            ),
           Positioned(
             left: 16,
             bottom: 16,
