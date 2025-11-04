@@ -18,6 +18,8 @@
                 <span class="flag-icon"> <img src="assets/icons/flag_player.png" alt="Flag" class="icon" /></span>
                 } @if (isVirtualPlayerSocketId(player.socketId)) {
                 <span class="virtual-player-icon"> <img src="assets/icons/robot.png" alt="Bot" class="icon" /></span>
+                } @if (isObserver(player)){
+                <span class="observer-icon"> <img src="assets/icons/observer.png" alt="Observer" class="icon" /></span>
                 }
             </span>
             <span class="victories"> {{ player.specs.nVictories }} <img src="assets/icons/trophy_icon.png" alt="Trophy" class="icon" /></span>

@@ -1,5 +1,20 @@
 import { Player } from '@common/game';
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export enum GameCreationEvents {
     GameClosed = 'gameClosed',
     GameEndedNoActivePlayers = 'gameEndedNoActivePlayers',
@@ -8,6 +23,8 @@ export enum GameCreationEvents {
     GameCreated = 'gameCreated',
     JoinGame = 'joinGame',
     GameLocked = 'gameLocked',
+    GameUpdated = "GameUpdated",
+    GameListUpdated = 'gameListUpdated',
 
     YouJoined = 'youJoined',
     PlayerJoined = 'playerJoined',
@@ -18,11 +35,13 @@ export enum GameCreationEvents {
     KickPlayer = 'kickPlayer',
     PlayerKicked = 'playerKicked',
 
+    GetGames = "getGames",
     GetGameData = 'getGameData',
     CurrentGame = 'currentGame',
 
     AccessGame = 'accessGame',
     GameAccessed = 'gameAccessed',
+    GameResumed = 'gameResumed',
 
     InitializeGame = 'initializeGame',
     GameInitialized = 'gameInitialized',
@@ -36,6 +55,8 @@ export enum GameCreationEvents {
     IsStartable = 'isStartable',
 
     LeaveGame = 'leaveGame',
+    ResumeGame = "resumeGame",
+    ObserveGame = "ObserveGame",
 }
 
 export interface KickPlayerData {

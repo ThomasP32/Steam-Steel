@@ -1,0 +1,165 @@
+.joinPage-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+  
+    background-image: url('../../../assets/backgrounds/backgroundcombat.png');
+    background-attachment: fixed;   
+    background-size: cover;         
+    background-repeat: no-repeat; 
+    background-position: center top;
+  
+    font-family: 'Press Start 2P', cursive;
+    overflow-x: hidden;            
+    box-sizing: border-box;
+  }
+  
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+    color: #c0c0c0;
+    font-size: 2.5em;
+    height: 80px;
+    padding: 20px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: #1c242c;
+
+    .header-buttons {
+        display: flex;
+        align-items: center;
+        margin-right: auto;
+
+    }
+
+    h2 {
+      flex-grow: 1;
+      font-size: 20px;
+      text-align: center;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      margin: 0;
+      white-space: nowrap;
+      z-index: 0;
+    }
+
+    .return-button {
+        margin-left: auto;
+        position: relative;
+        left: 20px;
+        align-items: left;
+        padding: 12px 20px;
+        background-color: #2c3e50;
+        border: 3px solid #202020;
+        color: white;
+        height: 6vh;
+        width: 15vw;
+        cursor: pointer;
+        font-size: 14px;
+        font-family: 'Press Start 2P';
+    }
+
+    .return-button:hover {
+        background-color: #3b3f46;
+    }
+
+}
+
+.map-view {
+    display: block;          
+  width: 100%;
+  padding: 0 20px;
+  box-sizing: border-box; 
+  }
+
+.section-header {
+    margin: 10px 0 12px 0;
+
+    h3 {
+        color: #c0c0c0;
+        font-size: 20px;
+        font-family: 'Press Start 2P', cursive;
+        text-align: center;
+        border-bottom: 2px solid #2c3e50;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+}
+
+// .scrollable-container {
+//   height: calc(100vh - 80px);
+//   flex: 1 1 auto;
+//   min-height: 0;              
+//   overflow-y: auto;
+//   overflow-x: hidden;
+//   padding: 10px 10px 24px;  
+  
+//     &::-webkit-scrollbar { width: 14px; }
+//     &::-webkit-scrollbar-track {
+//       background: rgba(0, 0, 0, 0.3);
+//       border-radius: 10px;
+//       border: 2px solid #2c3e50;
+//     }
+//     &::-webkit-scrollbar-thumb {
+//       background: linear-gradient(180deg, #3498db, #2980b9);
+//       border-radius: 10px;
+//       border: 2px solid #2c3e50;
+//       &:hover { background: linear-gradient(180deg, #5dade2, #3498db); }
+//     }
+//   }
+
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); 
+    gap: 50px;
+    width: 100%;
+    padding: 8px 12px;
+    box-sizing: border-box;
+  }
+
+.chat-toggle-button {
+    position: fixed;
+    top: 22px;
+    right: 22px;
+    z-index: 1200;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #2c3e50;
+    border: 3px solid #202020;
+    color: #c0c0c0;
+    cursor: pointer;
+}
+
+.chat-toggle-button i {
+    font-size: 18px;
+}
+
+.global-chat-wrapper {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 25vw;
+    height: 100%;
+    max-height: 100vh;
+    background: linear-gradient(135deg, #3b3f46 30%, #282c34 100%);
+    border: 2px solid #b5651d;
+    border-top-left-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    z-index: 1500;
+    overflow: hidden;
+    transition: height 0.3s ease-in-out;
+}
+

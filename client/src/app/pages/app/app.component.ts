@@ -84,8 +84,8 @@ export class AppComponent implements OnInit {
         this.friendsService.acceptGameInvitation(invitation.gameId, invitation.inviterUsername);
         this.currentInvitation = null;
 
-        const tempSubscription = this.socketService.listen(GameCreationEvents.GameAccessed).subscribe(() => {
-            this.router.navigate([`join-game/${invitation.gameId}/create-character`]);
+        const tempSubscription = this.socketService.listen<string>(GameCreationEvents.GameAccessed).subscribe((gameId) => {
+            this.router.navigate([`join-game/${gameId}/create-character`]);
             tempSubscription.unsubscribe();
         });
 

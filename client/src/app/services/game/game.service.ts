@@ -24,7 +24,10 @@ export class GameService {
         this.game = newGame;
     }
 
-    createNewCtfGame(map: Map, gameId: string, gameSettings?: { isFastElimination: boolean, isFriendsOnly: boolean }): GameCtf {
+    createNewCtfGame(map: Map, gameId: string, gameSettings?: { isFastElimination: boolean, isDropInOut:boolean, isFriendsOnly: boolean }): GameCtf {
+        const isFastElimination = gameSettings?.isFastElimination ?? false;
+        const isDropInOut = gameSettings?.isDropInOut ?? false;
+        const isFriendsOnly = gameSettings?.isFriendsOnly ?? false;
         return {
             ...map,
             id: gameId,
@@ -40,13 +43,18 @@ export class GameService {
             nPlayersCtf: [],
             mode: Mode.Ctf,
             settings: {
-                isFastElimination: gameSettings?.isFastElimination ?? false,
-                isFriendsOnly: gameSettings?.isFriendsOnly ?? false,
+                isFastElimination,
+                isDropInOut,
+                isFriendsOnly
             },
+            participants: [],
         };
     }
 
-    createNewGame(map: Map, gameId: string, gameSettings?: { isFastElimination: boolean, isFriendsOnly: boolean }): Game {
+    createNewGame(map: Map, gameId: string, gameSettings?: { isFastElimination: boolean, isDropInOut: boolean, isFriendsOnly: boolean }): Game {
+        const isFastElimination = gameSettings?.isFastElimination ?? false;
+        const isDropInOut = gameSettings?.isDropInOut ?? false;
+        const isFriendsOnly = gameSettings?.isFriendsOnly ?? false;
         return {
             ...map,
             id: gameId,
@@ -60,9 +68,11 @@ export class GameService {
             isLocked: false,
             hasStarted: false,
             settings: {
-                isFastElimination: gameSettings?.isFastElimination ?? false,
-                isFriendsOnly: gameSettings?.isFriendsOnly ?? false,
+                isFastElimination,
+                isDropInOut,
+                isFriendsOnly
             },
+            participants: [],
         };
     }
 
@@ -85,5 +95,11 @@ export class GameService {
                 console.error('Failed to load players or no players available');
             }
         });
+    }
+
+    listenForGameUpdate(): void {
+        this.socketService.listen<Game>(GameCreationEvents.GameUpdated).subscribe((game) => {
+            this.setGame(game);
+        })
     }
 }

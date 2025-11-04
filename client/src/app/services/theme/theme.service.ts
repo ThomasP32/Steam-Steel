@@ -40,12 +40,13 @@ export class ThemeService {
       .player_stats,
       .profile-button,
       .create-player-button,
+      .join-actions button,
       .no-theme
     )`;
     const css = `
       ${scope} ${S.home}{background:url('${this.asset(I.home_bg)}') center/cover no-repeat fixed !important; min-height:100vh !important;}
       ${scope} ${S.edition}{background:url('${this.asset(I.edition_bg)}') center/cover no-repeat fixed !important; }
-      ${scope} ${S.create}, ${scope} ${S.character}, ${scope} ${S.waiting}, ${scope} ${S.game}, ${scope} ${S.admin}, ${scope} ${S.combat_modal}{
+      ${scope} ${S.create}, ${scope} ${S.character}, ${scope} ${S.waiting}, ${scope} ${S.game}, ${scope} ${S.admin}, ${scope} ${S.join_page}, ${scope} ${S.combat_modal}{
         background:url('${this.asset(I.city_bg)}') center/cover no-repeat fixed !important;
       }
       ${scope} ${S.buttons_all}{

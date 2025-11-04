@@ -7,8 +7,8 @@ import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/web
 import { Server, Socket } from 'socket.io';
 import { FriendsService } from '../../../../http/services/friends/friends.service';
 import { UserService } from '../../../../http/services/user/user.service';
-import { JournalService } from '../../../../services/journal/journal.service';
 import { UserSocketService } from '../../../../services/user-socket/user-socket.service';
+import { CombatService } from '@app/services/combat/combat.service';
 
 @WebSocketGateway({ namespace: '/game', cors: { origin: '*' } })
 export class GameGateway {
@@ -16,7 +16,7 @@ export class GameGateway {
     server: Server;
 
     @Inject(GameCreationService) private readonly gameCreationService: GameCreationService;
-    @Inject(JournalService) private readonly journalService: JournalService;
+    @Inject(CombatService) private readonly combatService: CombatService;
     @Inject(UserSocketService) private readonly userSocketSession: UserSocketService;
     @Inject(FriendsService) private readonly friendsService: FriendsService;
     @Inject(UserService) private readonly userService: UserService;
@@ -27,14 +27,15 @@ export class GameGateway {
         newGame.hostSocketId = client.id;
         this.gameCreationService.addGame(newGame);
         this.server.to(newGame.id).emit(GameCreationEvents.GameCreated, newGame);
+        this.server.emit(GameCreationEvents.GameListUpdated);
     }
 
     @SubscribeMessage(GameCreationEvents.JoinGame)
     async handleJoinGame(client: Socket, data: JoinGameData): Promise<void> {
         if (this.gameCreationService.doesGameExist(data.gameId)) {
             let game = this.gameCreationService.getGameById(data.gameId);
-            if (game.isLocked) {
-                client.emit(GameCreationEvents.GameLocked, 'La partie est vérouillée, veuillez réessayer plus tard.');
+            if (game.isLocked && !game.settings.isDropInOut || game.isLocked && game.settings.isDropInOut && !game.hasStarted) {
+                client.emit(GameCreationEvents.GameLocked, 'La partie est vérrouillée, veuillez réessayer plus tard.');
                 return;
             }
 
@@ -49,16 +50,45 @@ export class GameGateway {
                 }
             }
 
-            game = this.gameCreationService.addPlayerToGame(data.player, data.gameId);
+            game = this.gameCreationService.addPlayerToGame(client.id, data.player, data.gameId);
             if (this.gameCreationService.isMaxPlayersReached(game.players, data.gameId)) {
                 this.gameCreationService.lockGame(data.gameId);
             }
+            
             const newPlayer = game.players.filter((player) => player.socketId === client.id)[0];
-            client.emit(GameCreationEvents.YouJoined, newPlayer);
+            newPlayer.isObservationMode = false;
+            if(game.hasStarted){
+                const activePlayers = game.players.filter((plyr) => plyr.isActive);
+                newPlayer.turn = activePlayers.length - 1;
+                let positionInitialized = false;
+                for(const tile of game.startTiles){
+                    const isOccupiedTile = activePlayers.some((plyr) => this.gameCreationService.sameCoords(plyr.position, tile.coordinate ));
+                    if(!isOccupiedTile){
+                        newPlayer.initialPosition = tile.coordinate;
+                        newPlayer.position = tile.coordinate;
+                        positionInitialized = true;
+                        break;
+                    }
+                }
+                if(!positionInitialized){
+                    for(const player of activePlayers){
+                        const closestInitialPosition = this.combatService.findClosestAvailablePosition(player.initialPosition, game);
+                        if(closestInitialPosition){
+                            newPlayer.initialPosition = closestInitialPosition;
+                            newPlayer.position = closestInitialPosition;
+                            positionInitialized = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            client.emit(GameCreationEvents.YouJoined, {updatedPlayer: newPlayer, updatedGame: game});
             this.server.to(data.gameId).emit(GameCreationEvents.PlayerJoined, game.players);
             this.server.to(data.gameId).emit(GameCreationEvents.CurrentPlayers, game.players);
+            this.server.to(data.gameId).emit(GameCreationEvents.GameUpdated, game)
+            this.server.emit(GameCreationEvents.GameListUpdated);
         } else {
-            client.emit(GameCreationEvents.GameNotFound, 'La partie a été fermée');
+            client.emit(GameCreationEvents.GameNotFound, 'La partie a été fermée.');
         }
     }
 
@@ -68,25 +98,26 @@ export class GameGateway {
             const game = this.gameCreationService.getGameById(gameId);
             client.emit(
                 GameCreationEvents.CurrentPlayers,
-                game.players.filter((player) => player.isActive),
+                game.players,
             );
         } else {
-            client.emit(GameCreationEvents.GameNotFound, 'La partie a été fermée');
+            client.emit(GameCreationEvents.GameNotFound, 'La partie a été fermée.');
         }
     }
 
     @SubscribeMessage(GameCreationEvents.KickPlayer)
     handleKickPlayer(client: Socket, data: KickPlayerData): void {
-        if (data.playerId.includes('virtualPlayer')) {
-            const game = this.gameCreationService.getGameById(data.gameId);
-            game.players = game.players.filter((player) => player.socketId !== data.playerId);
-            if (!this.gameCreationService.isMaxPlayersReached(game.players, data.gameId)) {
-                game.isLocked = false;
-            }
-            this.server.to(data.gameId).emit(GameCreationEvents.PlayerLeft, game.players);
-            return;
+        const game = this.gameCreationService.getGameById(data.gameId);
+        game.players = game.players.filter((player) => player.socketId !== data.playerId);
+        game.participants = [...game.players];
+        if (!this.gameCreationService.isMaxPlayersReached(game.players, data.gameId)) {
+            game.isLocked = false;
+            this.server.to(game.id).emit(GameCreationEvents.GameLockToggled, game.isLocked);
         }
+        this.server.to(data.gameId).emit(GameCreationEvents.PlayerLeft, game.players);
         this.server.to(data.playerId).emit(GameCreationEvents.PlayerKicked);
+        this.server.to(data.gameId).emit(GameCreationEvents.CurrentPlayers, game.players);
+        this.server.emit(GameCreationEvents.GameListUpdated);
     }
 
     @SubscribeMessage(GameCreationEvents.GetGameData)
@@ -95,23 +126,19 @@ export class GameGateway {
             const game = this.gameCreationService.getGameById(gameId);
             client.emit(GameCreationEvents.CurrentGame, game);
         } else {
-            client.emit(GameCreationEvents.GameNotFound, 'La partie a été fermée');
+            client.emit(GameCreationEvents.GameNotFound, 'La partie a été fermée.');
         }
+    }
+
+    @SubscribeMessage(GameCreationEvents.GetGames)
+    getGames(): Game[] {
+        return this.gameCreationService.getGames();
     }
 
     @SubscribeMessage(GameCreationEvents.AccessGame)
     async handleAccessGame(client: Socket, gameId: string): Promise<void> {
         if (this.gameCreationService.doesGameExist(gameId)) {
             const game = this.gameCreationService.getGameById(gameId);
-
-            if (game.hasStarted) {
-                client.emit(GameCreationEvents.GameLocked, "Vous n'avez pas été assez rapide...\nLa partie a déjà commencé.");
-                return;
-            } else if (game.isLocked) {
-                client.emit(GameCreationEvents.GameLocked, 'La partie est vérouillée, veuillez réessayer plus tard.');
-                return;
-            }
-
             if (game.settings.isFriendsOnly) {
                 const userId = this.userSocketSession.getUserIdBySocket(client.id);
                 if (userId) {
@@ -125,9 +152,32 @@ export class GameGateway {
                     }
                 }
             }
+            if (game.hasStarted && !game.settings.isDropInOut) {
+                client.emit(GameCreationEvents.GameLocked, "Vous n'avez pas été assez rapide...\nLa partie a déjà commencé.");
+                return;
+            } else if (game.hasStarted && game.settings.isDropInOut) {
+                if (game.settings.isFastElimination) {
+                    if(this.gameCreationService.isMaxPlayersReached(game.participants, game.id)){
+                        client.emit(GameCreationEvents.GameLocked, "La partie a atteint son nombre de joueur maximal.\n Veuillez réessayez plus tard.");
+                        return;
+                   }
+                } else {
+                    const activePlayers = game.players.filter((plyr) => plyr.isActive);
+                    if (this.gameCreationService.isMaxPlayersReached(activePlayers, gameId)) {
+                        client.emit(GameCreationEvents.GameLocked, "La partie a atteint son nombre de joueur maximal.\n Veuillez réessayez plus tard.");
+                        return;
+                    }
+                }
+                client.join(gameId);
+                client.emit(GameCreationEvents.GameAccessed, game.id);
+                return;
+            } else if (game.isLocked) {
+                client.emit(GameCreationEvents.GameLocked, 'La partie est vérouillée, veuillez réessayer plus tard.');
+                return;
+            }
 
             client.join(gameId);
-            client.emit(GameCreationEvents.GameAccessed);
+            client.emit(GameCreationEvents.GameAccessed, game.id);
         } else {
             client.emit(GameCreationEvents.GameNotFound, 'Le code est invalide, veuillez réessayer.');
         }
@@ -142,12 +192,13 @@ export class GameGateway {
                 const sockets = await this.server.in(roomId).fetchSockets();
                 sockets.forEach((socket) => {
                     if (game.players.every((player) => player.socketId !== socket.id)) {
-                        socket.emit(GameCreationEvents.GameAlreadyStarted, "La partie a commencée. Vous serez redirigé à la page d'acceuil");
+                        socket.emit(GameCreationEvents.GameAlreadyStarted, "La partie a commencée. Vous serez redirigé à la page d'acceuil.");
                         socket.leave(roomId);
                     }
                 });
                 this.server.to(roomId).emit(GameCreationEvents.GameInitialized, game);
             }
+            this.server.emit(GameCreationEvents.GameListUpdated);
         } else {
             client.emit(GameCreationEvents.GameNotFound);
         }
@@ -159,6 +210,7 @@ export class GameGateway {
         if (game && game.hostSocketId === client.id) {
             game.isLocked = data.isLocked;
             this.server.to(game.id).emit(GameCreationEvents.GameLockToggled, game.isLocked);
+            this.server.emit(GameCreationEvents.GameListUpdated);
         }
     }
 
@@ -177,31 +229,91 @@ export class GameGateway {
     @SubscribeMessage(GameCreationEvents.LeaveGame)
     handleLeaveGame(client: Socket, gameId: string): void {
         let game = this.gameCreationService.getGameById(gameId);
-        if (!game.hasStarted) {
-            if (this.gameCreationService.isPlayerHost(client.id, game.id)) {
-                this.server.to(game.id).emit(GameCreationEvents.GameClosed);
-                this.gameCreationService.deleteRoom(game.id);
+        if(game){
+            if (!game.hasStarted) {
+                if (this.gameCreationService.isPlayerHost(client.id, game.id)) {
+                    this.server.to(game.id).emit(GameCreationEvents.GameClosed);
+                    this.gameCreationService.deleteRoom(game.id);
+                }
+                else {
+                    game.players = game.players.filter((player) => player.socketId !== client.id);
+                    if (!this.gameCreationService.isMaxPlayersReached(game.players, game.id)) {
+                        game.isLocked = false;
+                        this.server.to(game.id).emit(GameCreationEvents.GameLockToggled, game.isLocked);
+                    }
+                    game.participants = [...game.players];
+                    this.server.to(game.id).emit(GameCreationEvents.PlayerLeft, game.players);
+                    this.server.to(game.id).emit(GameCreationEvents.CurrentPlayers, game.players);
+                }
+            }
+            else if (game.players.some((player) => player.socketId === client.id)) {
+                game.players = game.players.map((player) => {
+                    return player.socketId === client.id ? { ...player, isActive: false } : player;
+                });
+                game.isLocked = false;
+                this.server.to(game.id).emit(GameCreationEvents.GameLockToggled, game.isLocked);
+                client.leave(gameId);
+                client.leave(gameId + '-combat');
+                this.server.to(game.id).emit(GameCreationEvents.PlayerLeft, game.players);
+                this.server.to(game.id).emit(GameCreationEvents.GameUpdated, game)
+                if (game.hasStarted && game.mode === Mode.Ctf) {
+                    const activeNonObserverCount = game.players.filter(
+                        (p) => p.isActive && p.isObservationMode !== true
+                    ).length;
+                    
+                    if (activeNonObserverCount === 0) {
+                        console.log(`[CTF] Last active player quit. Ending game ${game.id}`);
+                        this.server.to(game.id).emit(GameCreationEvents.GameEndedNoActivePlayers);
+                        this.gameCreationService.deleteRoom(game.id);
+                    }
+                }
+            } else {
                 return;
             }
         }
-        if (game.players.some((player) => player.socketId === client.id)) {
-            game = this.gameCreationService.handlePlayerLeaving(client, gameId);
-            client.leave(gameId);
-            client.leave(gameId + '-combat');
-            this.server.to(game.id).emit(GameCreationEvents.PlayerLeft, game.players);
-
-            // Check if this is CTF mode and no active non-observer players remain
-            if (game.hasStarted && game.mode === Mode.Ctf) {
-                const activeNonObserverCount = game.players.filter((p) => p.isActive && p.isObservationMode !== true).length;
-
-                if (activeNonObserverCount === 0) {
-                    console.log(`[CTF] Last active player quit. Ending game ${game.id}`);
-                    this.server.to(game.id).emit(GameCreationEvents.GameEndedNoActivePlayers);
-                    this.gameCreationService.deleteRoom(game.id);
+        this.server.emit(GameCreationEvents.GameListUpdated);
+    }
+                
+    @SubscribeMessage(GameCreationEvents.ResumeGame)
+    handleResumeGame(client: Socket, gameId: string): void {
+        if (this.gameCreationService.doesGameExist(gameId)) {
+            const game = this.gameCreationService.getGameById(gameId);
+            if(game.hasStarted){
+                if (!game.settings.isFastElimination) {
+                    const activePlayers = game.players.filter((plyr) => plyr.isActive);
+                    if (this.gameCreationService.isMaxPlayersReached(activePlayers, gameId)) {
+                        client.emit(GameCreationEvents.GameLocked, "La partie a atteint son nombre de joueur maximal.\n Veuillez réessayez plus tard.");
+                        return;
+                    }
                 }
+                client.join(gameId);
+                client.emit(GameCreationEvents.GameResumed, game);
+                return;
             }
+        }
+        client.emit(GameCreationEvents.GameNotFound, 'Le code est invalide, veuillez réessayer.');
+    }
+
+    @SubscribeMessage(GameCreationEvents.ObserveGame)
+    handleObserveGame(client: Socket, data: JoinGameData): void {
+        if (this.gameCreationService.doesGameExist(data.gameId)) {
+            const game = this.gameCreationService.getGameById(data.gameId);
+            client.join(game.id);
+
+            let existingPlayer = game.players.find((plyr) => plyr.name === data.player.name);
+            if (existingPlayer){
+                existingPlayer.socketId = data.player.socketId;
+                existingPlayer.isObservationMode = true;
+            } else {
+                game.players.push(data.player)
+            }
+            const observer = existingPlayer ?? data.player;
+            client.emit(GameCreationEvents.YouJoined, { updatedPlayer: observer, updatedGame: game });
+            this.server.to(game.id).emit(GameCreationEvents.CurrentPlayers, game.players);
+            this.server.to(game.id).emit(GameCreationEvents.GameUpdated, game)
+            this.server.emit(GameCreationEvents.GameListUpdated);
         } else {
-            return;
+            client.emit(GameCreationEvents.GameNotFound, 'La partie a été fermée.');
         }
     }
 

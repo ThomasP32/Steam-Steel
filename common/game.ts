@@ -81,10 +81,12 @@ export interface GameClassic extends Map {
     isLocked: boolean;
     hasStarted: boolean;
     settings: GameSettings;
+    participants: Player [];
 }
 
 interface GameSettings {
     isFastElimination: boolean;
+    isDropInOut: boolean;
     isFriendsOnly: boolean;
 }
 

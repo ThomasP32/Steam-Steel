@@ -1,5 +1,5 @@
 {
-  "name": "theme-2",
+  "name": "theme-light",
   "images": {
     "home_bg": "light-homepage",
     "city_bg": "citybackground",
@@ -33,6 +33,7 @@
     "admin": ".adminPage-container",
     "edition": ".center-area",
     "combat_modal": ".combat-interface",
+    "join_page": ".joinPage-container",
 
     "buttons_all": ".button, button, .btn, .homePage-container .button, .homePage-container button, .homePage-container .btn, .create-game-component .button, .character-page-container .button, .waiting-room-container .button, .game-page-container .button",
     "chat_toggle": ".chat-toggle-button",
@@ -46,8 +47,9 @@
     
     "info_item": ".info-item",
     "inventory_slot": ".inventory-slot"
+
   },
   "background_groups": {
-    "city_pages": ".create-game-component, .waiting-room-container, .game-page-container, .adminPage-container, .character-selection-container, .combat-interface"
+    "city_pages": ".create-game-component, .waiting-room-container, .game-page-container, .adminPage-container, .character-selection-container, .combat-interface, .joinPage-container"
   }
 }

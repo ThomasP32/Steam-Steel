@@ -26,8 +26,9 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
     };
     isChatVisible: boolean = false;
     showGameOptionsModal: boolean = false;
-    gameSettings: { isFastElimination: boolean; isFriendsOnly: boolean } = {
-        isFastElimination: false,
+    gameSettings: { isFastElimination: boolean, isDropInOut: boolean, isFriendsOnly: boolean } = { 
+        isFastElimination: false , 
+        isDropInOut: false,
         isFriendsOnly: false,
     };
 
@@ -91,7 +92,7 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
         this.selectedMap = undefined;
     }
 
-    onGameOptionsNext(options: { isFastElimination: boolean; isFriendsOnly: boolean }): void {
+    onGameOptionsNext(options: { isFastElimination: boolean, isDropInOut: boolean, isFriendsOnly: boolean }): void {
         this.gameSettings = options;
         this.showGameOptionsModal = false;
         if (this.selectedMap) {
