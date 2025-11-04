@@ -160,6 +160,11 @@ export class GameManagerGateway implements OnGatewayInit {
     }
     @SubscribeMessage('startGame')
     startGame(client: Socket, gameId: string): void {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game.participants.find(p => p.socketId === game.hostSocketId)) {
+            const host = game.players.find(p => p.socketId === game.hostSocketId);
+            if (host) game.participants.push(host);
+        }
         this.gameCountdownService.initCountdown(gameId, TURN_DURATION);
         this.startTurn(gameId);
     }

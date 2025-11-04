@@ -61,4 +61,8 @@ export class GamePlayersListComponent implements OnInit, OnChanges {
     isVirtualPlayerSocketId(socketId: string): boolean {
         return !!socketId && socketId.includes('virtualPlayer');
     }
+
+    isObserver(player: Player): boolean | undefined {
+        return player.isObservationMode;
+    }
 }

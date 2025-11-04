@@ -4,6 +4,7 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { Routes, provideRouter, withHashLocation } from '@angular/router';
 import { AdminPageComponent } from '@app/pages/admin-page/admin-page.component';
+import { JoinGamePageComponent } from '@app/pages/join-game-page/join-game-page.component';
 import { AppComponent } from '@app/pages/app/app.component';
 import { CharacterFormPageComponent } from '@app/pages/character-form-page/character-form-page.component';
 import { EndgamePageComponent } from '@app/pages/endgame-page/endgame-page.component';
@@ -25,6 +26,7 @@ const routes: Routes = [
     { path: 'edition/:id', component: GameCreationPageComponent },
     { path: 'create-game', component: GameChoicePageComponent },
     { path: 'admin-page', component: AdminPageComponent },
+    { path: 'join-game', component: JoinGamePageComponent },
     { path: ':gameId/choose-character', component: CharacterFormPageComponent },
     { path: 'create-game/:mapName/create-character', component: CharacterFormPageComponent },
     { path: ':mapName/waiting-room/host', component: WaitingRoomPageComponent },

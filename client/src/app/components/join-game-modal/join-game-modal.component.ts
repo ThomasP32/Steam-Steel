@@ -1,8 +1,10 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, QueryList, ViewChildren } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+// import { Router } from '@angular/router';
+import { AuthService } from '@app/services/auth/auth.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { GameCreationEvents } from '@common/events/game-creation.events';
+import { Game } from '@common/game';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -18,23 +20,32 @@ export class JoinGameModalComponent implements OnInit, AfterViewInit, OnDestroy 
     code: string[] = ['', '', '', ''];
     gameId: string | null = null;
     errorMessage: string | null = null;
+    currentUsername: string | null = null;
     socketSubscription: Subscription = new Subscription();
 
     constructor(
         private readonly socketService: SocketService,
-        private readonly router: Router,
+        // private readonly router: Router,
+        private readonly authService: AuthService,
     ) {
         this.socketService = socketService;
-        this.router = router;
+        // this.router = router;
+        this.authService = authService;
     }
 
-    ngOnInit(): void {
+    async ngOnInit(): Promise<void>  {
         this.configureJoinGameSocketFeatures();
+        await this.loadUserInfo();
     }
 
     ngAfterViewInit(): void {
         this.focusFirstInput();
     }
+
+    private async loadUserInfo(): Promise<void> {
+        const userInfo = await this.authService.getUserInfo();
+        this.currentUsername = userInfo.user.username;
+      }
 
     focusFirstInput(): void {
         const firstInput = this.codeInputs.first;
@@ -68,7 +79,7 @@ export class JoinGameModalComponent implements OnInit, AfterViewInit, OnDestroy 
             const gameCode = this.code.join('');
             this.gameId = gameCode;
 
-            this.socketService.sendMessage(GameCreationEvents.AccessGame, gameCode);
+            this.socketService.sendMessage(GameCreationEvents.GetGameData, gameCode);
         }
     }
 
@@ -82,8 +93,13 @@ export class JoinGameModalComponent implements OnInit, AfterViewInit, OnDestroy 
 
     configureJoinGameSocketFeatures(): void {
         this.socketSubscription.add(
-            this.socketService.listen(GameCreationEvents.GameAccessed).subscribe(() => {
-                this.router.navigate([`join-game/${this.gameId}/create-character`]);
+            this.socketService.listen<Game>(GameCreationEvents.CurrentGame).subscribe((game) => {
+                const existingPlayer = game.players.find((plyr) => plyr.name === this.currentUsername)
+                if (existingPlayer) {
+                    this.socketService.sendMessage(GameCreationEvents.ResumeGame, game.id);
+                } else {
+                    this.socketService.sendMessage(GameCreationEvents.AccessGame, game.id);
+                }
             }),
         );
 

@@ -7,7 +7,6 @@ import { CombatModalComponent } from '@app/components/combat-modal/combat-modal.
 import { GameMapComponent } from '@app/components/game-map/game-map.component';
 import { GamePlayersListComponent } from '@app/components/game-players-list/game-players-list.component';
 import { InventoryModalComponent } from '@app/components/inventory-modal/inventory-modal.component';
-import { JournalComponent } from '@app/components/journal/journal.component';
 import { ObservationModeModalComponent } from '@app/components/observation-mode-modal/observation-mode-modal.component';
 import { PlayerInfosComponent } from '@app/components/player-infos/player-infos.component';
 import { AuthService } from '@app/services/auth/auth.service';
@@ -42,7 +41,6 @@ import { Subscription } from 'rxjs';
         ChatroomComponent,
         GamePlayersListComponent,
         CombatModalComponent,
-        JournalComponent,
         ActionsComponentComponent,
         PlayerInfosComponent,
         InventoryModalComponent,
@@ -125,6 +123,8 @@ export class GamePageComponent implements OnInit, OnDestroy {
             this.leaveGame();
             return;
         }
+        this.listenForGameUpdate();
+
         if (this.player && this.game) {
             this.gameTurnService.listenForTurn();
             this.gameTurnService.listenForPlayerMove();
@@ -184,6 +184,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
 
     leaveGame(): void {
         this.showExitModal = false;
+        this.socketService.sendMessage(GameCreationEvents.LeaveGame, this.game.id);
         this.playerService.resetPlayer();
         this.channelService.removePartyChannel(this.game.id);
         this.socketService.sendMessage(FriendsEvents.UpdateUserStatus, { status: UserStatus.Online });
@@ -191,7 +192,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         setTimeout(() => {
             this.characterService.resetCharacterAvailability();
             this.socketService.disconnect();
-            this.router.navigate(['/main-menu']);
+            this.router.navigate(['/main-menu'], { state: {} });
         }, 100);
     }
 
@@ -355,6 +356,18 @@ export class GamePageComponent implements OnInit, OnDestroy {
                     this.startTurnCountdown = 3;
                     this.delayFinished = true;
                 }
+            }),
+        );
+    }
+
+    listenForGameUpdate(): void {
+        this.socketSubscription.add(
+            this.socketService.listen<Game>(GameCreationEvents.GameUpdated).subscribe((game) => {
+                this.gameService.setGame(game);
+                const me = game.players.find(p => p.socketId === this.playerService.player?.socketId);
+                if(me) this.playerService.setPlayer(me);
+                this.activePlayers = game.players.filter((p) => p.isActive);
+   
             }),
         );
     }

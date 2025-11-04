@@ -1,0 +1,38 @@
+<div class="game-card">
+    <div class="game-image-container">
+        <img [src]="game.imagePreview" alt="map-preview" class="map-img" />
+    </div>
+
+    <div class="game-details">
+        <h2 class="name">{{ game.name }}</h2>
+        <p class="size">Taille : {{ game.mapSize.x }} x {{ game.mapSize.y }}</p>
+        <p class="size">Joueurs : {{ activePlayers.length }} / {{ mapMaxPlayers }}</p>
+        <p class="size">Code : {{ game.id}} </p>
+    </div>
+    <div class="join-actions">
+        @if (game.hasStarted) {
+            <button class="observe-button" (click)="onObserveClick()">
+                Observer
+            </button>
+            @if (game.settings.isDropInOut){
+                @if( existingParticipant ){
+                    <button class="join-button" (click)="onResumeClick()">
+                        Reprendre
+                    </button>
+                } @else if (isFull) {
+                    <button class="full-button">
+                        Verrouillée
+                    </button>
+                } @else {
+                    <button class="join-button" (click)="onJoinClick()">
+                        Jouer
+                    </button>
+                }
+            }}
+        @else if (!game.isLocked) {
+            <button class="join-button" (click)="onJoinClick()">
+                Rejoindre
+            </button>
+        }
+    </div>
+</div>

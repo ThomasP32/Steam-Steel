@@ -1,13 +1,14 @@
-import { ALL_ITEMS, BONUS_REDUCTION, HALF, MapConfig, MapSize, SUFFIX_INCREMENT, SUFFIX_VALUE } from '@common/constants';
+import { ALL_ITEMS, BONUS_REDUCTION, HALF, MapConfig, MapSize } from '@common/constants';
 import { Game, Player } from '@common/game';
 import { ItemCategory, TileCategory } from '@common/map.types';
+import { Coordinate } from '@common/map.types';
 import { Injectable } from '@nestjs/common';
 import { Socket } from 'socket.io';
 
 @Injectable()
 export class GameCreationService {
     private gameRooms: Record<string, Game> = {};
-
+    
     getGameById(gameId: string): Game {
         const game = this.gameRooms[gameId];
         if (!game) {
@@ -36,40 +37,23 @@ export class GameCreationService {
         return gameId in this.gameRooms;
     }
 
-    addPlayerToGame(player: Player, gameId: string): Game {
+    addPlayerToGame(socketId: string, player: Player, gameId: string): Game {
         const game = this.getGameById(gameId);
-
-        // Ensure isObservationMode is explicitly set to false if undefined
         if (player.isObservationMode === undefined) {
             player.isObservationMode = false;
         }
-
-        // TODO dans quel monde est-ce que le player existe déjà???
-        const exactMatchPlayers = game.players.filter((existingPlayer) => existingPlayer.name === player.name);
-        if (exactMatchPlayers.length === 0) {
+        const existingPlayer = game.players.find((plyr) => plyr.name === player.name);
+        if(existingPlayer){
+            if(existingPlayer.specs.life !== 0){
+                existingPlayer.isActive = true;
+                existingPlayer.inventory = [];
+            } 
+            existingPlayer.socketId = socketId;
+        } else {
+            player.turn = game.participants.length - 1;
+            game.participants.push(player);
             this.gameRooms[gameId].players.push(player);
-            return game;
         }
-        const baseName = player.name;
-        const matchingPlayers = game.players.filter((existingPlayer) => {
-            return existingPlayer.name === baseName || existingPlayer.name.startsWith(`${baseName}-`);
-        });
-        let maxSuffix = 0;
-        matchingPlayers.forEach((existingPlayer) => {
-            const match = existingPlayer.name.match(new RegExp(`^${baseName}-(\\d+)$`));
-            if (match) {
-                const suffix = parseInt(match[1], SUFFIX_VALUE);
-                maxSuffix = Math.max(maxSuffix, suffix);
-            } else if (existingPlayer.name === baseName) {
-                maxSuffix = Math.max(maxSuffix, 1);
-            }
-        });
-
-        if (matchingPlayers.length > 0) {
-            player.name = `${baseName}-${maxSuffix + SUFFIX_INCREMENT}`;
-        }
-
-        this.gameRooms[gameId].players.push(player);
         return game;
     }
 
@@ -160,6 +144,10 @@ export class GameCreationService {
         });
     }
 
+    sameCoords(coordsA: Coordinate, coordsB: Coordinate){
+        return coordsA.x === coordsB.x && coordsA.y === coordsB.y;
+    }
+    
     isGameStartable(gameId: string): boolean {
         const game = this.getGameById(gameId);
         const mapSize = Object.values(MapSize).find((size) => MapConfig[size].size === game.mapSize.x);

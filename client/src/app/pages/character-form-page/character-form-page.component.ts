@@ -8,6 +8,7 @@ import { AuthService } from '@app/services/auth/auth.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
+import { GameService } from '@app/services/game/game.service';
 import { PlayerService } from '@app/services/player-service/player.service';
 import { TIME_REDIRECTION } from '@common/constants';
 import { FriendsEvents } from '@common/events/friends.events';
@@ -37,9 +38,10 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     selectedCharacter: Character;
     currentIndex: number;
 
+    game: Game | undefined;
     gameId: string | null = null;
     mapName: string | null = null;
-    gameSettings: { isFastElimination: boolean } = { isFastElimination: false };
+    gameSettings: { isFastElimination: boolean, isDropInOut:boolean } = { isFastElimination: false, isDropInOut: false };
 
     gameHasStarted: boolean = false;
     gameLockedModal: boolean = false;
@@ -60,6 +62,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         private readonly router: Router,
         private readonly route: ActivatedRoute,
         private readonly authService: AuthService,
+        private readonly gameService: GameService,
     ) {
         this.communicationMapService = communicationMapService;
         this.socketService = socketService;
@@ -68,6 +71,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         this.router = router;
         this.route = route;
         this.authService = authService;
+        this.gameService = gameService;
     }
 
     async ngOnInit(): Promise<void> {
@@ -84,6 +88,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
             this.listenToPlayerJoin();
             this.isJoiningGame = true;
             this.gameId = this.route.snapshot.params['gameId'];
+            this.socketService.sendMessage(GameCreationEvents.GetGameData, this.gameId);
             this.socketService.sendMessage(GameCreationEvents.GetPlayers, this.gameId);
         } else {
             this.mapName = this.route.snapshot.params['mapName'];
@@ -145,16 +150,43 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
                 }, TIME_REDIRECTION);
             }),
         );
+
+        this.socketSubscription.add(
+            this.socketService.listen<Game>(GameCreationEvents.CurrentGame).subscribe((game) => {
+                if (game) {
+                    this.game = game;
+                    if (game.settings) {
+                        this.gameSettings =  game.settings;
+                    }
+                    if (game.hasStarted) {
+                        this.gameHasStarted = true;
+                    }
+                }
+            }),
+        );
     }
 
     listenToPlayerJoin(): void {
         this.socketSubscription.add(
-            this.socketService.listen<Player>(GameCreationEvents.YouJoined).subscribe((updatedPlayer: Player) => {
+            this.socketService
+            .listen<{ updatedPlayer: Player, updatedGame: Game }>(GameCreationEvents.YouJoined)
+            .subscribe(({ updatedPlayer, updatedGame }) => {
                 this.playerService.setPlayer(updatedPlayer);
-                this.router.navigate([`${this.gameId}/waiting-room/player`]);
+                if(updatedPlayer.isObservationMode || this.gameSettings.isDropInOut && this.gameHasStarted){
+                    if (updatedGame) {
+                        this.gameService.setGame(updatedGame);
+                        this.router.navigate([`/game/${updatedGame.id}/${updatedGame.name}`], {
+                            state: { player: this.playerService.player, gameId: updatedGame.id },
+                        });
+                    }
+                }                
+                else {
+                    this.router.navigate([`${this.gameId}/waiting-room/player`])
+                }
                 this.socketService.sendMessage(FriendsEvents.UpdateUserStatus, { status: UserStatus.InGame });
             }),
         );
+
         this.socketSubscription.add(
             this.socketService.listen<Player[]>(GameCreationEvents.CurrentPlayers).subscribe((players: Player[]) => {
                 this.characters.forEach((character) => {
@@ -173,6 +205,13 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
                         }
                     }
                 }
+            }),
+        );
+
+        this.socketSubscription.add(
+            this.socketService.listen<Game>(GameCreationEvents.GameUpdated).subscribe((game) => {
+                this.gameService.setGame(game);
+                // this.activePlayers = game.players.filter((p) => p.isActive);
             }),
         );
     }
@@ -235,6 +274,11 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
                         this.router.navigate(['/create-game']);
                     }, TIME_REDIRECTION);
                 }
+            } else if (window.history.state?.isObserver) {
+                this.playerService.player.isActive = false;
+                this.playerService.player.isObservationMode = true;
+                const joinGameData: JoinGameData = { player: this.playerService.player, gameId: this.gameId! };
+                this.socketService.sendMessage(GameCreationEvents.ObserveGame, joinGameData);
             } else {
                 const joinGameData: JoinGameData = { player: this.playerService.player, gameId: this.gameId! };
                 this.socketService.sendMessage(GameCreationEvents.JoinGame, joinGameData);
@@ -276,7 +320,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     onQuit() {
         this.socketService.disconnect();
         this.characterService.resetCharacterAvailability();
-        this.router.navigate(['/main-menu']);
+        this.router.navigate(['/main-menu'], { state: {} });
     }
 
     @HostListener('window:keydown', ['$event'])

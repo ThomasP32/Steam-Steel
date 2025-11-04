@@ -148,7 +148,7 @@ export class CombatService {
 
                 const isReachableTile = this.isReachableTile(newPosition, game);
 
-                if (!isReachableTile && !isOutOfMap) {
+                if (isReachableTile && !isOutOfMap) {
                     return newPosition;
                 }
             }

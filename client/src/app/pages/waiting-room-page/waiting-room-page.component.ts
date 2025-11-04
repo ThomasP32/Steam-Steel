@@ -72,7 +72,10 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     maxPlayers: number;
     showProfileModal: boolean = false;
     isChatVisible: boolean = false;
-    gameSettings: { isFastElimination: boolean; isFriendsOnly: boolean } = { isFastElimination: false, isFriendsOnly: false };
+    gameSettings: { isFastElimination: boolean, isDropInOut: boolean, isFriendsOnly: boolean } = { 
+        isFastElimination: false, 
+        isDropInOut: false, 
+        isFriendsOnly: false };
 
     async ngOnInit(): Promise<void> {
         if (!this.socketService.isSocketAlive()) {
@@ -128,13 +131,13 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
 
     exitGame(): void {
         this.channelService.removePartyChannel(this.waitingRoomCode);
-
+        this.socketService.sendMessage(GameCreationEvents.LeaveGame, this.waitingRoomCode);
         this.socketService.sendMessage(FriendsEvents.UpdateUserStatus, { status: UserStatus.Online });
 
         setTimeout(() => {
             this.characterService.resetCharacterAvailability();
             this.socketService.disconnect();
-            this.router.navigate(['/main-menu']);
+            this.router.navigate(['/main-menu'], { state: {} });
         }, 100);
     }
 

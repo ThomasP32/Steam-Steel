@@ -4,8 +4,6 @@ import { Router } from '@angular/router';
 import { AccountComponent } from '@app/components/account/account.component';
 import { AuthenticationComponent } from '@app/components/authentication/authentication.component';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
-import { FriendsListComponent } from '@app/components/friends-list/friends-list.component';
-import { JoinGameModalComponent } from '@app/components/join-game-modal/join-game-modal.component';
 import { AuthService } from '@app/services/auth/auth.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { Subscription } from 'rxjs';
@@ -14,13 +12,11 @@ import { Subscription } from 'rxjs';
     standalone: true,
     templateUrl: './home-page.component.html',
     styleUrls: ['./home-page.component.scss'],
-    imports: [JoinGameModalComponent, AuthenticationComponent, AccountComponent, CommonModule, ChatroomComponent, FriendsListComponent],
+    imports: [ AuthenticationComponent, AccountComponent, CommonModule, ChatroomComponent ],
 })
 export class HomePageComponent implements OnInit, AfterViewInit, OnDestroy {
     teamNumber = 'Équipe 106';
     developers = ['Maude Racine', 'Noémie Hélias', 'Thomas Perron Duveau', 'Camille Ménard', 'Cerine Ouchene', 'Valentine Champvillard'];
-    showJoinGameModal: boolean = false;
-    isJoinGameModalVisible: boolean = false;
     isLoginModalVisible: boolean = false;
     isRegisterModalVisible: boolean = false;
     isLoggedIn: boolean = false;
@@ -88,12 +84,8 @@ export class HomePageComponent implements OnInit, AfterViewInit, OnDestroy {
         }
     }
 
-    toggleJoinGameVisibility(): void {
-        this.isJoinGameModalVisible = true;
-    }
-
-    onCloseModal(): void {
-        this.isJoinGameModalVisible = false;
+    navigateToJoin(): void {
+        this.router.navigate(['/join-game']);
     }
 
     navigateToCreateGame(): void {
