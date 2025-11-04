@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/map_types.dart';
 import 'package:mobile/services/api_client.dart';
+import 'package:mobile/services/channel_service.dart';
 import 'package:mobile/services/game_service.dart';
 import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
@@ -336,6 +337,13 @@ class WaitingRoomService {
       players.value = [storedPlayer];
 
       SocketService().send('createGame', gamePayload);
+
+      ChannelService().createPartyChannel(newGameId);
+
+      DebugLogger.log(
+        'Party channel created for game: $newGameId',
+        tag: 'WaitingRoomService',
+      );
     } on Exception catch (e) {
       DebugLogger.log('createGame failed: $e', tag: 'WaitingRoomService');
       rethrow;
