@@ -5,6 +5,7 @@ export enum ChatEvents {
     NewMessage = 'newMessage',
     DeleteMessage = 'deleteMessage',
     MessageDeleted = 'messageDeleted',
+    MessageAuthorStatusUpdated = 'messageAuthorStatusUpdated',
 
     CreateChannel = 'createChannel',
     ChannelCreated = 'channelCreated',

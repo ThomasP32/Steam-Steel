@@ -1,3 +1,5 @@
+import { Avatar } from './game';
+
 export interface Message {
     author: string;
     text: string;
@@ -9,4 +11,9 @@ export interface Message {
     // backward compatibility
     gameId?: string;
     channel?: string;
+
+    // author information
+    authorAvatar?: Avatar;
+    authorAvatarCustom?: string;
+    authorStatus?: 'online' | 'offline' | 'ingame';
 }

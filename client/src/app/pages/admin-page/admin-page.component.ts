@@ -97,6 +97,21 @@ export class AdminPageComponent implements OnInit, OnDestroy {
         this.publicMaps = this.maps.filter((map) => map.state === MapState.Public && map.creator !== this.currentUsername);
     }
 
+    scrollToTop(): void {
+        const scrollableContainer = document.querySelector('.scrollable-container');
+        if (scrollableContainer) {
+            scrollableContainer.scrollTo({
+                top: 0,
+                behavior: 'smooth',
+            });
+        } else {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth',
+            });
+        }
+    }
+
     ngOnDestroy(): void {
         this.unsubscribe$.next();
         this.unsubscribe$.complete();

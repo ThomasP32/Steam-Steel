@@ -1,3 +1,4 @@
+import { Avatar } from '@common/game';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
@@ -14,6 +15,15 @@ export class Message extends Document {
 
     @Prop({ required: true })
     roomId: string;
+
+    @Prop({ required: false })
+    authorAvatar?: Avatar;
+
+    @Prop({ required: false })
+    authorAvatarCustom?: string;
+
+    @Prop({ required: false, enum: ['online', 'offline', 'ingame'] })
+    authorStatus?: string;
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);

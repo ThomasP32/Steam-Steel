@@ -34,12 +34,12 @@
             <div class="section-header">
                 <h3>Mes Jeux</h3>
             </div>
-            <app-map-list [maps]="myMaps" [currentUsername]="currentUsername"> </app-map-list>
+            <app-map-list [maps]="myMaps" [currentUsername]="currentUsername" (mapDuplicated)="scrollToTop()"> </app-map-list>
             } @if (publicMaps.length > 0) {
             <div class="section-header">
                 <h3>Jeux Publics</h3>
             </div>
-            <app-map-list [maps]="publicMaps" [currentUsername]="currentUsername"> </app-map-list>
+            <app-map-list [maps]="publicMaps" [currentUsername]="currentUsername" (mapDuplicated)="scrollToTop()"> </app-map-list>
             }
         </div>
     </div>

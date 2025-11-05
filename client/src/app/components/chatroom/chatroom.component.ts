@@ -4,8 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '@app/services/auth/auth.service';
 import { Channel, ChannelService } from '@app/services/channel/channel.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
+import { FriendsService } from '@app/services/friends/friends.service';
 import { ChatEvents } from '@common/events/chat.events';
 import { Message } from '@common/message';
+import { UserStatus } from '@common/user-friends';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -36,14 +38,21 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     newChannelName: string = '';
     channelSearchText: string = '';
 
+    notificationMessage: string = '';
+    showNotification: boolean = false;
+
+    private messagesCache: Map<string, Message[]> = new Map();
+
     constructor(
         public readonly socketService: SocketService,
         private readonly channelService: ChannelService,
         private readonly authService: AuthService,
+        private readonly friendsService: FriendsService,
     ) {
         this.socketService = socketService;
         this.channelService = channelService;
         this.authService = authService;
+        this.friendsService = friendsService;
     }
 
     ngOnInit(): void {
@@ -70,16 +79,28 @@ export class ChatroomComponent implements OnInit, OnDestroy {
         this.channelService.activeChannel$.subscribe((channel) => {
             this.previousChannel = this.activeChannel;
             this.activeChannel = channel;
-            if (channel) {
-                this.messages = [];
-                this.loadChannelMessages(channel);
+            if (channel && channel !== this.previousChannel) {
+                if (this.previousChannel) {
+                    this.messagesCache.set(this.previousChannel, [...this.messages]);
+                }
+
+                const cachedMessages = this.messagesCache.get(channel);
+                if (cachedMessages) {
+                    this.messages = [...cachedMessages];
+                    this.scrollToBottom();
+                    this.loadChannelMessages(channel);
+                } else {
+                    this.messages = [];
+                    this.loadChannelMessages(channel);
+                }
             }
         });
 
-        
-
         this.messageSubscription = this.socketService.listen<Message[]>(ChatEvents.PreviousMessages).subscribe((messages: Message[]) => {
             this.messages = messages;
+            if (this.activeChannel) {
+                this.messagesCache.set(this.activeChannel, [...messages]);
+            }
             this.scrollToBottom();
         });
 
@@ -89,7 +110,16 @@ export class ChatroomComponent implements OnInit, OnDestroy {
                 timestamp: message.timestamp || new Date(),
             };
             this.messages.push(messageWithTimestamp);
+
+            if (this.activeChannel) {
+                this.messagesCache.set(this.activeChannel, [...this.messages]);
+            }
+
             this.scrollToBottom();
+        });
+
+        this.socketService.listen<{ username: string; status: string }>(ChatEvents.MessageAuthorStatusUpdated).subscribe((data) => {
+            this.updateMessageAuthorStatus(data.username, data.status as 'online' | 'offline' | 'ingame');
         });
     }
 
@@ -152,7 +182,7 @@ export class ChatroomComponent implements OnInit, OnDestroy {
         if (this.newChannelName.trim() && this.playerName) {
             this.channelService.createChannel(this.newChannelName.trim(), this.playerName, true).then((result) => {
                 if (!result.success && result.message) {
-                    alert(result.message);
+                    this.showNotificationMessage(result.message);
                 }
             });
             this.newChannelName = '';
@@ -166,13 +196,14 @@ export class ChatroomComponent implements OnInit, OnDestroy {
 
     leaveChannel(channelName: string): void {
         this.channelService.leaveChannel(channelName);
+        this.messagesCache.delete(channelName);
     }
 
     deleteChannel(channelName: string): void {
         if (confirm(`Êtes-vous sûr de vouloir supprimer le channel "${channelName}" ?`)) {
             this.channelService.deleteChannel(channelName).then((result) => {
                 if (!result.success && result.message) {
-                    alert(result.message);
+                    this.showNotificationMessage(result.message);
                 }
             });
         }
@@ -190,6 +221,15 @@ export class ChatroomComponent implements OnInit, OnDestroy {
                 messageArea.scrollTop = messageArea.scrollHeight;
             }
         }, 5);
+    }
+
+    private showNotificationMessage(message: string): void {
+        this.notificationMessage = message;
+        this.showNotification = true;
+
+        setTimeout(() => {
+            this.showNotification = false;
+        }, 3000);
     }
 
     toggleChat() {
@@ -216,10 +256,69 @@ export class ChatroomComponent implements OnInit, OnDestroy {
         if (this.newMessageSubscription) {
             this.newMessageSubscription.unsubscribe();
         }
+
+        this.messagesCache.clear();
     }
 
     private cleanupPartyChannel(): void {
         const partyChannelName = `partie-${this.gameId}`;
         this.channelService.removePartyChannel(partyChannelName);
+    }
+
+    getMessageAuthorAvatarUrl(message: Message): string | null {
+        if (message.authorAvatarCustom) {
+            return message.authorAvatarCustom;
+        }
+        if (message.authorAvatar) {
+            return `assets/characters/${message.authorAvatar}.png`;
+        }
+        return null;
+    }
+
+    isAuthorFriend(username: string): boolean {
+        const friends = this.friendsService.getFriends();
+        return friends.some((friend) => friend.username === username);
+    }
+
+    getStatusText(status: string): string {
+        switch (status) {
+            case UserStatus.Online:
+                return 'En ligne';
+            case UserStatus.Offline:
+                return 'Hors ligne';
+            case UserStatus.InGame:
+                return 'En jeu';
+            default:
+                return 'Inconnu';
+        }
+    }
+
+    updateMessageAuthorStatus(username: string, status: 'online' | 'offline' | 'ingame'): void {
+        let updated = false;
+        this.messages.forEach((message) => {
+            if (message.author === username) {
+                message.authorStatus = status;
+                updated = true;
+            }
+        });
+
+        if (updated) {
+            if (this.activeChannel) {
+                this.messagesCache.set(this.activeChannel, [...this.messages]);
+            }
+
+            this.messagesCache.forEach((messages, channelName) => {
+                let cacheUpdated = false;
+                messages.forEach((message) => {
+                    if (message.author === username) {
+                        message.authorStatus = status;
+                        cacheUpdated = true;
+                    }
+                });
+                if (cacheUpdated) {
+                    this.messagesCache.set(channelName, [...messages]);
+                }
+            });
+        }
     }
 }
