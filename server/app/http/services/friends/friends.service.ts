@@ -1,15 +1,20 @@
 import { Friend, FriendRequest, FriendRequestStatus, UserStatus } from '@common/user-friends';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ChatroomService } from '../../../services/chatroom/chatroom.service';
 import { User } from '../../model/schemas/user/user.schema';
 
 @Injectable()
 export class FriendsService {
     private friendsGateway: any;
 
-    constructor(@InjectModel(User.name) private userModel: Model<User>) {
+    constructor(
+        @InjectModel(User.name) private userModel: Model<User>,
+        @Inject(forwardRef(() => ChatroomService)) private chatroomService: ChatroomService,
+    ) {
         this.userModel = userModel;
+        this.chatroomService = chatroomService;
     }
 
     setFriendsGateway(friendsGateway: any) {
@@ -195,8 +200,24 @@ export class FriendsService {
         if (user && user.status !== status) {
             user.status = status;
             await user.save();
+
+            if (this.chatroomService) {
+                try {
+                    const statusString = status === UserStatus.Online ? 'online' : status === UserStatus.Offline ? 'offline' : 'ingame';
+                    const updatedCount = await this.chatroomService.updateMessageAuthorStatus(username, statusString);
+
+                    if (updatedCount > 0 && this.friendsGateway) {
+                        this.friendsGateway.notifyMessageAuthorStatusUpdate(username, statusString);
+                    }
+                } catch (error) {
+                    console.error('Error updating message author status:', error);
+                }
+            }
         }
-        this.friendsGateway.notifyFriendsStatusUpdate(username, status);
+
+        if (this.friendsGateway) {
+            this.friendsGateway.notifyFriendsStatusUpdate(username, status);
+        }
     }
 
     async getFriends(userId: string): Promise<Friend[]> {

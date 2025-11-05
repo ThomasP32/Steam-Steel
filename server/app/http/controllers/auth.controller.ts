@@ -5,6 +5,7 @@ import { Body, Controller, Delete, Get, HttpStatus, Inject, Patch, Post, Req, Re
 import { ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import * as jwt from 'jsonwebtoken';
+import { ChatroomService } from '../../services/chatroom/chatroom.service';
 import { AdminService } from '../services/admin/admin.service';
 import { FriendsService } from '../services/friends/friends.service';
 import { UserService } from '../services/user/user.service';
@@ -15,6 +16,7 @@ export class AuthController {
     @Inject(UserService) private readonly userService: UserService;
     @Inject(AdminService) private readonly adminService: AdminService;
     @Inject(FriendsService) private readonly friendsService: FriendsService;
+    @Inject(ChatroomService) private readonly chatroomService: ChatroomService;
 
     @ApiCreatedResponse({
         description: 'Register a new user',
@@ -134,7 +136,29 @@ export class AuthController {
         if (error) return { success: false, message: error };
         const user = await this.userService.findById(userId);
         if (!user) return { success: false, message: 'Utilisateur non trouvé' };
+
+        const oldUsername = user.username;
+        const oldAvatar = user.avatar;
+        const oldAvatarCustom = user.avatarCustom;
+
         const result = await this.userService.updateUserWithChecks(user, email, username, avatar, avatarCustom);
+
+        if (result.success) {
+            try {
+                if (username && username !== oldUsername) {
+                    await this.chatroomService.updateMessageAuthor(oldUsername, username);
+                }
+
+                const avatarChanged = avatar !== oldAvatar || avatarCustom !== oldAvatarCustom;
+                if (avatarChanged) {
+                    const currentUsername = username || oldUsername;
+                    await this.chatroomService.updateMessageAuthorAvatar(currentUsername, avatar, avatarCustom);
+                }
+            } catch (error) {
+                console.error('Erreur lors de la mise à jour des messages:', error);
+            }
+        }
+
         return result;
     }
 
@@ -145,6 +169,17 @@ export class AuthController {
         const user = await this.userService.updateStatsById(userId, stats.mode, stats.isWin, stats.duration);
         if (!user) return { success: false, message: 'Utilisateur non trouvé' };
         return { success: true, user };
+    }
+
+    @Get('users/search')
+    async searchUsers(@Req() req) {
+        const { error } = await this.getUserIdFromToken(req);
+        if (error) return { success: false, message: error };
+
+        const query = req.query.q || '';
+        const users = await this.userService.searchUsersByUsername(query);
+
+        return { success: true, users };
     }
 
     private async getUserIdFromToken(req: any): Promise<{ userId?: string; error?: string }> {

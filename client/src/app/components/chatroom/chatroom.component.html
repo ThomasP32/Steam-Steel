@@ -1,4 +1,10 @@
 <div class="chat-container" [class.retracted]="isChatRetracted">
+    @if (showNotification) {
+    <div class="notification-toast">
+        {{ notificationMessage }}
+    </div>
+    }
+
     <div class="chat-header" (click)="toggleChat()">
         <div class="header-left">
             <strong>Clavardage</strong>
@@ -22,12 +28,19 @@
 
     @if (showAvailableChannels) {
     <div class="channel-panel">
+        <div class="create-channel">
+            <input
+                [(ngModel)]="newChannelName"
+                placeholder="Nom du nouveau salon"
+                maxlength="20"
+                pattern="[a-zA-Z0-9_-]+"
+                title="Seules les lettres, chiffres, tirets et underscores sont autorisés"
+                (keydown.enter)="createChannel()"
+            />
+            <button class="create-btn" (click)="createChannel()">Créer</button>
+        </div>
         <div class="search-channel">
             <input [(ngModel)]="channelSearchText" placeholder="Rechercher un salon..." maxlength="50" class="search-input" />
-        </div>
-        <div class="create-channel">
-            <input [(ngModel)]="newChannelName" placeholder="Nom du nouveau salon" maxlength="20" (keydown.enter)="createChannel()" />
-            <button class="create-btn" (click)="createChannel()">Créer</button>
         </div>
         <div class="channel-list">
             @for (channel of getFilteredAvailableChannels(); track channel.name) {
@@ -70,7 +83,25 @@
                     @if (message.author) {
                     <div class="message-content">
                         <div class="message-header">
-                            <span class="author">{{ message.author }}</span>
+                            <div class="author-info">
+                                <div class="author-avatar">
+                                    @if (getMessageAuthorAvatarUrl(message)) {
+                                    <img [src]="getMessageAuthorAvatarUrl(message)" [alt]="message.author + ' avatar'" class="avatar-image" />
+                                    } @else {
+                                    <i class="fas fa-user"></i>
+                                    } @if (isAuthorFriend(message.author) && message.authorStatus) {
+                                    <div class="status-indicator" [class]="'status-' + message.authorStatus"></div>
+                                    }
+                                </div>
+                                <div class="author-details">
+                                    <span class="author">{{ message.author }}</span>
+                                    @if (isAuthorFriend(message.author) && message.authorStatus) {
+                                    <span class="author-status" [class]="'status-text-' + message.authorStatus">{{
+                                        getStatusText(message.authorStatus)
+                                    }}</span>
+                                    }
+                                </div>
+                            </div>
                             <span class="timestamp">{{ message.timestamp | date: 'HH:mm:ss' }}</span>
                         </div>
                         <div class="message-text">{{ message.text }}</div>

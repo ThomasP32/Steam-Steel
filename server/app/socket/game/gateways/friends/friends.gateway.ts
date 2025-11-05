@@ -1,3 +1,4 @@
+import { ChatEvents } from '@common/events/chat.events';
 import { FriendsEvents } from '@common/events/friends.events';
 import { UserStatus } from '@common/user-friends';
 import { Inject } from '@nestjs/common';
@@ -5,6 +6,7 @@ import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/web
 import { Server } from 'socket.io';
 import { FriendsService } from '../../../../http/services/friends/friends.service';
 import { UserService } from '../../../../http/services/user/user.service';
+import { ChatroomService } from '../../../../services/chatroom/chatroom.service';
 import { UserSocketService } from '../../../../services/user-socket/user-socket.service';
 @WebSocketGateway({ namespace: '/game', cors: { origin: '*' } })
 export class FriendsGateway {
@@ -12,6 +14,7 @@ export class FriendsGateway {
 
     @Inject(FriendsService) private readonly friendsService: FriendsService;
     @Inject(UserService) private readonly userService: UserService;
+    @Inject(ChatroomService) private readonly chatroomService: ChatroomService;
     @Inject(UserSocketService) private readonly userSocketService: UserSocketService;
 
     constructor() {
@@ -27,6 +30,15 @@ export class FriendsGateway {
             const user = await this.userService.findById(userId);
             if (user) {
                 await this.friendsService.updateUserStatus(user.username, data.status);
+
+                if (data.status === UserStatus.Online || data.status === UserStatus.Offline || data.status === UserStatus.InGame) {
+                    const statusString = data.status === UserStatus.Online ? 'online' : data.status === UserStatus.Offline ? 'offline' : 'ingame';
+                    const updatedCount = await this.chatroomService.updateMessageAuthorStatus(user.username, statusString);
+
+                    if (updatedCount > 0) {
+                        this.notifyMessageAuthorStatusUpdate(user.username, statusString);
+                    }
+                }
             }
         }
     }
@@ -139,5 +151,12 @@ export class FriendsGateway {
                 }
             }
         }
+    }
+
+    public notifyMessageAuthorStatusUpdate(username: string, status: string): void {
+        this.server.emit(ChatEvents.MessageAuthorStatusUpdated, {
+            username,
+            status,
+        });
     }
 }

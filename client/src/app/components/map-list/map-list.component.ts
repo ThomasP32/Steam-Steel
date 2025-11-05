@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnDestroy } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
 import { Router } from '@angular/router';
 import { MapService } from '@app/services/map/map.service';
 import { DetailedMap, MapState } from '@common/map.types';
@@ -15,6 +15,7 @@ import { Subject } from 'rxjs';
 export class MapListComponent implements OnDestroy {
     @Input() maps: DetailedMap[] = [];
     @Input() currentUsername: string = '';
+    @Output() mapDuplicated = new EventEmitter<void>();
 
     currentMapId: string | null = null;
     showDeleteModal = false;
@@ -41,6 +42,7 @@ export class MapListComponent implements OnDestroy {
     async onDuplicateMap(map: DetailedMap): Promise<void> {
         try {
             await this.mapService.duplicateMap(map._id.toString());
+            this.mapDuplicated.emit();
         } catch (error: any) {
             console.error('Erreur lors de la duplication du jeu:', error);
         }

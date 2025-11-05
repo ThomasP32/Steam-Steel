@@ -1,18 +1,23 @@
 .friends-container {
     background: linear-gradient(135deg, #3b3f46 30%, #282c34 100%);
-    border: 2px solid #2c3e50;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 20px;
     border: 2px solid #b5651d;
+    border-radius: 12px;
+    padding: 28px;
+    margin: 0;
     font-family: 'Press Start 2P', cursive;
     color: #c0c0c0;
-    max-width: 400px;
+    min-width: 480px;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
 }
 
-.add-friend-section {
+.search-section {
     margin-bottom: 20px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .add-friend-form {
@@ -21,15 +26,22 @@
     margin-bottom: 8px;
 }
 
-.friend-input {
+.autocomplete-container {
+    position: relative;
     flex: 1;
-    padding: 8px 12px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px 16px;
     background-color: #2c3e50;
     border: 2px solid #34495e;
     color: #c0c0c0;
     font-family: 'Press Start 2P', cursive;
-    font-size: 10px;
-    border-radius: 4px;
+    font-size: 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    box-sizing: border-box;
 
     &:focus {
         outline: none;
@@ -39,11 +51,6 @@
 
     &::placeholder {
         color: #7f8c8d;
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
     }
 }
 
@@ -74,8 +81,8 @@
 
 .error-message {
     color: #e74c3c;
-    font-size: 8px;
-    margin-top: 5px;
+    font-size: 11px;
+    margin-top: 8px;
     text-align: center;
 }
 
@@ -191,8 +198,8 @@
 }
 
 .status-dot {
-    width: 8px;
-    height: 8px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     display: inline-block;
 }
@@ -232,13 +239,18 @@
 }
 
 .remove-friend-btn {
-    padding: 6px 8px;
+    padding: 8px 10px;
     background-color: #e74c3c;
     border: 2px solid #c0392b;
     color: white;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 6px;
     transition: all 0.3s ease;
+    min-width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
         background-color: #c0392b;
@@ -246,7 +258,7 @@
     }
 
     i {
-        font-size: 8px;
+        font-size: 12px;
     }
 }
 
@@ -258,14 +270,14 @@
 
 .tab-button {
     flex: 1;
-    padding: 10px 12px;
+    padding: 14px 16px;
     background-color: #34495e;
     border: none;
     color: #c0c0c0;
     font-family: 'Press Start 2P', cursive;
-    font-size: 8px;
+    font-size: 11px;
     cursor: pointer;
-    border-radius: 4px 4px 0 0;
+    border-radius: 6px 6px 0 0;
     transition: all 0.3s ease;
     position: relative;
 
@@ -288,11 +300,11 @@
     background-color: #e74c3c;
     color: white;
     border-radius: 50%;
-    padding: 2px 6px;
-    font-size: 6px;
-    margin-left: 5px;
+    padding: 4px 8px;
+    font-size: 9px;
+    margin-left: 8px;
     display: inline-block;
-    min-width: 12px;
+    min-width: 18px;
     text-align: center;
 }
 
@@ -323,11 +335,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px;
+    padding: 16px;
     background-color: #34495e;
     border: 2px solid #2c3e50;
-    border-radius: 6px;
-    margin-bottom: 8px;
+    border-radius: 8px;
+    margin-bottom: 12px;
     transition: all 0.3s ease;
 
     &:hover {
@@ -372,13 +384,13 @@
 }
 
 .request-name {
-    font-size: 10px;
-    margin-bottom: 2px;
+    font-size: 13px;
+    margin-bottom: 4px;
     color: #c0c0c0;
 }
 
 .request-message {
-    font-size: 7px;
+    font-size: 10px;
     color: #7f8c8d;
 }
 
@@ -388,13 +400,18 @@
 }
 
 .accept-btn {
-    padding: 6px 8px;
+    padding: 8px 10px;
     background-color: #27ae60;
     border: 2px solid #2ecc71;
     color: white;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 6px;
     transition: all 0.3s ease;
+    min-width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
         background-color: #2ecc71;
@@ -402,18 +419,23 @@
     }
 
     i {
-        font-size: 8px;
+        font-size: 12px;
     }
 }
 
 .reject-btn {
-    padding: 6px 8px;
+    padding: 8px 10px;
     background-color: #e74c3c;
     border: 2px solid #c0392b;
     color: white;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 6px;
     transition: all 0.3s ease;
+    min-width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
         background-color: #c0392b;
@@ -421,7 +443,7 @@
     }
 
     i {
-        font-size: 8px;
+        font-size: 12px;
     }
 }
 
@@ -444,5 +466,167 @@
             font-size: 7px;
             opacity: 0.8;
         }
+    }
+}
+
+.users-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.section-header {
+    margin: 20px 0 15px 0;
+
+    h4 {
+        font-size: 13px;
+        color: #b5651d;
+        margin: 0;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #34495e;
+    }
+}
+
+.user-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px;
+    margin-bottom: 10px;
+    background-color: #2c3e50;
+    border: 1px solid #34495e;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background-color: #34495e;
+        border-color: #4a5568;
+    }
+
+    &.friend-user {
+        border-left: 4px solid #27ae60;
+    }
+
+    &.other-user {
+        border-left: 4px solid #7f8c8d;
+    }
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: #34495e;
+    overflow: hidden;
+    border: 2px solid #34495e;
+
+    .avatar-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    i {
+        font-size: 16px;
+        color: #7f8c8d;
+    }
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.user-name {
+    font-size: 13px;
+    color: #c0c0c0;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.user-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+}
+
+.pending-status {
+    font-size: 10px;
+    color: #f39c12;
+    font-style: italic;
+}
+
+.add-friend-btn-list {
+    padding: 8px 12px;
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    transition: background-color 0.2s;
+    min-width: 40px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover:not(:disabled) {
+        background-color: #229954;
+    }
+
+    &:disabled {
+        background-color: #7f8c8d;
+        cursor: not-allowed;
+    }
+
+    i {
+        font-size: 12px;
+    }
+}
+
+.loading-users {
+    text-align: center;
+    padding: 30px;
+    color: #7f8c8d;
+
+    i {
+        font-size: 24px;
+        margin-bottom: 15px;
+        color: #b5651d;
+    }
+
+    p {
+        font-size: 12px;
+        margin: 0;
+    }
+}
+
+.no-users {
+    text-align: center;
+    padding: 30px;
+    color: #7f8c8d;
+
+    i {
+        font-size: 32px;
+        margin-bottom: 15px;
+        color: #34495e;
+    }
+
+    p {
+        font-size: 13px;
+        margin: 0;
     }
 }

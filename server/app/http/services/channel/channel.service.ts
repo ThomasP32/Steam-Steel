@@ -10,10 +10,32 @@ export class ChannelService {
     }
 
     async createChannel(name: string, creator: string, isPublic: boolean = true) {
+        if (!name || name.trim().length === 0) {
+            throw new Error('Le nom du channel ne peut pas être vide');
+        }
+
+        if (name.includes(' ')) {
+            throw new Error("Le nom du channel ne peut pas contenir d'espaces");
+        }
+
+        const whitespaceRe = /\s/;
+        if (whitespaceRe.test(name)) {
+            throw new Error("Le nom du channel ne peut pas contenir d'espaces");
+        }
+
+        if (name.length > 20) {
+            throw new Error('Le nom du channel ne peut pas dépasser 20 caractères');
+        }
+
+        if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+            throw new Error('Le nom du channel ne peut contenir que des lettres, chiffres, tirets et underscores');
+        }
+
         const existing = await this.channelModel.findOne({ name });
         if (existing) {
-            throw new Error('Channel already exists');
+            throw new Error('Un channel avec ce nom existe déjà');
         }
+
         const newChannel = await this.channelModel.create({ name, creator, isPublic });
         return newChannel;
     }

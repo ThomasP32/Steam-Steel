@@ -103,6 +103,11 @@ export class UserService {
         avatar?: Avatar,
         avatarCustom?: string,
     ): Promise<{ success: boolean; message?: string }> {
+        const validationError = this.validateUpdateInputs(email, username);
+        if (validationError) {
+            return { success: false, message: validationError };
+        }
+
         if (email && email !== user.email) {
             const existingEmail = await this.findByEmail(email);
             if (existingEmail && String(existingEmail._id) !== String(user._id)) {
@@ -205,6 +210,41 @@ export class UserService {
         return null;
     }
 
+    private validateUpdateInputs(email: string, username: string): string | null {
+        const emailRaw = email ?? '';
+        const usernameRaw = username ?? '';
+
+        const emailTrim = emailRaw.trim();
+        const usernameTrim = usernameRaw.trim();
+
+        if (emailTrim.length === 0 || usernameTrim.length === 0) {
+            return "L'email et le pseudo sont obligatoires";
+        }
+
+        const whitespaceRe = /\s/;
+        if (whitespaceRe.test(emailRaw) || whitespaceRe.test(usernameRaw)) {
+            return "Les champs ne peuvent pas contenir d'espaces";
+        }
+
+        if (email.length > 50) {
+            return "L'email ne peut pas dépasser 50 caractères";
+        }
+        if (username.length > 20) {
+            return 'Le pseudonyme ne peut pas dépasser 20 caractères';
+        }
+
+        if (username.length < 3) {
+            return 'Le pseudonyme doit contenir au moins 3 caractères';
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return "Format d'email invalide";
+        }
+
+        return null;
+    }
+
     private validateLoginInputs(username: string, password: string): string | null {
         if (!username || !password) {
             return 'Tous les champs sont obligatoires';
@@ -242,5 +282,24 @@ export class UserService {
         if (!friendUser) return [];
 
         return this.userModel.find({ friends: friendUser._id.toString() }).exec();
+    }
+
+    async searchUsersByUsername(query: string): Promise<{ username: string }[]> {
+        let searchQuery: any = {};
+
+        if (query && query.length > 0) {
+            searchQuery.username = { $regex: `^${query}`, $options: 'i' };
+        }
+
+        const users = await this.userModel
+            .find(searchQuery)
+            .select('username')
+            .limit(query ? 10 : 100)
+            .sort({ username: 1 })
+            .exec();
+
+        return users.map((user) => ({
+            username: user.username,
+        }));
     }
 }
