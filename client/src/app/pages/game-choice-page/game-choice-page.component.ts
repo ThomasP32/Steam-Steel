@@ -7,7 +7,7 @@ import { SocketService } from '@app/services/communication-socket/communication-
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { MapConversionService } from '@app/services/map-conversion/map-conversion.service';
 import { AdminEvents } from '@common/events/admin.events';
-import { Map } from '@common/map.types';
+import { Map, Mode } from '@common/map.types';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 @Component({
     selector: 'app-game-choice-page',
@@ -31,6 +31,11 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
         isDropInOut: false,
         isFriendsOnly: false,
     };
+
+    isFilterOpen: boolean = false;
+    sortBy: 'name' | 'players' | 'mode'| null = null;
+    sortOrder: 'asc' | 'desc' = 'asc';
+    sortedMaps: Map[];
 
     private readonly router: Router = inject(Router);
     private readonly unsubscribe$ = new Subject<void>();
@@ -64,6 +69,7 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
         } else {
             this.maps = await firstValueFrom(this.communicationMapService.basicGet<Map[]>('map'));
         }
+        this.sortedMaps = this.maps;
     }
 
     selectMap(mapName: string) {
@@ -73,6 +79,51 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
 
     getMapPlayers(mapSize: number): string {
         return this.mapConversionService.getPlayerCountMessage(mapSize);
+    }
+
+    toggleSort(sortOption: 'name' | 'players' | 'mode'){
+        if(this.sortBy === sortOption){
+            this.sortBy = null;
+            this.sortedMaps = [...this.maps]
+
+        } else {
+            this.sortBy = sortOption;
+            this.applySort()
+        }
+    }
+
+    toggleOrder(){
+        this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+        if(this.sortBy)this.applySort();
+    }
+
+    applySort(){
+        const direction = this.sortOrder === 'asc' ? 1 : -1;
+        const modeWeight = (mode: string) =>
+            mode === Mode.Classic ? 1:
+            mode === Mode.Ctf ? 2:99
+        
+        this.sortedMaps.sort((a, b) => {
+            let va: any, vb: any;
+            switch (this.sortBy) {
+                case 'name':
+                    va = a.name.toLowerCase(); vb = b.name.toLowerCase();
+                    break;
+                case 'players':
+                    va = this.getMapPlayers(a.mapSize.x);
+                    vb = this.getMapPlayers(b.mapSize.x);
+                    break;
+                case 'mode':
+                    va = modeWeight(a.mode);
+                    vb = modeWeight(b.mode);
+                    break;
+                default:
+                    return 0;
+            }
+            if (va < vb) return -1 * direction;
+            if (va > vb) return 1 * direction;
+            return 0;
+        });
     }
 
     async next() {
