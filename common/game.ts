@@ -81,7 +81,7 @@ export interface GameClassic extends Map {
     isLocked: boolean;
     hasStarted: boolean;
     settings: GameSettings;
-    participants: Player [];
+    participants: Player[];
 }
 
 interface GameSettings {

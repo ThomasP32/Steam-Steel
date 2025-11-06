@@ -5,7 +5,7 @@
     <div class="header">
         <h2>CHOISIS TON JEU</h2>
     </div>
-<button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
+    <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
         <i class="fas fa-comments" aria-hidden="true"></i>
     </button>
     @if (isChatVisible) {
@@ -15,8 +15,19 @@
     }
     <div class="map-view">
         <div class="scrollable-container">
+            <div class="filters-row">
+                <span class="filters-label">Filtrer par :</span>
+                <button class="filters-btn" [class.is-active]="sortBy==='name'"    (click)="toggleSort('name')">Nom</button>
+                <button class="filters-btn" [class.is-active]="sortBy==='players'" (click)="toggleSort('players')">Nombre de joueurs</button>
+                <button class="filters-btn" [class.is-active]="sortBy==='mode'"    (click)="toggleSort('mode')">Mode</button>
+              
+                <button class="order-btn" (click)="toggleOrder()" [attr.data-order]="sortOrder" aria-label="Asc/Desc">
+                    <img [src]="sortOrder==='asc' ? 'assets/icons/sort-asc.png' : 'assets/icons/sort-desc.png'"
+                    alt="Ordre de tri" width="24" height="24"/>                </button>
+              </div>
+              
             <div class="map-cards">
-                @for(map of this.maps; track map.name) {
+                @for(map of this.sortedMaps; track map.name) {
                 <div class="map-card" [ngClass]="{ selected: selectedMap === map.name }" (click)="selectMap(map.name)">
                     <img [src]="map.imagePreview" alt="map-preview" class="map-img" />
                     <div class="player-count-bar">
