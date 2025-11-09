@@ -72,7 +72,7 @@ export class ActionsComponentComponent implements OnInit {
     }
 
     fight(): void {
-        if (this.combatAvailable) {
+        if (this.combatAvailable && this.thisPlayerTurn()) {
             if (this.possibleOpponents.length === 1) {
                 const startCombatData: StartCombatData = { gameId: this.gameService.game.id, opponent: this.possibleOpponents[0] };
                 this.socketService.sendMessage(CombatEvents.StartCombat, startCombatData);
@@ -82,7 +82,7 @@ export class ActionsComponentComponent implements OnInit {
         }
     }
     toggleDoor() {
-        if (this.doorActionAvailable) {
+        if (this.doorActionAvailable && this.thisPlayerTurn()) {
             if (this.possibleDoors.length === 1) {
                 this.gameTurnService.toggleDoor(this.possibleDoors[0]);
             } else {
@@ -91,12 +91,14 @@ export class ActionsComponentComponent implements OnInit {
         }
     }
     breakWall(): void {
-        if (this.breakWallActionAvailable) {
+        if (this.breakWallActionAvailable && this.thisPlayerTurn()) {
             this.gameTurnService.breakWall(this.possibleWalls[0]);
         }
     }
     endTurn() {
-        this.gameTurnService.endTurn();
+        if (this.thisPlayerTurn()) {
+            this.gameTurnService.endTurn();
+        }
     }
     openExitConfirmationModal(): void {
         this.showExitModal = true;

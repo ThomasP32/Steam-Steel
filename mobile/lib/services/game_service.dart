@@ -41,11 +41,10 @@ class GameService {
     final game = currentGame;
     if (game == null) return 'Inconnue';
 
-    final mapSize = game.mapSize;
-    final totalTiles = mapSize.x * mapSize.y;
+    final mapSize = game.mapSize.x;
 
-    if (totalTiles <= 100) return 'Petite';
-    if (totalTiles <= 225) return 'Moyenne';
+    if (mapSize == 10) return 'Petite';
+    if (mapSize == 15) return 'Moyenne';
     return 'Grande';
   }
 
@@ -191,6 +190,7 @@ class GameService {
       avatar: Avatar.values[(json['avatar'] as int? ?? 1) - 1],
       isActive: json['isActive'] as bool? ?? true,
       isGameWinner: json['isGameWinner'] as bool? ?? false,
+      isObservationMode: json['isObservationMode'] as bool? ?? false,
       specs: Specs(
         life: specsJson['life'] as int? ?? 0,
         evasions: specsJson['evasions'] as int? ?? 0,

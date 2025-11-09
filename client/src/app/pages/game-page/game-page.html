@@ -14,22 +14,11 @@
 }
 <div class="game-page-container">
     <div class="game-info-panel">
-        <app-player-infos [player]="player"></app-player-infos>
-        <div class="game-info">
-            <h2>Informations de la partie</h2>
-            <div class="info-item">
-                <p>Taille de la carte :</p>
-                <span>{{ mapConversionService.convertNumberToString(game.mapSize.x) }}</span>
-            </div>
-            <div class="info-item">
-                <p>Nombre de joueurs :</p>
-                <span>{{ game.players.length}}</span>
-            </div>
-            <div class="info-item">
-                <p>Joueur Actif :</p>
-                <span>{{ currentPlayerTurn }}</span>
-            </div>
-        </div>
+        <app-player-infos 
+            [player]="player" 
+            [currentPlayerTurn]="currentPlayerTurn"
+            (showExitModalChange)="onShowExitModalChange($event)"
+        ></app-player-infos>
     </div>
 
     <div class="game-map-container">
@@ -63,19 +52,9 @@
             </div>
         </div>
     </div>
-    <div class="actions-container">
-        <app-actions-component
-            [player]="player"
-            [currentPlayerTurn]="currentPlayerTurn"
-            (showExitModalChange)="onShowExitModalChange($event)"
-        ></app-actions-component>
-        <div class="actions-info">
-            <div class="actions">
-                <p>Actions restantes: {{ player.specs.actions }}</p>
-                <p>Mouvements restants: {{ player.specs.movePoints }}</p>
-            </div>
-        </div>
-    </div>
+</div>
+<div class="challenge-section">
+    <app-challenge></app-challenge>
 </div>
 <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
     <i class="fas fa-comments" aria-hidden="true"></i>
@@ -110,13 +89,8 @@
 <div class="game-finished-modal">
     <div class="popup-overlay">
         <div class="modal">
-            @if(game.mode === 'ctf') {
-            <h2>{{ winnerName }} a capturé le drapeau.</h2>
-            <p>La partie est finie, vous serez redirigé.</p>
-            } @else {
             <h2>{{ winnerName }} a gagné.</h2>
             <p>La partie est finie, vous serez redirigé.</p>
-            }
         </div>
     </div>
 </div>

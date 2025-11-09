@@ -145,7 +145,7 @@ class _ProfileButton extends StatelessWidget {
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(8),
-          color: isSelected ? Colors.orange.withOpacity(0.1) : null,
+          color: isSelected ? Colors.orange.withValues(alpha: 0.1) : null,
         ),
         child: Text(
           label,

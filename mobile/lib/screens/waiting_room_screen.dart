@@ -9,15 +9,22 @@ import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/services/waiting_room_service.dart';
 import 'package:mobile/widgets/chat_widget.dart';
+import 'package:mobile/widgets/game/challenges_widget.dart';
 import 'package:mobile/widgets/waiting_room/profile_modal_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 class WaitingRoomScreen extends StatefulWidget {
-  const WaitingRoomScreen({this.gameId, this.mapName, super.key});
+  const WaitingRoomScreen({
+    this.gameId,
+    this.mapName,
+    this.gameSettings,
+    super.key,
+  });
 
   final String? gameId;
   final String? mapName;
+  final GameSettings? gameSettings;
 
   @override
   State<WaitingRoomScreen> createState() => _WaitingRoomScreenState();
@@ -42,13 +49,13 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
     super.initState();
 
     final local = _playerService.notifier.value;
-    if (local != null && local.name.isNotEmpty) {
+    if (local.name.isNotEmpty) {
       _playerName = local.name;
     }
 
     _playerListener = () {
       final p = _playerService.notifier.value;
-      if (p != null && mounted && p.name.isNotEmpty && p.name != _playerName) {
+      if (mounted && p.name.isNotEmpty && p.name != _playerName) {
         setState(() => _playerName = p.name);
       }
     };
@@ -59,7 +66,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
       duration: const Duration(seconds: 6),
     )..repeat();
 
-    _service.initialize(widget.gameId, widget.mapName);
+    _service.initialize(widget.gameId, widget.mapName, widget.gameSettings);
 
     _listenToGameClosed();
     _listenToGameInitialized();
@@ -69,14 +76,16 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
   void _listenToGameClosed() {
     _closedSub = SocketService().listen<dynamic>('gameClosed').listen((_) {
       if (!mounted) return;
-      GoRouter.of(context).go('/');
+      if (context.mounted) {
+        context.go('/');
+      }
     });
   }
 
   void _listenToGameInitialized() {
     _gameInitializedSub = SocketService()
         .listen<dynamic>('gameInitialized')
-        .listen((data) {
+        .listen((data) async {
           if (!mounted) return;
 
           if (data is Map<String, dynamic>) {
@@ -99,13 +108,21 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
             }
           }
 
+          if (!mounted) return;
+
           if (_service.isHost.value) {
             SocketService().send('startGame', _service.gameId.value);
           }
 
-          GoRouter.of(
-            context,
-          ).go('/game/${_service.gameId.value}/${_service.mapName.value}');
+          if (!mounted) return;
+
+          final gameId = _service.gameId.value;
+          final rawMapName = _service.mapName.value;
+          final encodedMapName = Uri.encodeComponent(rawMapName);
+
+          if (context.mounted) {
+            context.go('/game/$gameId/$encodedMapName');
+          }
         });
   }
 
@@ -125,15 +142,22 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
         // Reconnecter immédiatement pour garder le chat fonctionnel
         await SocketService().connect();
 
-        GoRouter.of(context).go('/');
-        showTopSnackBar(
-          Overlay.of(context),
-          const CustomSnackBar.error(
-            message: 'Vous avez été expulsé de la partie',
-          ),
-        );
-      } on Exception catch (_) {
-        // Erreur lors de la navigation, ignorer
+        if (!mounted) return;
+
+        if (context.mounted) {
+          context.go('/');
+          showTopSnackBar(
+            Overlay.of(context),
+            const CustomSnackBar.error(
+              message: 'Vous avez été expulsé de la partie',
+            ),
+          );
+        }
+      } on Exception catch (e) {
+        // DebugLogger.log(
+        //   'Error handling player kicked: $e',
+        //   tag: 'WaitingRoomScreen',
+        // );
       }
     });
   }
@@ -235,6 +259,8 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                           _buildHeader(),
                           const SizedBox(height: 12),
                           _buildPlayersList(),
+                          const SizedBox(height: 12),
+                          const ChallengesWidget(),
                           const SizedBox(height: 12),
                           _buildFooter(),
                         ],

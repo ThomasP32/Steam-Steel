@@ -6,9 +6,10 @@ class Player {
     required this.socketId,
     required this.name,
     required this.avatar,
-    this.isActive = true,
-    this.isGameWinner = false,
     required this.specs,
+    this.isActive = true,
+    this.isObservationMode = false,
+    this.isGameWinner = false,
     this.inventory = const [],
     this.position = const [],
     this.turn = 0,
@@ -20,6 +21,7 @@ class Player {
   final String name;
   final Avatar avatar;
   final bool isActive;
+  final bool isObservationMode;
   final bool isGameWinner;
   final Specs specs;
   final List<ItemCategory> inventory;
@@ -92,6 +94,18 @@ class Specs {
   int nItemsUsed;
 }
 
+class GameSettings {
+  GameSettings({this.isFastElimination = false, this.isFriendsOnly = false});
+
+  final bool isFastElimination;
+  final bool isFriendsOnly;
+
+  Map<String, dynamic> toJson() => {
+    'isFastElimination': isFastElimination,
+    'isFriendsOnly': isFriendsOnly,
+  };
+}
+
 class GameClassic {
   GameClassic({
     required this.id,
@@ -113,6 +127,7 @@ class GameClassic {
     this.description = '',
     this.imagePreview = '',
     this.mode,
+    this.settings,
   });
   final String id;
   final String hostSocketId;
@@ -133,6 +148,7 @@ class GameClassic {
   final String description;
   final String imagePreview;
   final Mode? mode;
+  final GameSettings? settings;
 }
 
 class GameCtf extends GameClassic {
@@ -157,6 +173,7 @@ class GameCtf extends GameClassic {
     super.description,
     super.imagePreview,
     super.mode,
+    super.settings,
   });
   final List<Player> nPlayersCtf;
 }

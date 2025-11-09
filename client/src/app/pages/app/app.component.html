@@ -1,7 +1,12 @@
-<button class="toggle-theme-btn" (click)="toggleTheme()">🌓</button>
 @if(isLoggedIn){
 <button class="friends-list-toggle-button" aria-label="Toggle friends list" (click)="toggleFriendsListVisibility()">
     <i class="fas fa-user-friends" aria-hidden="true"></i>
+</button>
+<button class="toggle-theme-btn" (click)="toggleTheme()">🌓</button>
+}
+@if(isLoggedIn && isGamePage){
+<button class="game-info-toggle-button" aria-label="Toggle game info" (click)="toggleGameInfoVisibility()">
+    <i class="fas fa-info-circle" aria-hidden="true"></i>
 </button>
 }
 
@@ -17,6 +22,12 @@
 } @if (isFriendsListVisible && isGamePage) {
 <div class="friends-list-wrapper">
     <app-friends-list></app-friends-list>
+</div>
+}
+@if (isGameInfoVisible && isGamePage && gameService.game) {
+<div class="game-info-wrapper">
+    <span class="close-button" (click)="isGameInfoVisible = false">×</span>
+    <app-game-info [game]="gameService.game" [currentPlayerTurn]="gameTurnService.playerTurn$ | async"></app-game-info>
 </div>
 }
 <app-game-invitation-modal

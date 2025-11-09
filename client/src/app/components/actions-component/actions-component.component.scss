@@ -12,10 +12,14 @@
 .actions {
     display: flex;
     flex-direction: row;
-    max-width: 28vw;
+    width: 27vw;
     gap: 1vw;
     align-items: center;
     justify-content: space-between;
+    border: 2px solid #b85c38;
+    background-color: rgba(28, 36, 44, 0.8);
+    padding: 2%;
+    box-sizing: border-box;
 }
 
 button {

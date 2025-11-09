@@ -1,4 +1,6 @@
 import { DoorTile } from '@app/http/model/schemas/map/tiles.schema';
+import { ChallengeService } from '@app/services/challenge/challenge.service';
+import { CombatCountdownService } from '@app/services/countdown/combat/combat-countdown.service';
 import { GameCountdownService } from '@app/services/countdown/game/game-countdown.service';
 import { GameCreationService } from '@app/services/game-creation/game-creation.service';
 import { GameManagerService } from '@app/services/game-manager/game-manager.service';
@@ -12,12 +14,11 @@ import {
     VIRTUAL_DELAY_CONSTANT,
     VIRTUAL_PLAYER_DELAY,
 } from '@common/constants';
-import { CombatEvents } from '@common/events/combat.events';
 import { GameCreationEvents } from '@common/events/game-creation.events';
 import { GameManagerEvents } from '@common/events/game-manager.events';
 import { GameTurnEvents } from '@common/events/game-turn.events';
 import { DropItemData, ItemDroppedData, ItemsEvents } from '@common/events/items.events';
-import { Game, Player } from '@common/game';
+import { Game, GameEndReason, Player } from '@common/game';
 import { Coordinate, Tile } from '@common/map.types';
 import { Inject } from '@nestjs/common';
 import { OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
@@ -32,9 +33,11 @@ export class GameManagerGateway implements OnGatewayInit {
     @Inject(GameCreationService) private readonly gameCreationService: GameCreationService;
     @Inject(GameManagerService) private readonly gameManagerService: GameManagerService;
     @Inject(GameCountdownService) private readonly gameCountdownService: GameCountdownService;
+    @Inject(CombatCountdownService) private readonly combatCountdownService: CombatCountdownService;
     @Inject(JournalService) private readonly journalService: JournalService;
     @Inject(VirtualGameManagerService) private virtualGameManagerService: VirtualGameManagerService;
     @Inject(ItemsManagerService) private readonly itemsManagerService: ItemsManagerService;
+    @Inject(ChallengeService) private readonly challengeService: ChallengeService;
 
     afterInit(server: Server) {
         this.gameCountdownService.setServer(this.server);
@@ -49,6 +52,7 @@ export class GameManagerGateway implements OnGatewayInit {
             this.startTurn(gameId);
         });
         this.journalService.initializeServer(server);
+        this.challengeService.setServer(this.server);
     }
 
     @SubscribeMessage('getMovements')
@@ -100,6 +104,10 @@ export class GameManagerGateway implements OnGatewayInit {
         this.gameManagerService.updatePlayerActions(game.id, player.socketId);
         doorTile.isOpened = !doorTile.isOpened;
         game.nDoorsManipulated.push(doorTile.coordinate);
+
+        // Track challenge progress when door is opened (not closed)
+        this.challengeService.onDoorOpened(game, player, doorTile);
+
         const action = doorTile.isOpened ? 'ouverte' : 'fermée';
         const involvedPlayers = game.players.map((player) => player.name);
         this.journalService.logMessage(data.gameId, `Une porte a été ${action} par ${player.name}.`, involvedPlayers);
@@ -128,6 +136,7 @@ export class GameManagerGateway implements OnGatewayInit {
     @SubscribeMessage('getCombats')
     getCombats(client: Socket, gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) return;
         const player = game.players.find((player) => player.socketId === client.id);
         const adjacentPlayers = this.gameManagerService.getAdjacentPlayers(player, gameId);
         this.server.to(client.id).emit(GameManagerEvents.YourCombats, adjacentPlayers);
@@ -136,6 +145,7 @@ export class GameManagerGateway implements OnGatewayInit {
     @SubscribeMessage('getAdjacentDoors')
     getAdjacentDoors(client: Socket, gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) return;
         const player = game.players.find((player) => player.socketId === client.id);
         const adjacentDoors = this.gameManagerService.getAdjacentDoors(player, gameId);
         this.server.to(client.id).emit(GameManagerEvents.YourDoors, adjacentDoors);
@@ -144,6 +154,7 @@ export class GameManagerGateway implements OnGatewayInit {
     @SubscribeMessage('getAdjacentWalls')
     getAdjacentWalls(client: Socket, gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) return;
         const player = game.players.find((player) => player.socketId === client.id);
         const adjacentWalls = this.gameManagerService.getAdjacentWalls(player, gameId);
         this.server.to(client.id).emit(GameManagerEvents.YourWalls, adjacentWalls);
@@ -152,6 +163,7 @@ export class GameManagerGateway implements OnGatewayInit {
     @SubscribeMessage(ItemsEvents.dropItem)
     dropItem(client: Socket, data: DropItemData): void {
         const game = this.gameCreationService.getGameById(data.gameId);
+        if (!game) return;
         const player = game.players.find((player) => player.socketId === client.id);
         const coordinates = player.position;
         this.itemsManagerService.dropItem(data.itemDropping, game.id, player, coordinates);
@@ -161,8 +173,9 @@ export class GameManagerGateway implements OnGatewayInit {
     @SubscribeMessage('startGame')
     startGame(client: Socket, gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
-        if (!game.participants.find(p => p.socketId === game.hostSocketId)) {
-            const host = game.players.find(p => p.socketId === game.hostSocketId);
+        if (!game) return;
+        if (!game.participants.find((p) => p.socketId === game.hostSocketId)) {
+            const host = game.players.find((p) => p.socketId === game.hostSocketId);
             if (host) game.participants.push(host);
         }
         this.gameCountdownService.initCountdown(gameId, TURN_DURATION);
@@ -172,8 +185,9 @@ export class GameManagerGateway implements OnGatewayInit {
     @SubscribeMessage('endTurn')
     endTurn(client: Socket, gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) return;
         const player = game.players.find((player) => player.turn === game.currentTurn);
-         if (player.socketId !== client.id) {
+        if (player.socketId !== client.id) {
             return;
         }
         player.specs.movePoints = player.specs.speed;
@@ -193,6 +207,24 @@ export class GameManagerGateway implements OnGatewayInit {
         this.startTurn(gameId);
     }
 
+    private handleGameTermination(gameId: string, reason: string): void {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            return;
+        }
+        if (this.gameManagerService.shouldTerminateGame(gameId)) {
+            console.log(`[GameManagerGateway] Terminating game ${gameId} - ${reason}`);
+            this.gameCreationService.deleteRoom(gameId);
+            this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
+            this.gameCountdownService.deleteCountdown(gameId);
+            this.combatCountdownService.deleteCountdown(gameId); // Clean up combat timer if exists
+        } else {
+            // Move to next turn if game is still viable
+            console.log(`[GameManagerGateway] Skipping to next turn - ${reason}`);
+            this.prepareNextTurn(gameId);
+        }
+    }
+
     startTurn(gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
         if (!game) {
@@ -201,8 +233,10 @@ export class GameManagerGateway implements OnGatewayInit {
         }
         if (!this.gameManagerService.isGameResumable(gameId)) {
             this.gameCreationService.deleteRoom(gameId);
+            this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
             this.gameCountdownService.resetTimerSubscription(gameId);
             this.gameCountdownService.deleteCountdown(gameId);
+            this.combatCountdownService.deleteCountdown(gameId); // Clean up combat timer if exists
             return;
         }
         const activePlayer = game.players.find((player) => player.turn === game.currentTurn);
@@ -228,26 +262,16 @@ export class GameManagerGateway implements OnGatewayInit {
                 try {
                     // Validate game state before executing
                     const validation = this.gameManagerService.validateGameState(gameId, activePlayer.socketId);
-                    
+
                     if (validation.recovered) {
                         console.log(`[GameManagerGateway] ✓ Recovered invalid position for virtual player, continuing turn...`);
                         this.gameManagerService.logGameStateDebug(gameId, 'VirtualPlayerPositionRecovered');
                     }
-                    
+
                     if (!validation.valid) {
                         console.warn(`[GameManagerGateway] Invalid game state for virtual player: ${validation.reason}`);
                         this.gameManagerService.logGameStateDebug(gameId, 'VirtualPlayerTurnError');
-
-                        // Check if game should be terminated
-                        if (this.gameManagerService.shouldTerminateGame(gameId)) {
-                            console.log(`[GameManagerGateway] Terminating game ${gameId} - no active or observing players`);
-                            this.gameCreationService.deleteRoom(gameId);
-                            this.gameCountdownService.deleteCountdown(gameId);
-                        } else {
-                            // Move to next turn if game is still viable
-                            console.log(`[GameManagerGateway] Skipping to next turn due to invalid state`);
-                            this.prepareNextTurn(gameId);
-                        }
+                        this.handleGameTermination(gameId, 'invalid game state');
                         return;
                     }
 
@@ -262,17 +286,7 @@ export class GameManagerGateway implements OnGatewayInit {
                     console.error(`[GameManagerGateway] Error during virtual player turn:`, error);
                     console.error(`[GameManagerGateway] Error stack:`, error.stack);
                     this.gameManagerService.logGameStateDebug(gameId, 'VirtualPlayerException');
-
-                    // Check if game should be terminated
-                    if (this.gameManagerService.shouldTerminateGame(gameId)) {
-                        console.log(`[GameManagerGateway] Terminating game ${gameId} - no active or observing players`);
-                        this.gameCreationService.deleteRoom(gameId);
-                        this.gameCountdownService.deleteCountdown(gameId);
-                    } else {
-                        // Move to next turn if game is still viable
-                        console.log(`[GameManagerGateway] Skipping to next turn after error`);
-                        this.prepareNextTurn(gameId);
-                    }
+                    this.handleGameTermination(gameId, 'error during virtual player turn');
                 }
             }, delay);
         } else {
@@ -308,17 +322,13 @@ export class GameManagerGateway implements OnGatewayInit {
             this.server.to(game.id).emit(GameManagerEvents.PositionToUpdate, { game: game, player: player });
             await new Promise((resolve) => setTimeout(resolve, TIME_FOR_POSITION_UPDATE));
             if (this.gameManagerService.checkForWinnerCtf(player, game.id)) {
-                return this.finishCtfGame(game,player);
+                const endResult = this.gameManagerService.checkAfterMove(game.id, player);
+                this.gameManagerService.handleGameEnd(game.id, endResult, this.server);
+                this.gameCountdownService.deleteCountdown(game.id);
+                this.combatCountdownService.deleteCountdown(game.id); // Clean up combat timer if exists
+                return true;
             }
         }
         return false;
-    }
-
-    private finishCtfGame(game: Game, player: Player): boolean {
-        this.gameManagerService.markCtfGameWinners(game.id, game);
-        this.server.to(game.id).emit(CombatEvents.GameFinished, { updatedGame: game });
-        // TODO est-ce que l'event est envoye a tout le monde??
-        this.server.to(game.id).emit(CombatEvents.GameFinishedPlayerWon, player);
-        return true;
     }
 }

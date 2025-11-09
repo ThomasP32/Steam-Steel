@@ -1,16 +1,24 @@
 import { Coordinate } from '@app/http/model/schemas/map/coordinate.schema';
 import { Combat, RollResult } from '@common/combat';
-import { DEFAULT_EVASIONS, DEFENDING_PLAYER_LIFE, N_WIN_VICTORIES, ROLL_DICE_CONSTANT } from '@common/constants';
+import { COUNTDOWN_COMBAT_DURATION, DEFAULT_EVASIONS, DEFENDING_PLAYER_LIFE, ROLL_DICE_CONSTANT } from '@common/constants';
 import { CORNER_DIRECTIONS, DIRECTIONS } from '@common/directions';
-import { CombatEvents } from '@common/events/combat.events';
+import { CombatEvents, CombatStartedData } from '@common/events/combat.events';
 import { Game, Player } from '@common/game';
-import { ItemCategory, Mode, TileCategory } from '@common/map.types';
-import { Injectable } from '@nestjs/common';
+import { ItemCategory, TileCategory } from '@common/map.types';
+import { Inject, Injectable } from '@nestjs/common';
 import { Server } from 'socket.io';
+import { ChallengeService } from '../challenge/challenge.service';
+import { CombatCountdownService } from '../countdown/combat/combat-countdown.service';
+import { GameCountdownService } from '../countdown/game/game-countdown.service';
 import { GameCreationService } from '../game-creation/game-creation.service';
+import { GameManagerService } from '../game-manager/game-manager.service';
 import { ItemsManagerService } from '../items-manager/items-manager.service';
+import { JournalService } from '../journal/journal.service';
 @Injectable()
 export class CombatService {
+    @Inject(ChallengeService) private readonly challengeService: ChallengeService;
+
+
     private combatRooms: Record<string, Combat> = {};
     server: Server;
 
@@ -63,16 +71,21 @@ export class CombatService {
         delete this.combatRooms[gameId];
     }
 
-    isAttackSuccess(attackPlayer: Player, opponent: Player, rollResult: { attackDice: number; defenseDice: number }): boolean {
+    attackResult(attackPlayer: Player, opponent: Player, rollResult: { attackDice: number; defenseDice: number }): number {
         const attackTotal = attackPlayer.specs.attack + rollResult.attackDice;
         const defendTotal = opponent.specs.defense + rollResult.defenseDice;
-        return attackTotal - defendTotal > 0;
+        return attackTotal - defendTotal;
     }
 
-    handleAttackSuccess(attackingPlayer: Player, defendingPlayer: Player, combatId: string) {
-        defendingPlayer.specs.life--;
-        defendingPlayer.specs.nLifeLost++;
-        attackingPlayer.specs.nLifeTaken++;
+    handleAttackSuccess(attackingPlayer: Player, defendingPlayer: Player, combatId: string, gameId: string, attackResult: number) {
+        defendingPlayer.specs.life = defendingPlayer.specs.life - attackResult;
+        defendingPlayer.specs.nLifeLost = defendingPlayer.specs.nLifeLost + attackResult;
+        attackingPlayer.specs.nLifeTaken = attackingPlayer.specs.nLifeTaken + attackResult;
+
+        const game = this.gameCreationService.getGameById(gameId);
+        if (game) {
+            this.challengeService.onAttack(game, attackingPlayer, attackResult);
+        }
 
         if (defendingPlayer.inventory.includes(ItemCategory.Flask) && defendingPlayer.specs.life === DEFENDING_PLAYER_LIFE) {
             this.itemManagerService.activateItem(ItemCategory.Flask, defendingPlayer);
@@ -204,39 +217,79 @@ export class CombatService {
         });
     }
 
-    checkForGameWinner(gameId: string, player: Player): boolean {
-        const game = this.gameCreationService.getGameById(gameId);
-        if (!game) {
-            return false;
+    /**
+     * Initializes combat by handling journal logging, event emission, countdown initialization, and starting turns.
+     * This method centralizes combat initialization logic to avoid duplication.
+     * @param combat - The combat instance to initialize
+     * @param game - The game instance
+     * @param challengerSocketId - The socket ID of the challenger (used for updating player actions)
+     * @param journalService - Service for logging journal messages
+     * @param gameManagerService - Service for updating player actions
+     * @param combatCountdownService - Service for initializing combat countdown
+     * @param gameCountdownService - Service for pausing game countdown
+     * @param optionalClientId - Optional client ID for emitting YouStartedCombat event (only for real players)
+     */
+    initializeCombat(
+        combat: Combat,
+        game: Game,
+        challengerSocketId: string,
+        journalService: JournalService,
+        gameManagerService: GameManagerService,
+        combatCountdownService: CombatCountdownService,
+        gameCountdownService: GameCountdownService,
+        optionalClientId?: string,
+    ): void {
+        const involvedPlayers = [combat.challenger.name];
+        journalService.logMessage(game.id, `${combat.challenger.name} a commencé un combat contre ${combat.opponent.name}.`, involvedPlayers);
+        const combatStartedData: CombatStartedData = {
+            challenger: combat.challenger,
+            opponent: combat.opponent,
+        };
+        this.server.to(combat.id).emit(CombatEvents.CombatStarted, combatStartedData);
+        this.server.to(game.id).emit(CombatEvents.CombatStartedSignal);
+        gameManagerService.updatePlayerActions(game.id, challengerSocketId);
+        combatCountdownService.initCountdown(game.id, COUNTDOWN_COMBAT_DURATION);
+        gameCountdownService.pauseCountdown(game.id);
+        if (optionalClientId) {
+            this.server.to(optionalClientId).emit(CombatEvents.YouStartedCombat, combat.challenger);
         }
-        if (game.mode === Mode.Classic) {
-            const activeNonObservingCount = game.players.filter(
-                (player) => player.isActive && player.isObservationMode !== true
-              ).length;
-            const allPlayers = game.players.map(p => `${p.name}(active:${p.isActive},obs:${p.isObservationMode})`).join(', ');
-            console.log(`[ELIMINATION DEBUG] checkForGameWinner - Game: ${gameId}, Player: ${player.name}, Victories: ${player.specs.nVictories}/${N_WIN_VICTORIES}, ActiveNonObserving: ${activeNonObservingCount}, AllPlayers: [${allPlayers}]`);
-            const hasWon = player.specs.nVictories >= N_WIN_VICTORIES || activeNonObservingCount <= 1;
-            console.log(`[ELIMINATION DEBUG] Winner check result: ${hasWon} (byVictories: ${player.specs.nVictories >= N_WIN_VICTORIES}, byElimination: ${activeNonObservingCount <= 1})`);
-            return hasWon;
-        }
-        return false;
     }
 
-    markClassicGameWinners(gameId: string, game: Game) {
-        let winnerFound = false;
-        console.log(`[ELIMINATION DEBUG] markClassicGameWinners - Marking winners for game ${gameId}`);
-        for (const player of game.players) {
-            const isWinner = !winnerFound && this.checkForGameWinner(gameId, player) && player.isActive && player.isObservationMode !== true;
-            if (isWinner) {
-                player.isGameWinner = true;
-                winnerFound = true;
-                console.log(`[ELIMINATION DEBUG] Winner found: ${player.name} (active: ${player.isActive}, observing: ${player.isObservationMode})`);
-            } else {
-                player.isGameWinner = false;
-            }
+    /**
+     * Starts combat turns by emitting turn events and initializing the turn counter.
+     * This method centralizes combat turn initialization logic to avoid duplication.
+     * @param gameId - The game ID
+     * @param combatCountdownService - Service for starting the turn counter
+     * @param gameCreationService - Service for getting game instance
+     * @returns The current player and other player if combat exists, undefined otherwise
+     */
+    startCombatTurns(
+        gameId: string,
+        combatCountdownService: CombatCountdownService,
+        gameCreationService: GameCreationService,
+    ): { currentPlayer: Player; otherPlayer: Player } | undefined {
+        const combat = this.getCombatByGameId(gameId);
+        const game = gameCreationService.getGameById(gameId);
+        
+        if (!combat) {
+            console.warn(`[CombatService] startCombatTurns: Combat not found for game ${gameId}`);
+            return undefined;
         }
-        if (!winnerFound) {
-            console.log(`[ELIMINATION DEBUG] No winner found for game ${gameId}`);
+        
+        if (!game) {
+            console.warn(`[CombatService] startCombatTurns: Game ${gameId} not found (likely already ended)`);
+            combatCountdownService.deleteCountdown(gameId);
+            return undefined;
         }
+
+        this.server.to(combat.currentTurnSocketId).emit(CombatEvents.YourTurnCombat);
+        const currentPlayer = combat.currentTurnSocketId === combat.challenger.socketId ? combat.challenger : combat.opponent;
+        const otherPlayer = combat.currentTurnSocketId === combat.challenger.socketId ? combat.opponent : combat.challenger;
+        this.server.to(otherPlayer.socketId).emit(CombatEvents.PlayerTurnCombat);
+        combatCountdownService.startTurnCounter(game, currentPlayer.specs.evasions !== 0);
+        
+        return { currentPlayer, otherPlayer };
     }
+
+
 }

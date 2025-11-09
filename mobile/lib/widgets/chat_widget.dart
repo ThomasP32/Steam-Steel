@@ -412,7 +412,7 @@ class _ChatWidgetState extends State<ChatWidget>
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: _toggle,
-                  child: Container(color: Colors.black.withOpacity(0.3)),
+                  child: Container(color: Colors.black.withValues(alpha: 0.3)),
                 ),
               ),
 
@@ -611,8 +611,8 @@ class _ChatWidgetState extends State<ChatWidget>
                                           Text(
                                             time,
                                             style: TextStyle(
-                                              color: Colors.white.withOpacity(
-                                                0.6,
+                                              color: Colors.white.withValues(
+                                                alpha: 0.6,
                                               ),
                                               fontSize: 8,
                                               fontFamily: 'Press Start 2P',
@@ -651,7 +651,6 @@ class _ChatWidgetState extends State<ChatWidget>
                 child: TextField(
                   controller: _inputCtrl,
                   focusNode: _inputFocusNode,
-                  autofocus: false,
                   enableInteractiveSelection: true,
                   onSubmitted: (_) => _sendMessage(),
                   textInputAction: TextInputAction.send,
@@ -663,7 +662,7 @@ class _ChatWidgetState extends State<ChatWidget>
                   decoration: InputDecoration(
                     hintText: 'Message...',
                     hintStyle: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 10,
                       fontFamily: 'Press Start 2P',
                     ),
@@ -679,7 +678,6 @@ class _ChatWidgetState extends State<ChatWidget>
                     ),
                   ),
                   maxLength: 250,
-                  maxLines: 1,
                 ),
               ),
               const SizedBox(width: 8),

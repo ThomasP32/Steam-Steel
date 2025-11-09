@@ -3,7 +3,7 @@
         @if(isWallBreakerAvailable()) {
         <div
             class="action-button"
-            [class.disabled]="possibleWalls.length === 0 || player.specs.actions === 0 || !thisPlayerTurn"
+            [class.disabled]="possibleWalls.length === 0 || player.specs.actions === 0 || !thisPlayerTurn()"
             (mouseenter)="showDescription('Détruire un Mur')"
             (mouseleave)="hideDescription()"
             (click)="breakWall()"
@@ -16,7 +16,7 @@
         }
         <div
             class="action-button"
-            [class.disabled]="possibleOpponents.length === 0 || player.specs.actions === 0 || !thisPlayerTurn"
+            [class.disabled]="possibleOpponents.length === 0 || player.specs.actions === 0 || !thisPlayerTurn()"
             (mouseenter)="showDescription('Combattre')"
             (mouseleave)="hideDescription()"
             (click)="fight()"
@@ -29,7 +29,7 @@
 
         <div
             class="action-button"
-            [class.disabled]="possibleDoors.length === 0 || player.specs.actions === 0 || !thisPlayerTurn"
+            [class.disabled]="possibleDoors.length === 0 || player.specs.actions === 0 || !thisPlayerTurn()"
             (mouseenter)="showDescription('Ouvrir/Fermer une Porte')"
             (mouseleave)="hideDescription()"
             (click)="toggleDoor()"
@@ -42,7 +42,7 @@
 
         <div
             class="action-button"
-            [class.disabled]="!thisPlayerTurn"
+            [class.disabled]="!thisPlayerTurn()"
             (mouseenter)="showDescription('Finir le tour')"
             (mouseleave)="hideDescription()"
             (click)="endTurn()"

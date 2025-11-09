@@ -17,55 +17,12 @@
     position: relative;
 }
 
-.game-info {
+.challenge-section {
     position: fixed;
-    bottom: 10px;
-    width: 28.5vw;
-    height: 35vh;
-    border: 2px solid #b85c38;
-    background-color: rgba(28, 36, 44, 0.8);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-evenly;
-    align-items: center;
-    padding: 10px;
-    box-sizing: border-box;
-    text-align: left;
-    z-index: 1;
-    gap: 0.5vw;
-}
-
-.game-info h2 {
-    text-align: start;
-    font-size: 0.8rem;
-    color: #ffffff;
-    margin-bottom: 10px;
-}
-
-.info-item {
-    width: 100%;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background-color: rgba(28, 36, 44, 0.8);
-    border: 1px solid #b85c38;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
-}
-
-.info-item p {
-    color: #c0c0c0;
-    font-size: 12px;
-    margin: 0;
-    line-height: 1.2;
-}
-
-.info-item span {
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: bold;
-    margin-top: 5px;
+    right: 10px;
+    bottom: 20px;
+    width: 20vw;
+    z-index: 10;
 }
 
 .game-map-container {
@@ -478,57 +435,6 @@ button {
     }
 }
 
-.actions-container {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    position: fixed;
-    right: 10px;
-    bottom: 52.4vh;
-    width: 28vw;
-    color: #c0c0c0;
-    flex-direction: column;
-    box-sizing: border-box;
-}
-
-.actions-info {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: fixed;
-    left: 10px;
-    bottom: 37vh;
-    width: 28.5vw;
-    padding: 0;
-}
-
-.actions {
-    width: 100%;
-    display: flex;
-    flex: 1;
-    flex-direction: row;
-    justify-content: space-between;
-}
-
-.actions p {
-    color: #c0c0c0;
-    padding: 0.7vw;
-    font-size: 0.8rem;
-    align-items: center;
-    background-color: rgba(28, 36, 44, 0.8);
-    border: 2px solid #b85c38;
-    box-sizing: border-box;
-    margin: 0;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.actions .number {
-    align-items: center;
-    color: #f39c12;
-}
 .popup-overlay {
     position: fixed;
     top: 0;

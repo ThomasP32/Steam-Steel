@@ -17,6 +17,10 @@
     position: absolute;
     top: 20px;
     left: 20px;
+    gap: 20px;
+    max-width: 420px;
+    max-height: calc(100vh - 40px);
+    overflow: visible;
 }
 
 .avatar-container img {
@@ -30,8 +34,14 @@
         0 0 60px rgba(243, 156, 18, 0.3);
     transition: box-shadow 0.5s ease-in-out;
     width: 10vw;
-    margin-bottom: 10px;
     animation: glowing 2s infinite alternate;
+}
+
+.player-challenge {
+    margin-top: 10px;
+    margin-bottom: 30px;
+    width: 20vw;
+    padding: 0 15px;
 }
 
 @keyframes glowing {
@@ -93,6 +103,7 @@
     width: 50vw;
     text-align: center;
     align-items: center;
+    min-width: 400px;
 }
 
 .game-details {

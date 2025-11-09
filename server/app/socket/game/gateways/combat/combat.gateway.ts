@@ -1,15 +1,15 @@
 import { CombatService } from '@app/services/combat/combat.service';
 import { Combat } from '@common/combat';
 import { EVASION_SUCCESS_RATE, TIME_LIMIT_DELAY } from '@common/constants';
-import { CombatEvents, CombatFinishedByEvasionData, CombatFinishedData, CombatStartedData, PlayerEnteredObservationModeData, StartCombatData } from '@common/events/combat.events';
+import { CombatEvents, CombatFinishedByEvasionData, CombatFinishedData, PlayerEnteredObservationModeData, StartCombatData } from '@common/events/combat.events';
 import { CountdownEvents } from '@common/events/countdown.events';
 import { GameCreationEvents } from '@common/events/game-creation.events';
 import { ItemDroppedData, ItemsEvents } from '@common/events/items.events';
-import { Game, Player } from '@common/game';
-import { Mode } from '@common/map.types';
+import { Game, GameEndReason, Player } from '@common/game';
 import { Inject } from '@nestjs/common';
 import { OnGatewayDisconnect, OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { ChallengeService } from '../../../../services/challenge/challenge.service';
 import { CombatCountdownService } from '../../../../services/countdown/combat/combat-countdown.service';
 import { GameCountdownService } from '../../../../services/countdown/game/game-countdown.service';
 import { GameCreationService } from '../../../../services/game-creation/game-creation.service';
@@ -28,6 +28,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     @Inject(GameManagerService) private readonly gameManagerService: GameManagerService;
     @Inject(JournalService) private readonly journalService: JournalService;
     @Inject(VirtualGameManagerService) private readonly virtualGameManager: VirtualGameManagerService;
+    @Inject(ChallengeService) private readonly challengeService: ChallengeService;
 
     constructor(
         private readonly combatService: CombatService,
@@ -50,70 +51,26 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     @SubscribeMessage(CombatEvents.StartCombat)
     async startCombat(client: Socket, data: StartCombatData): Promise<void> {
         try {
-            const game = this.gameCreationService.getGameById(data.gameId);
-            if (!game) {
-                console.warn(`[CombatGateway] startCombat: Game ${data.gameId} not found`);
+            const validation = this.validateCombatStart(data);
+            if (!validation) {
                 return;
             }
 
-            const player = game.players.find((player) => player.turn === game.currentTurn);
-            if (!player || !player.position) {
-                console.warn(`[CombatGateway] startCombat: Player not found or has no position`);
-                return;
-            }
-
-            if (!data.opponent || !data.opponent.position) {
-                console.warn(`[CombatGateway] startCombat: Opponent not found or has no position`);
-                return;
-            }
-
-            if (player?.isObservationMode === true || data.opponent?.isObservationMode === true) {
-                return;
-            }
+            const { game, player } = validation;
     
             const combat = this.combatService.createCombat(data.gameId, player, data.opponent);
             this.itemsManagerService.checkForAmulet(player, data.opponent);
             await client.join(combat.id);
-            let opponentSocket;
-            if (data.opponent.socketId.includes('virtual')) {
-                opponentSocket = data.opponent.socketId;
-            } else {
-                const sockets = await this.server.in(data.gameId).fetchSockets();
-                opponentSocket = sockets.find((socket) => socket.id === data.opponent.socketId);
-                if (opponentSocket) {
-                    await opponentSocket.join(combat.id);
-                }
-            }
-            if (opponentSocket) {
-                // Add observers to combat room
-                const observers = game.players.filter((p) => p.isObservationMode === true);
-                const sockets = await this.server.in(data.gameId).fetchSockets();
-                for (const observer of observers) {
-                    const observerSocket = sockets.find((socket) => socket.id === observer.socketId);
-                    if (observerSocket) {
-                        await observerSocket.join(combat.id);
-                    }
-                }
-
-                const combatStartedData: CombatStartedData = {
-                    challenger: player,
-                    opponent: data.opponent,
-                };
-                this.server.to(combat.id).emit(CombatEvents.CombatStarted, combatStartedData);
-                this.gameManagerService.updatePlayerActions(data.gameId, client.id);
-                const involvedPlayers = [player.name];
-                this.journalService.logMessage(data.gameId, `${player.name} a commencé un combat contre ${data.opponent.name}.`, involvedPlayers);
-
-                this.server.to(data.gameId).emit(CombatEvents.CombatStartedSignal);
-                this.server.to(client.id).emit(CombatEvents.YouStartedCombat, player);
-                this.combatCountdownService.initCountdown(data.gameId, 5);
-                this.gameCountdownService.pauseCountdown(data.gameId);
-                this.startCombatTurns(data.gameId);
+            
+            const opponentSocketSetup = await this.setupOpponentSocket(data, combat.id);
+            
+            if (opponentSocketSetup) {
+                await this.addObserversToCombat(game, combat.id);
+                this.initializeCombat(data, combat, player, client.id);
             }
         } catch (error) {
             console.error(`[CombatGateway] Error starting combat:`, error);
             this.gameManagerService.logGameStateDebug(data.gameId, 'StartCombatError');
-            // Clean up on error
             this.cleanupFailedCombat(data.gameId, undefined);
         }
     }
@@ -126,45 +83,25 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     @SubscribeMessage(CombatEvents.StartEvasion)
     async startEvasion(client: Socket, gameId: string): Promise<void> {
         const combat = this.combatService.getCombatByGameId(gameId);
-        if (combat) {
-            if (client.id === combat.currentTurnSocketId) {
-                const evadingPlayer: Player = combat.challenger.socketId === client.id ? combat.challenger : combat.opponent;
-                const otherPlayer: Player = combat.challenger.socketId === evadingPlayer.socketId ? combat.opponent : combat.challenger;
-                if (evadingPlayer.specs.evasions === 0) {
-                    return;
-                }
-                evadingPlayer.specs.nEvasions++;
-                evadingPlayer.specs.evasions--;
-                const evasionSuccess = Math.random() < EVASION_SUCCESS_RATE;
+        if (!combat || client.id !== combat.currentTurnSocketId) {
+            return;
+        }
 
-                if (evasionSuccess) {
-                    const game = this.gameCreationService.getGameById(gameId);
-                    this.combatService.updatePlayersInGame(game);
-                    this.server.to(combat.id).emit(CombatEvents.EvasionSuccess, evadingPlayer);
-                    this.journalService.logMessage(gameId, `Fin de combat. ${evadingPlayer.name} s'est évadé.`, [evadingPlayer.name]);
-                    this.combatCountdownService.deleteCountdown(gameId);
-                    setTimeout(async () => {
-                        const game = this.gameCreationService.getGameById(gameId);
-                        if (!game) {
-                            console.warn(`[CombatGateway] startEvasion setTimeout: Game ${gameId} not found (likely already ended)`);
-                            return;
-                        }
-                        const combatFinishedByEvasionData: CombatFinishedByEvasionData = { updatedGame: game, evadingPlayer: evadingPlayer };
-                        this.server.to(gameId).emit(CombatEvents.CombatFinishedByEvasion, combatFinishedByEvasionData);
-                        this.gameCountdownService.resumeCountdown(gameId);
-                        this.cleanupCombatRoom(combat.id);
-                        this.combatService.deleteCombat(gameId);
+        const evadingPlayer: Player = combat.challenger.socketId === client.id ? combat.challenger : combat.opponent;
+        const otherPlayer: Player = combat.challenger.socketId === evadingPlayer.socketId ? combat.opponent : combat.challenger;
+        
+        if (evadingPlayer.specs.evasions === 0) {
+            return;
+        }
+        
+        evadingPlayer.specs.nEvasions++;
+        evadingPlayer.specs.evasions--;
+        const evasionSuccess = Math.random() < EVASION_SUCCESS_RATE;
 
-                        if (otherPlayer.socketId.includes('virtual') && game.currentTurn === otherPlayer.turn) {
-                            await this.virtualGameManager.executeVirtualPlayerBehavior(otherPlayer, game);
-                        }
-                    }, TIME_LIMIT_DELAY);
-                } else {
-                    this.server.to(combat.id).emit(CombatEvents.EvasionFailed, evadingPlayer);
-                    this.prepareNextTurn(gameId);
-                    this.journalService.logMessage(combat.id, `Tentative d'évasion par ${evadingPlayer.name}: non réussie.`, [evadingPlayer.name]);
-                }
-            }
+        if (evasionSuccess) {
+            this.handleEvasionSuccess(evadingPlayer, otherPlayer, gameId, combat);
+        } else {
+            this.handleEvasionFailure(evadingPlayer, gameId, combat.id);
         }
     }
 
@@ -176,8 +113,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                 return;
             }
 
-            const attackingPlayer: Player = combat.currentTurnSocketId === combat.challenger.socketId ? combat.challenger : combat.opponent;
-            const defendingPlayer: Player = combat.currentTurnSocketId === combat.challenger.socketId ? combat.opponent : combat.challenger;
+            const { attackingPlayer, defendingPlayer } = this.getAttackingAndDefendingPlayers(combat);
 
             if (!attackingPlayer || !defendingPlayer) {
                 console.warn(`[CombatGateway] attackOnTimeOut: Invalid players in combat`);
@@ -185,27 +121,9 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                 return;
             }
 
-            const rollResult = this.combatService.rollDice(attackingPlayer, defendingPlayer);
-            this.server.to(combat.id).emit(CombatEvents.DiceRolled, rollResult);
-            this.journalService.logMessage(
-                combat.id,
-                `Dés roulés. Dé d'attaque: ${rollResult.attackDice}. Dé de défense: ${rollResult.defenseDice}. Résultat = ${rollResult.attackDice} - ${rollResult.defenseDice}.`,
-                [attackingPlayer.name, defendingPlayer.name],
-            );
-
-            if (this.combatService.isAttackSuccess(attackingPlayer, defendingPlayer, rollResult)) {
-                this.combatService.handleAttackSuccess(attackingPlayer, defendingPlayer, combat.id);
-                this.journalService.logMessage(combat.id, `Réussite de l'attaque sur ${defendingPlayer.name}.`, [defendingPlayer.name]);
-            } else {
-                this.server.to(combat.id).emit(CombatEvents.AttackFailure, defendingPlayer);
-                this.journalService.logMessage(combat.id, `Échec de l'attaque sur ${defendingPlayer.name}.`, [defendingPlayer.name]);
-            }
-
-            if (defendingPlayer.specs.life === 0) {
-                this.handleCombatLost(defendingPlayer, attackingPlayer, gameId, combat.id);
-            } else {
-                this.prepareNextTurn(gameId);
-            }
+            const rollResult = this.executeDiceRoll(attackingPlayer, defendingPlayer, combat.id);
+            this.processAttackResult(attackingPlayer, defendingPlayer, rollResult, combat.id, gameId);
+            this.determineNextCombatStep(defendingPlayer, attackingPlayer, gameId, combat.id);
         } catch (error) {
             console.error(`[CombatGateway] Error in attackOnTimeOut for game ${gameId}:`, error);
             this.gameManagerService.logGameStateDebug(gameId, 'AttackOnTimeOutError');
@@ -223,35 +141,27 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             }
 
             this.combatService.combatWinStatsUpdate(attackingPlayer, gameId);
-                    
-            if(game.settings.isFastElimination){
-                defendingPlayer.isObservationMode = true;
-                // Also update the player in game.players array
-                const playerInGame = game.players.find(p => p.socketId === defendingPlayer.socketId);
-                if (playerInGame) {
-                    playerInGame.isObservationMode = true;
-                }
-                console.log(`[ELIMINATION DEBUG] Player ${defendingPlayer.name} set to observation mode (isObservationMode: ${defendingPlayer.isObservationMode})`);
-            } 
-
             this.itemsManagerService.dropInventory(defendingPlayer, gameId);
-            if (!game.settings.isFastElimination){
+                    
+            if (game.settings.isFastElimination) {
+                this.setPlayerToObservationMode(defendingPlayer, game);
+                
+                // Check if this elimination ends the game BEFORE notifying
+                const endResult = this.gameManagerService.checkAfterCombat(gameId, attackingPlayer, game.settings.isFastElimination);
+                
+                // Only notify about observation mode if game continues
+                // If game ends, the eliminated player will receive GameFinished event and be redirected to stats
+                if (endResult.reason === GameEndReason.Ongoing) {
+                    this.notifyPlayerEnteredObservationMode(defendingPlayer, 'Vous avez perdu le combat et êtes maintenant en mode observation.');
+                }
+            } else {
                 this.combatService.sendBackToInitPos(defendingPlayer, game);
             }
+
             this.combatService.updatePlayersInGame(game);
 
             this.server.to(combatId).emit(CombatEvents.CombatFinishedNormally, attackingPlayer);
-
             this.journalService.logMessage(gameId, `Fin de combat. ${attackingPlayer.name} est le gagnant.`, [attackingPlayer.name]);
-
-
-            if(game.settings.isFastElimination){
-                const observationModeData: PlayerEnteredObservationModeData = {
-                    player: defendingPlayer,
-                    message: 'Vous avez perdu le combat et êtes maintenant en mode observation.'
-                };
-                this.server.to(defendingPlayer.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
-            }
 
             // Emit updated game state immediately so all players see the observation mode change right away
             const combatFinishedData: CombatFinishedData = { updatedGame: game, winner: attackingPlayer, loser: defendingPlayer };
@@ -265,30 +175,19 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                     return;
                 }
                 
-                if (this.combatService.checkForGameWinner(game.id, attackingPlayer)) {
-                    this.combatService.markClassicGameWinners(game.id, game);
-
-                    this.server.to(gameId).emit(CombatEvents.GameFinished, { updatedGame: game });
-                    this.server.to(gameId).emit(CombatEvents.GameFinishedPlayerWon, attackingPlayer);
-                    
-                    // Clean up combat resources before ending
-                    this.combatService.deleteCombat(game.id);
+                // Check if combat resulted in game end
+                const endResult = this.gameManagerService.checkAfterCombat(gameId, attackingPlayer, game.settings.isFastElimination);
+                
+                if (endResult.reason !== GameEndReason.Ongoing) {
+                    this.gameManagerService.handleGameEnd(gameId, endResult, this.server);
+                    this.combatService.deleteCombat(gameId);
                     this.cleanupCombatRoom(combatId);
+                    this.gameCountdownService.deleteCountdown(gameId);
                     return;
                 }
-                if (game.currentTurn === attackingPlayer.turn) {
-                    this.gameCountdownService.resumeCountdown(gameId);
-                    if (attackingPlayer.socketId.includes('virtual')) {
-                        // Virtual player won and can continue their turn
-                        this.virtualGameManager.executeVirtualPlayerBehavior(attackingPlayer, game);
-                    } else {
-                        this.server.to(attackingPlayer.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
-                    }
-                } else {
-                    this.gameCountdownService.emit(CountdownEvents.Timeout, gameId);
-                }
-                this.combatService.deleteCombat(game.id);
-                this.cleanupCombatRoom(combatId);
+                
+                // Game continues
+                this.handlePostCombatGameFlow(game, attackingPlayer, combatId);
             }, TIME_LIMIT_DELAY);
         } catch (error) {
             console.error(`[CombatGateway] Error in handleCombatLost:`, error);
@@ -298,7 +197,19 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     }
 
     prepareNextTurn(gameId: string) {
-        if (this.combatService.getCombatByGameId(gameId)) {
+        const combat = this.combatService.getCombatByGameId(gameId);
+        const game = this.gameCreationService.getGameById(gameId);
+        
+        // Failsafe: Check if game or combat still exists before preparing next turn
+        if (!game) {
+            console.warn(`[CombatGateway] prepareNextTurn: Game ${gameId} not found (likely already ended)`);
+            if (combat) {
+                this.combatCountdownService.deleteCountdown(gameId);
+            }
+            return;
+        }
+        
+        if (combat) {
             this.combatService.updateTurn(gameId);
             this.combatCountdownService.resetTimerSubscription(gameId);
             this.startCombatTurns(gameId);
@@ -307,42 +218,10 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
 
     startCombatTurns(gameId: string): void {
         const combat = this.combatService.getCombatByGameId(gameId);
-        const game = this.gameCreationService.getGameById(gameId);
-        if (combat) {
-            this.server.to(combat.currentTurnSocketId).emit(CombatEvents.YourTurnCombat);
-            const currentPlayer = combat.currentTurnSocketId === combat.challenger.socketId ? combat.challenger : combat.opponent;
-            const otherPlayer = combat.currentTurnSocketId === combat.challenger.socketId ? combat.opponent : combat.challenger;
-            this.server.to(otherPlayer.socketId).emit(CombatEvents.PlayerTurnCombat);
-
-            if (combat.currentTurnSocketId.includes('virtual')) {
-                setTimeout(() => {
-                    const isCombatFinishedByEvasion = this.virtualGameManager.handleVirtualPlayerCombat(currentPlayer, otherPlayer, game.id, combat);
-                    if (otherPlayer.specs.life === 0) {
-                        this.handleCombatLost(otherPlayer, currentPlayer, game.id, combat.id);
-                        // Don't execute virtual player behavior here - it will be handled in handleCombatLost after checking for game winner
-                    } else if (isCombatFinishedByEvasion) {
-                        setTimeout(async () => {
-                            const game = this.gameCreationService.getGameById(gameId);
-                            if (!game) {
-                                console.warn(`[CombatGateway] startCombatTurns virtual evasion setTimeout: Game ${gameId} not found (likely already ended)`);
-                                return;
-                            }
-                            const combatFinishedByEvasionData: CombatFinishedByEvasionData = { updatedGame: game, evadingPlayer: currentPlayer };
-                            this.server.to(gameId).emit(CombatEvents.CombatFinishedByEvasion, combatFinishedByEvasionData);
-                            this.gameCountdownService.resumeCountdown(gameId);
-                            this.cleanupCombatRoom(combat.id);
-                            this.combatService.deleteCombat(gameId);
-
-                            if (this.gameCreationService.getGameById(gameId)?.currentTurn === currentPlayer.turn) {
-                                await this.virtualGameManager.executeVirtualPlayerBehavior(currentPlayer, game);
-                            }
-                        }, TIME_LIMIT_DELAY);
-                    } else {
-                        this.prepareNextTurn(gameId);
-                    }
-                }, TIME_LIMIT_DELAY);
-            }
-            this.combatCountdownService.startTurnCounter(game, currentPlayer.specs.evasions !== 0);
+        const result = this.combatService.startCombatTurns(gameId, this.combatCountdownService, this.gameCreationService);
+        
+        if (result && combat && combat.currentTurnSocketId.includes('virtual')) {
+            this.handleVirtualPlayerTurn(result.currentPlayer, result.otherPlayer, gameId, combat);
         }
     }
 
@@ -351,6 +230,255 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         for (const socketId of sockets) {
             socketId.leave(combatRoomId);
         }
+    }
+
+    /**
+     * Gets the attacking and defending players based on current turn
+     */
+    private getAttackingAndDefendingPlayers(combat: Combat): { attackingPlayer: Player; defendingPlayer: Player } {
+        const attackingPlayer = combat.currentTurnSocketId === combat.challenger.socketId ? combat.challenger : combat.opponent;
+        const defendingPlayer = combat.currentTurnSocketId === combat.challenger.socketId ? combat.opponent : combat.challenger;
+        return { attackingPlayer, defendingPlayer };
+    }
+
+    /**
+     * Sets a player to observation mode in both combat and game
+     */
+    private setPlayerToObservationMode(player: Player, game: Game): void {
+        player.isObservationMode = true;
+        const playerInGame = game.players.find(p => p.socketId === player.socketId);
+        if (playerInGame) {
+            playerInGame.isObservationMode = true;
+        }
+        console.log(`[ELIMINATION DEBUG] Player ${player.name} set to observation mode (isObservationMode: ${player.isObservationMode})`);
+    }
+
+    /**
+     * Notifies a player they entered observation mode
+     */
+    private notifyPlayerEnteredObservationMode(player: Player, message: string): void {
+        const observationModeData: PlayerEnteredObservationModeData = {
+            player,
+            message
+        };
+        this.server.to(player.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
+    }
+
+
+    /**
+     * Validates combat start conditions
+     */
+    private validateCombatStart(data: StartCombatData): { game: Game; player: Player } | null {
+        const game = this.gameCreationService.getGameById(data.gameId);
+        if (!game) {
+            console.warn(`[CombatGateway] startCombat: Game ${data.gameId} not found`);
+            return null;
+        }
+
+        const player = game.players.find((player) => player.turn === game.currentTurn);
+        if (!player || !player.position) {
+            console.warn(`[CombatGateway] startCombat: Player not found or has no position`);
+            return null;
+        }
+
+        if (!data.opponent || !data.opponent.position) {
+            console.warn(`[CombatGateway] startCombat: Opponent not found or has no position`);
+            return null;
+        }
+
+        if (player?.isObservationMode === true || data.opponent?.isObservationMode === true) {
+            return null;
+        }
+
+        return { game, player };
+    }
+
+    /**
+     * Sets up opponent socket for combat (handles virtual and real players)
+     * Returns true if opponent socket was successfully set up
+     */
+    private async setupOpponentSocket(data: StartCombatData, combatId: string): Promise<boolean> {
+        if (data.opponent.socketId.includes('virtual')) {
+            return true;
+        } else {
+            const sockets = await this.server.in(data.gameId).fetchSockets();
+            const opponentSocket = sockets.find((socket) => socket.id === data.opponent.socketId);
+            if (opponentSocket) {
+                await opponentSocket.join(combatId);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Adds observer players to combat room
+     */
+    private async addObserversToCombat(game: Game, combatId: string): Promise<void> {
+        const observers = game.players.filter((p) => p.isObservationMode === true);
+        const sockets = await this.server.in(game.id).fetchSockets();
+        for (const observer of observers) {
+            const observerSocket = sockets.find((socket) => socket.id === observer.socketId);
+            if (observerSocket) {
+                await observerSocket.join(combatId);
+            }
+        }
+    }
+
+    /**
+     * Initializes combat by emitting events and starting combat flow
+     */
+    private initializeCombat(data: StartCombatData, combat: Combat, player: Player, clientId: string): void {
+        const game = this.gameCreationService.getGameById(data.gameId);
+        if (!game) {
+            console.warn(`[CombatGateway] initializeCombat: Game ${data.gameId} not found`);
+            return;
+        }
+        this.combatService.initializeCombat(
+            combat,
+            game,
+            clientId,
+            this.journalService,
+            this.gameManagerService,
+            this.combatCountdownService,
+            this.gameCountdownService,
+            clientId,
+        );
+        this.startCombatTurns(data.gameId);
+    }
+
+    /**
+     * Executes dice roll and emits results
+     */
+    private executeDiceRoll(attackingPlayer: Player, defendingPlayer: Player, combatId: string): any {
+        const rollResult = this.combatService.rollDice(attackingPlayer, defendingPlayer);
+        this.server.to(combatId).emit(CombatEvents.DiceRolled, rollResult);
+        return rollResult;
+    }
+
+    /**
+     * Processes attack result (success or failure)
+     */
+    private processAttackResult(attackingPlayer: Player, defendingPlayer: Player, rollResult: any, combatId: string, gameId: string): void {
+        const attackResult = this.combatService.attackResult(attackingPlayer, defendingPlayer, rollResult);
+        if (attackResult > 0) {
+            this.combatService.handleAttackSuccess(attackingPlayer, defendingPlayer, combatId, gameId, attackResult);
+        } else {
+            this.server.to(combatId).emit(CombatEvents.AttackFailure, defendingPlayer);
+            
+            // Track dodged attack for challenge
+            const game = this.gameCreationService.getGameById(gameId);
+            if (game) {
+                this.challengeService.onAttackDodged(game, defendingPlayer);
+            }
+        }
+    }
+
+    /**
+     * Determines next combat step based on defending player's life
+     */
+    private determineNextCombatStep(defendingPlayer: Player, attackingPlayer: Player, gameId: string, combatId: string): void {
+        if (defendingPlayer.specs.life <= 0) {
+            this.handleCombatLost(defendingPlayer, attackingPlayer, gameId, combatId);
+        } else {
+            this.prepareNextTurn(gameId);
+        }
+    }
+
+    /**
+     * Handles successful evasion
+     */
+    private handleEvasionSuccess(evadingPlayer: Player, otherPlayer: Player, gameId: string, combat: Combat): void {
+        const game = this.gameCreationService.getGameById(gameId);
+        this.combatService.updatePlayersInGame(game);
+        this.server.to(combat.id).emit(CombatEvents.EvasionSuccess, evadingPlayer);
+        // this.journalService.logMessage(gameId, `Fin de combat. ${evadingPlayer.name} s'est évadé.`, [evadingPlayer.name]);
+        this.combatCountdownService.deleteCountdown(gameId);
+        
+        setTimeout(async () => {
+            const game = this.gameCreationService.getGameById(gameId);
+            if (!game) {
+                console.warn(`[CombatGateway] startEvasion setTimeout: Game ${gameId} not found (likely already ended)`);
+                return;
+            }
+            const combatFinishedByEvasionData: CombatFinishedByEvasionData = { updatedGame: game, evadingPlayer: evadingPlayer };
+            this.server.to(gameId).emit(CombatEvents.CombatFinishedByEvasion, combatFinishedByEvasionData);
+            this.gameCountdownService.resumeCountdown(gameId);
+            this.cleanupCombatRoom(combat.id);
+            this.combatService.deleteCombat(gameId);
+
+            if (otherPlayer.socketId.includes('virtual') && game.currentTurn === otherPlayer.turn) {
+                await this.virtualGameManager.executeVirtualPlayerBehavior(otherPlayer, game);
+            }
+        }, TIME_LIMIT_DELAY);
+    }
+
+    /**
+     * Handles failed evasion
+     */
+    private handleEvasionFailure(evadingPlayer: Player, gameId: string, combatId: string): void {
+        this.server.to(combatId).emit(CombatEvents.EvasionFailed, evadingPlayer);
+        this.prepareNextTurn(gameId);
+        // this.journalService.logMessage(combatId, `Tentative d'évasion par ${evadingPlayer.name}: non réussie.`, [evadingPlayer.name]);
+    }
+
+
+    /**
+     * Handles post-combat game flow (resume turn or timeout)
+     */
+    private handlePostCombatGameFlow(game: Game, winner: Player, combatId: string): void {
+        if (game.currentTurn === winner.turn) {
+            this.gameCountdownService.resumeCountdown(game.id);
+            if (winner.socketId.includes('virtual')) {
+                // Virtual player won and can continue their turn
+                this.virtualGameManager.executeVirtualPlayerBehavior(winner, game);
+            } else {
+                this.server.to(winner.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
+            }
+        } else {
+            this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
+        }
+        this.combatService.deleteCombat(game.id);
+        this.cleanupCombatRoom(combatId);
+    }
+
+    /**
+     * Handles virtual player's combat turn
+     */
+    private handleVirtualPlayerTurn(currentPlayer: Player, otherPlayer: Player, gameId: string, combat: Combat): void {
+        setTimeout(() => {
+            const isCombatFinishedByEvasion = this.virtualGameManager.handleVirtualPlayerCombat(currentPlayer, otherPlayer, gameId, combat);
+            if (otherPlayer.specs.life === 0) {
+                this.handleCombatLost(otherPlayer, currentPlayer, gameId, combat.id);
+                // Don't execute virtual player behavior here - it will be handled in handleCombatLost after checking for game winner
+            } else if (isCombatFinishedByEvasion) {
+                this.handleVirtualPlayerEvasionSuccess(currentPlayer, gameId, combat.id);
+            } else {
+                this.prepareNextTurn(gameId);
+            }
+        }, TIME_LIMIT_DELAY);
+    }
+
+    /**
+     * Handles virtual player's successful evasion
+     */
+    private handleVirtualPlayerEvasionSuccess(currentPlayer: Player, gameId: string, combatId: string): void {
+        setTimeout(async () => {
+            const game = this.gameCreationService.getGameById(gameId);
+            if (!game) {
+                console.warn(`[CombatGateway] startCombatTurns virtual evasion setTimeout: Game ${gameId} not found (likely already ended)`);
+                return;
+            }
+            const combatFinishedByEvasionData: CombatFinishedByEvasionData = { updatedGame: game, evadingPlayer: currentPlayer };
+            this.server.to(gameId).emit(CombatEvents.CombatFinishedByEvasion, combatFinishedByEvasionData);
+            this.gameCountdownService.resumeCountdown(gameId);
+            this.cleanupCombatRoom(combatId);
+            this.combatService.deleteCombat(gameId);
+
+            if (this.gameCreationService.getGameById(gameId)?.currentTurn === currentPlayer.turn) {
+                await this.virtualGameManager.executeVirtualPlayerBehavior(currentPlayer, game);
+            }
+        }, TIME_LIMIT_DELAY);
     }
 
     handleDisconnect(client: Socket): void {
@@ -374,6 +502,9 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         if (this.gameCreationService.isPlayerHost(client.id, game.id)) {
             this.server.to(game.id).emit(GameCreationEvents.GameClosed);
             this.gameCreationService.deleteRoom(game.id);
+            this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
+            this.gameCountdownService.deleteCountdown(game.id); // Clean up game timer
+            this.combatCountdownService.deleteCountdown(game.id); // Clean up combat timer if exists
             return true;
         }
         return false;
@@ -381,7 +512,8 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
 
     private handlePlayerDisconnection(client: Socket, game: Game, player: Player): void {
         const updatedGame = this.gameCreationService.handlePlayerLeaving(client, game.id);
-        this.server.to(updatedGame.id).emit(GameCreationEvents.PlayerLeft, updatedGame.players);
+        // Emit only to other players in the room, not to the disconnecting player
+        client.to(updatedGame.id).emit(GameCreationEvents.PlayerLeft, updatedGame.players);
 
         if (updatedGame.hasStarted) {
             if (player.inventory && player.inventory.length > 0) {
@@ -391,21 +523,17 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             }
             this.journalService.logMessage(game.id, `${player.name} a abandonné la partie.`, [player.name]);
 
-            // Check if this is CTF mode and no active non-observer players remain
-            if (updatedGame.mode === Mode.Ctf) {
-                const activeNonObserverCount = updatedGame.players.filter(
-                    (p) => p.isActive && p.isObservationMode !== true
-                ).length;
-                
-                if (activeNonObserverCount === 0) {
-                    console.log(`[CTF] Last active player quit. Ending game ${updatedGame.id}`);
-                    this.server.to(updatedGame.id).emit(GameCreationEvents.GameEndedNoActivePlayers);
-                    this.gameCreationService.deleteRoom(updatedGame.id);
-                    this.gameCountdownService.deleteCountdown(updatedGame.id);
-                    return;
-                }
+            // Check if disconnect caused game termination
+            const endResult = this.gameManagerService.checkAfterDisconnect(updatedGame.id);
+            
+            if (endResult.reason === GameEndReason.NoWinner_Termination) {
+                this.gameManagerService.handleGameEnd(updatedGame.id, endResult, this.server);
+                this.gameCountdownService.deleteCountdown(updatedGame.id);
+                this.combatCountdownService.deleteCountdown(updatedGame.id); // Clean up combat timer if exists
+                return;
             }
 
+            // Game continues, handle combat or turn timeout
             const combat = this.combatService.getCombatByGameId(updatedGame.id);
             if (combat) {
                 this.handleCombatDisconnection(client, updatedGame, combat);
@@ -420,28 +548,22 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         const winner = client.id === combat.challenger.socketId ? combat.opponent : combat.challenger;
         disconnectedPlayer.isActive = false;
         
-        
-        if(updatedGame.settings.isFastElimination) {
-            disconnectedPlayer.isObservationMode = true;
-            // Also update the player in game.players array
-            const playerInGame = updatedGame.players.find(p => p.socketId === disconnectedPlayer.socketId);
-            if (playerInGame) {
-                playerInGame.isObservationMode = true;
+        if (updatedGame.settings.isFastElimination) {
+            this.setPlayerToObservationMode(disconnectedPlayer, updatedGame);
+            
+            // Check if this elimination ends the game BEFORE notifying
+            const endResult = this.gameManagerService.checkAfterCombat(updatedGame.id, winner, updatedGame.settings.isFastElimination);
+            
+            // Only notify about observation mode if game continues
+            // If game ends, the eliminated player will receive GameFinished event and be redirected to stats
+            if (endResult.reason === GameEndReason.Ongoing) {
+                this.notifyPlayerEnteredObservationMode(disconnectedPlayer, 'Vous avez perdu le combat par déconnexion et êtes maintenant en mode observation.');
             }
-            console.log(`[ELIMINATION DEBUG] Disconnected player ${disconnectedPlayer.name} set to observation mode via disconnection`);
         }
 
         this.combatService.combatWinStatsUpdate(winner, updatedGame.id);
         this.combatService.updatePlayersInGame(updatedGame);
         this.server.to(combat.id).emit(CombatEvents.CombatFinishedByDisconnection, winner);
-
-        if(updatedGame.settings.isFastElimination) {
-            const observationModeData: PlayerEnteredObservationModeData = {
-                player: disconnectedPlayer,
-                message: 'Vous avez perdu le combat par déconnexion et êtes maintenant en mode observation.'
-            };
-            this.server.to(disconnectedPlayer.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
-        }
 
         this.combatCountdownService.deleteCountdown(updatedGame.id);
 
@@ -454,41 +576,19 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             const combatFinishedData: CombatFinishedData = { updatedGame: game, winner: winner, loser: disconnectedPlayer };
             this.server.to(game.id).emit(CombatEvents.CombatFinished, combatFinishedData);
 
-            if (this.combatService.checkForGameWinner(game.id, winner)) {
-                this.combatService.markClassicGameWinners(game.id, game);
-                this.server.to(game.id).emit(CombatEvents.GameFinishedPlayerWon, winner);
-                
-                // Clean up combat resources before ending
+            // Check if combat resulted in game end
+            const endResult = this.gameManagerService.checkAfterCombat(game.id, winner, game.settings.isFastElimination);
+            
+            if (endResult.reason !== GameEndReason.Ongoing) {
+                this.gameManagerService.handleGameEnd(game.id, endResult, this.server);
                 this.combatService.deleteCombat(game.id);
                 this.cleanupCombatRoom(combat.id);
+                this.gameCountdownService.deleteCountdown(game.id);
                 return;
             }
 
-            // Check if this is CTF mode and no active non-observer players remain
-            if (game.mode === Mode.Ctf) {
-                const activeNonObserverCount = game.players.filter(
-                    (p) => p.isActive && p.isObservationMode !== true
-                ).length;
-                
-                if (activeNonObserverCount === 0) {
-                    console.log(`[CTF] Last active player quit during combat. Ending game ${game.id}`);
-                    this.server.to(game.id).emit(GameCreationEvents.GameEndedNoActivePlayers);
-                    this.gameCreationService.deleteRoom(game.id);
-                    this.gameCountdownService.deleteCountdown(game.id);
-                    this.combatService.deleteCombat(game.id);
-                    this.cleanupCombatRoom(combat.id);
-                    return;
-                }
-            }
-
-            if (game.currentTurn === winner.turn) {
-                this.gameCountdownService.resumeCountdown(game.id);
-            } else {
-                this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
-            }
-
-            this.combatService.deleteCombat(game.id);
-            this.cleanupCombatRoom(combat.id);
+            // Game continues
+            this.handlePostCombatGameFlow(game, winner, combat.id);
         }, TIME_LIMIT_DELAY);
     }
 
@@ -508,11 +608,16 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             if (combatId) {
                 this.cleanupCombatRoom(combatId);
             }
+            const game = this.gameCreationService.getGameById(gameId);
+            if (!game) {
+                return;
+            }
             
             // Check if game should be terminated or continue
             if (this.gameManagerService.shouldTerminateGame(gameId)) {
                 console.log(`[CombatGateway] Terminating game ${gameId} after combat failure - no active or observing players`);
                 this.gameCreationService.deleteRoom(gameId);
+                this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
                 this.gameCountdownService.deleteCountdown(gameId);
             } else {
                 // Resume game countdown and move to next turn

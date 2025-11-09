@@ -10,12 +10,14 @@ class CombatModalWidget extends StatefulWidget {
     required this.challenger,
     required this.opponent,
     required this.gameId,
+    this.isObserver = false,
     super.key,
   });
 
   final Map<String, dynamic> challenger;
   final Map<String, dynamic> opponent;
   final String gameId;
+  final bool isObserver;
 
   @override
   State<CombatModalWidget> createState() => _CombatModalWidgetState();
@@ -39,15 +41,21 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
     _currentChallenger = Map<String, dynamic>.from(widget.challenger);
     _currentOpponent = Map<String, dynamic>.from(widget.opponent);
 
-    final currentPlayer = PlayerService().player;
-    final challengerSocketId = _currentChallenger?['socketId'] as String?;
-    _isYourTurn = currentPlayer.socketId == challengerSocketId;
-
-    if (_isYourTurn) {
-      _combatMessage = "C'est à votre tour de jouer!";
+    if (widget.isObserver) {
+      _combatMessage = 'Combat en cours...';
+      _isYourTurn = false;
     } else {
-      final opponentName = _currentOpponent?['name'] as String? ?? 'Adversaire';
-      _combatMessage = '$opponentName est en train de jouer.';
+      final currentPlayer = PlayerService().player;
+      final challengerSocketId = _currentChallenger?['socketId'] as String?;
+      _isYourTurn = currentPlayer.socketId == challengerSocketId;
+
+      if (_isYourTurn) {
+        _combatMessage = "C'est à votre tour de jouer!";
+      } else {
+        final opponentName =
+            _currentOpponent?['name'] as String? ?? 'Adversaire';
+        _combatMessage = '$opponentName est en train de jouer.';
+      }
     }
 
     _listenToCombatEvents();
@@ -65,7 +73,7 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
     _subscriptions
       ..add(
         SocketService().listen<dynamic>('yourTurnCombat').listen((_) {
-          if (!mounted) return;
+          if (!mounted || widget.isObserver) return;
           setState(() {
             _isYourTurn = true;
             _combatMessage = "C'est à votre tour de jouer!";
@@ -74,7 +82,7 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
       )
       ..add(
         SocketService().listen<dynamic>('playerTurnCombat').listen((_) {
-          if (!mounted) return;
+          if (!mounted || widget.isObserver) return;
           setState(() {
             _isYourTurn = false;
             final opponentName =
@@ -122,12 +130,24 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
             setState(() {
               if (playerSocketId == _currentOpponent?['socketId']) {
                 _currentOpponent = data;
-                _combatMessage = 'Vous avez attaqué $playerName';
+                if (widget.isObserver) {
+                  final attackerName =
+                      _currentChallenger?['name'] as String? ?? 'Joueur';
+                  _combatMessage = '$attackerName a attaqué $playerName';
+                } else {
+                  _combatMessage = 'Vous avez attaqué $playerName';
+                }
               } else if (playerSocketId == _currentChallenger?['socketId']) {
                 _currentChallenger = data;
-                final opponentName =
-                    _currentOpponent?['name'] as String? ?? 'Adversaire';
-                _combatMessage = '$opponentName vous a attaqué';
+                if (widget.isObserver) {
+                  final attackerName =
+                      _currentOpponent?['name'] as String? ?? 'Adversaire';
+                  _combatMessage = '$attackerName a attaqué $playerName';
+                } else {
+                  final opponentName =
+                      _currentOpponent?['name'] as String? ?? 'Adversaire';
+                  _combatMessage = '$opponentName vous a attaqué';
+                }
               }
             });
           }
@@ -141,10 +161,14 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
             final playerName = data['name'] as String?;
 
             setState(() {
-              if (playerSocketId == _currentOpponent?['socketId']) {
-                _combatMessage = '$playerName a survécu à votre attaque';
+              if (widget.isObserver) {
+                _combatMessage = '$playerName a survécu à une attaque';
               } else {
-                _combatMessage = 'Vous avez survécu à une attaque';
+                if (playerSocketId == _currentOpponent?['socketId']) {
+                  _combatMessage = '$playerName a survécu à votre attaque';
+                } else {
+                  _combatMessage = 'Vous avez survécu à une attaque';
+                }
               }
             });
           }
@@ -153,7 +177,7 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
   }
 
   void _attack() {
-    if (_isYourTurn) {
+    if (_isYourTurn && !widget.isObserver) {
       SocketService().send('attack', widget.gameId);
       setState(() {
         _isYourTurn = false;
@@ -162,7 +186,7 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
   }
 
   void _evade() {
-    if (_isYourTurn) {
+    if (_isYourTurn && !widget.isObserver) {
       SocketService().send('startEvasion', widget.gameId);
       setState(() {
         _isYourTurn = false;
@@ -175,8 +199,9 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
     return ValueListenableBuilder<Player>(
       valueListenable: PlayerService().notifier,
       builder: (context, currentPlayer, _) {
-        final isMyTurn = _isYourTurn;
+        final isMyTurn = _isYourTurn && !widget.isObserver;
         final evasionsLeft = currentPlayer.specs.evasions;
+        final isObserver = widget.isObserver;
 
         return ColoredBox(
           color: Colors.black.withValues(alpha: 0.85),
@@ -238,10 +263,17 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
                         ? 'Le combat est en cours...'
                         : _combatMessage,
                     style: TextStyle(
-                      color: isMyTurn ? Colors.greenAccent : Colors.white70,
+                      color:
+                          widget.isObserver
+                              ? Colors.white70
+                              : (isMyTurn
+                                  ? Colors.greenAccent
+                                  : Colors.white70),
                       fontSize: 16,
                       fontWeight:
-                          isMyTurn ? FontWeight.bold : FontWeight.normal,
+                          isMyTurn && !widget.isObserver
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -251,7 +283,7 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       ElevatedButton(
-                        onPressed: isMyTurn ? _attack : null,
+                        onPressed: (isMyTurn && !isObserver) ? _attack : null,
                         style: ElevatedButton.styleFrom(
                           disabledBackgroundColor: Colors.grey,
                           padding: const EdgeInsets.symmetric(
@@ -267,7 +299,9 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
                       const SizedBox(width: 16),
                       ElevatedButton(
                         onPressed:
-                            (isMyTurn && evasionsLeft > 0) ? _evade : null,
+                            (isMyTurn && !isObserver && evasionsLeft > 0)
+                                ? _evade
+                                : null,
                         style: ElevatedButton.styleFrom(
                           disabledBackgroundColor: Colors.grey,
                           padding: const EdgeInsets.symmetric(

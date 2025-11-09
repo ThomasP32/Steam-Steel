@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, HostBinding, OnInit } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { FriendsListComponent } from '@app/components/friends-list/friends-list.component';
+import { GameInfoComponent } from '@app/components/game-info/game-info.component';
 import { ThemeService } from '@app/services/theme/theme.service';
 import { FriendsEvents } from '@common/events/friends.events';
 import { GameCreationEvents } from '@common/events/game-creation.events';
@@ -9,19 +10,25 @@ import { GameInvitation, GameInvitationModalComponent } from '../../components/g
 import { AuthService } from '../../services/auth/auth.service';
 import { SocketService } from '../../services/communication-socket/communication-socket.service';
 import { FriendsService } from '../../services/friends/friends.service';
+import { GameTurnService } from '../../services/game-turn/game-turn.service';
+import { GameService } from '../../services/game/game.service';
 
 @Component({
     selector: 'app-root',
     standalone: true,
     templateUrl: './app.component.html',
     styleUrls: ['./app.component.scss'],
-    imports: [CommonModule, RouterOutlet, GameInvitationModalComponent, FriendsListComponent],
+    imports: [CommonModule, RouterOutlet, GameInvitationModalComponent, FriendsListComponent, GameInfoComponent],
 })
 export class AppComponent implements OnInit {
-    @HostBinding('class') themeClass: string = 'theme-dark';
-
+    @HostBinding('class') get hostClasses(): string {
+        return `${this.themeClass} ${this.isGamePage ? 'game-page' : ''}`;
+    }
+    
+    themeClass: string = 'theme-dark';
     currentInvitation: GameInvitation | null = null;
     isFriendsListVisible: boolean = false;
+    isGameInfoVisible: boolean = false;
     isGamePage: boolean = false;
     isLoggedIn: boolean = false;
     constructor(
@@ -30,12 +37,16 @@ export class AppComponent implements OnInit {
         private readonly socketService: SocketService,
         private readonly router: Router,
         private readonly authService: AuthService,
+        protected readonly gameService: GameService,
+        protected readonly gameTurnService: GameTurnService,
     ) {
         this.themeService = themeService;
         this.friendsService = friendsService;
         this.socketService = socketService;
         this.router = router;
         this.authService = authService;
+        this.gameService = gameService;
+        this.gameTurnService = gameTurnService;
     }
 
     ngOnInit(): void {
@@ -103,6 +114,10 @@ export class AppComponent implements OnInit {
 
     toggleFriendsListVisibility(): void {
         this.isFriendsListVisible = !this.isFriendsListVisible;
+    }
+
+    toggleGameInfoVisibility(): void {
+        this.isGameInfoVisible = !this.isGameInfoVisible;
     }
 
     private async checkAndSetupFriendsFeatures(): Promise<void> {

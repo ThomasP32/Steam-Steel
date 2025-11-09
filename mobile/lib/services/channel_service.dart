@@ -203,7 +203,7 @@ class ChannelService {
       final channels = await _apiClient.getChannels();
       _availableChannelsSubject.add(channels);
       DebugLogger.log('Loaded ${channels.length} channels from API');
-    } catch (e) {
+    } on Exception catch (e) {
       DebugLogger.log('Error loading channels: $e');
     }
   }

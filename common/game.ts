@@ -96,3 +96,16 @@ export interface GameCtf extends GameClassic {
 }
 
 export type Game = GameClassic | GameCtf;
+
+export enum GameEndReason {
+    NoWinner_Termination = 'no_winner_termination',
+    Victory_Elimination = 'victory_elimination',
+    Victory_CombatWins = 'victory_combat_wins',
+    Victory_CtfFlag = 'victory_ctf_flag',
+    Ongoing = 'ongoing',
+}
+
+export interface GameEndResult {
+    reason: GameEndReason;
+    winner?: Player;
+}

@@ -26,11 +26,17 @@ export class SocketService {
     }
 
     sendMessage<T>(event: string, data?: T): void {
+        if (!this.socket) {
+            return;
+        }
         this.socket.emit(event, data);
     }
 
     listen<T>(eventName: string): Observable<T> {
         return new Observable((subscriber) => {
+            if (!this.socket) {
+                return;
+            }
             this.socket.on(eventName, (data: T) => {
                 subscriber.next(data);
             });
@@ -38,6 +44,9 @@ export class SocketService {
     }
 
     disconnect(): void {
+        if (!this.socket) {
+            return;
+        }
         this.socket.disconnect();
     }
 }

@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { ChallengeComponent } from '@app/components/challenge/challenge.component';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { PlayersListComponent } from '@app/components/players-list/players-list.component';
 import { ProfileModalComponent } from '@app/components/profile-modal/profile-modal.component';
@@ -23,7 +24,7 @@ import { firstValueFrom, Subscription } from 'rxjs';
 @Component({
     selector: 'app-waiting-room-page',
     standalone: true,
-    imports: [CommonModule, PlayersListComponent, ChatroomComponent, ProfileModalComponent],
+    imports: [CommonModule, PlayersListComponent, ChatroomComponent, ProfileModalComponent, ChallengeComponent],
     templateUrl: './waiting-room-page.component.html',
     styleUrls: ['./waiting-room-page.component.scss'],
 })

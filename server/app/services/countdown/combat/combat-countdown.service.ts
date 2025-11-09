@@ -26,6 +26,12 @@ export class CombatCountdownService extends EventEmitter {
     }
 
     async startTurnCounter(game: Game, hasEvasions: boolean): Promise<void> {
+        // Failsafe: Check if game is null
+        if (!game) {
+            console.warn('[CombatCountdownService] startTurnCounter: Game is null, cannot start timer');
+            return;
+        }
+
         const duration = hasEvasions ? COUNTDOWN_COMBAT_DURATION : COUNTDOWN_NOEVASION_DURATION;
         let countdown = this.countdowns.get(game.id);
 

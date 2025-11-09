@@ -15,9 +15,15 @@ import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 class CharacterCreationScreen extends StatefulWidget {
-  const CharacterCreationScreen({this.gameId, this.mapName, super.key});
+  const CharacterCreationScreen({
+    this.gameId,
+    this.mapName,
+    this.gameSettings,
+    super.key,
+  });
   final String? gameId;
   final String? mapName;
+  final GameSettings? gameSettings;
 
   @override
   State<CharacterCreationScreen> createState() =>
@@ -135,7 +141,9 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
 
       try {
         final encoded = Uri.encodeComponent(widget.mapName!);
-        GoRouter.of(context).go('/$encoded/waiting-room/host');
+        GoRouter.of(
+          context,
+        ).go('/$encoded/waiting-room/host', extra: widget.gameSettings);
       } on Exception catch (e) {
         DebugLogger.log(
           'Navigation to waiting-room host failed: $e',
@@ -175,7 +183,10 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
           } catch (_) {}
 
           try {
-            GoRouter.of(context).go('/${widget.gameId}/waiting-room/player');
+            GoRouter.of(context).go(
+              '/${widget.gameId}/waiting-room/player',
+              extra: widget.gameSettings,
+            );
           } on Exception catch (e) {
             DebugLogger.log(
               'Navigation to waiting-room player failed: $e',

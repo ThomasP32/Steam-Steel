@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { ChallengeService } from '@app/services/challenge/challenge.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { Avatar } from '@common/game';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
@@ -12,9 +13,11 @@ export class AuthService {
     constructor(
         private readonly communicationService: CommunicationMapService,
         private readonly socketService: SocketService,
+        private readonly challengeService: ChallengeService,
     ) {
         this.communicationService = communicationService;
         this.socketService = socketService;
+        this.challengeService = challengeService;
         this.setupAutoLogout();
     }
 
@@ -78,6 +81,12 @@ export class AuthService {
         this.authStateSubject.next(true);
         this.socketService.disconnect();
         this.socketService.connect();
+        
+        // Reinitialize challenge listeners for the new socket connection
+        setTimeout(() => {
+            this.challengeService.reinitializeListeners();
+        }, 100);
+        
         return response;
     }
 
