@@ -1,7 +1,6 @@
 import { Combat } from '@common/combat';
 import {
     CONTINUE_ODDS,
-    COUNTDOWN_COMBAT_DURATION,
     EVASION_SUCCESS_RATE,
     INVENTORY_SIZE,
     MAXIMUM_BONUS,
@@ -10,7 +9,7 @@ import {
     ProfileType,
     TIME_FOR_POSITION_UPDATE,
 } from '@common/constants';
-import { CombatEvents, CombatStartedData } from '@common/events/combat.events';
+import { CombatEvents } from '@common/events/combat.events';
 import { GameManagerEvents } from '@common/events/game-manager.events';
 import { ItemsEvents } from '@common/events/items.events';
 import { VirtualPlayerEvents } from '@common/events/virtualPlayer.events';
@@ -20,6 +19,7 @@ import { Injectable } from '@nestjs/common';
 import { Inject } from '@nestjs/common/decorators/core/inject.decorator';
 import { Server } from 'socket.io';
 import { EventEmitter } from 'stream';
+import { ChallengeService } from '../challenge/challenge.service';
 import { CombatService } from '../combat/combat.service';
 import { CombatCountdownService } from '../countdown/combat/combat-countdown.service';
 import { GameCountdownService } from '../countdown/game/game-countdown.service';
@@ -37,6 +37,7 @@ export class VirtualGameManagerService extends EventEmitter {
     @Inject(CombatCountdownService) private readonly combatCountdownService: CombatCountdownService;
     @Inject(GameCountdownService) private readonly gameCountdownService: GameCountdownService;
     @Inject(ItemsManagerService) private readonly itemsManagerService: ItemsManagerService;
+    @Inject(ChallengeService) private readonly challengeService: ChallengeService;
     server: Server;
     hasFallen: boolean = false;
 
@@ -238,24 +239,22 @@ export class VirtualGameManagerService extends EventEmitter {
     }
 
     startRegularCombat(combat: Combat, game: Game): void {
-        const involvedPlayers = [combat.challenger.name];
-        this.journalService.logMessage(game.id, `${combat.challenger.name} a commencé un combat contre ${combat.opponent.name}.`, involvedPlayers);
-        const combatStartedData: CombatStartedData = {
-            challenger: combat.challenger,
-            opponent: combat.opponent,
-        };
-        this.server.to(combat.id).emit(CombatEvents.CombatStarted, combatStartedData);
-        this.server.to(game.id).emit(CombatEvents.CombatStartedSignal);
-        this.gameManagerService.updatePlayerActions(game.id, combat.challenger.socketId);
-        this.combatCountdownService.initCountdown(game.id, COUNTDOWN_COMBAT_DURATION);
-        this.gameCountdownService.pauseCountdown(game.id);
-        this.startCombatTurns(game.id);
+        this.combatService.initializeCombat(
+            combat,
+            game,
+            combat.challenger.socketId,
+            this.journalService,
+            this.gameManagerService,
+            this.combatCountdownService,
+            this.gameCountdownService,
+        );
+        this.combatService.startCombatTurns(game.id, this.combatCountdownService, this.gameCreationService);
     }
 
     handleVirtualPlayerCombat(player: Player, opponent: Player, gameId: string, combat: Combat): boolean {
         if (player.socketId.includes('virtual')) {
             if (player.profile === ProfileType.AGGRESSIVE) {
-                this.handleAggressiveCombat(player, opponent, combat);
+                this.handleAggressiveCombat(player, opponent, combat, gameId);
                 return false;
             } else if (player.profile === ProfileType.DEFENSIVE) {
                 return this.handleDefensiveCombat(player, opponent, combat, gameId);
@@ -263,8 +262,8 @@ export class VirtualGameManagerService extends EventEmitter {
         }
     }
 
-    handleAggressiveCombat(player: Player, opponent: Player, combat: Combat): void {
-        this.attack(player, opponent, combat);
+    handleAggressiveCombat(player: Player, opponent: Player, combat: Combat, gameId: string): void {
+        this.attack(player, opponent, combat, gameId);
     }
 
     handleDefensiveCombat(player: Player, opponent: Player, combat: Combat, gameId: string): boolean {
@@ -279,11 +278,11 @@ export class VirtualGameManagerService extends EventEmitter {
                 return this.attemptEvasion(player, opponent, combat, gameId);
             }
         }
-        this.attack(player, opponent, combat);
+        this.attack(player, opponent, combat, gameId);
         return false;
     }
 
-    attack(player: Player, opponent: Player, combat: Combat): void {
+    attack(player: Player, opponent: Player, combat: Combat, gameId: string): void {
         const rollResult = this.combatService.rollDice(player, opponent);
         this.server.to(combat.id).emit(CombatEvents.DiceRolled, rollResult);
         this.journalService.logMessage(
@@ -291,8 +290,9 @@ export class VirtualGameManagerService extends EventEmitter {
             `Dés roulés. Dé d'attaque: ${rollResult.attackDice}. Dé de défense: ${rollResult.defenseDice}. Résultat = ${rollResult.attackDice} - ${rollResult.defenseDice}.`,
             [player.name, opponent.name],
         );
-        if (this.combatService.isAttackSuccess(player, opponent, rollResult)) {
-            this.combatService.handleAttackSuccess(player, opponent, combat.id);
+        const attackResult = this.combatService.attackResult(player, opponent, rollResult);
+        if (attackResult > 0) {
+            this.combatService.handleAttackSuccess(player, opponent, combat.id, gameId, attackResult);
             this.journalService.logMessage(combat.id, `Réussite de l'attaque sur ${opponent.name}.`, [opponent.name]);
         } else {
             this.server.to(combat.id).emit(CombatEvents.AttackFailure, opponent);
@@ -321,19 +321,7 @@ export class VirtualGameManagerService extends EventEmitter {
     }
 
     startCombatTurns(gameId: string): void {
-        const combat = this.combatService.getCombatByGameId(gameId);
-        const game = this.gameCreationService.getGameById(gameId);
-        if (!game) {
-            console.warn(`[VirtualGameManagerService] startCombatTurns: Game ${gameId} not found (likely already ended)`);
-            return;
-        }
-        if (combat) {
-            this.server.to(combat.currentTurnSocketId).emit(CombatEvents.YourTurnCombat);
-            const currentPlayer = combat.currentTurnSocketId === combat.challenger.socketId ? combat.challenger : combat.opponent;
-            const otherPlayer = combat.currentTurnSocketId === combat.challenger.socketId ? combat.opponent : combat.challenger;
-            this.server.to(otherPlayer.socketId).emit(CombatEvents.PlayerTurnCombat);
-            this.combatCountdownService.startTurnCounter(game, currentPlayer.specs.evasions === 0 ? false : true);
-        }
+        this.combatService.startCombatTurns(gameId, this.combatCountdownService, this.gameCreationService);
     }
 
     async moveToTargetPlayer(
@@ -382,6 +370,7 @@ export class VirtualGameManagerService extends EventEmitter {
         if (adjacentDoors.length > 0) {
             const selectedDoor = adjacentDoors[Math.floor(Math.random() * adjacentDoors.length)];
             selectedDoor.isOpened = !selectedDoor.isOpened;
+
             const playerInGame = game.players.find((p) => p.socketId === player.socketId);
             this.server.to(game.id).emit(ItemsEvents.DoorToggled, { game, player: playerInGame });
             this.journalService.logMessage(game.id, `Une porte a été ouverte par ${player.name}.`, [player.name]);

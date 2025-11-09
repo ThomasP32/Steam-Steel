@@ -1,7 +1,9 @@
 import 'package:go_router/go_router.dart';
+import 'package:mobile/common/game.dart';
 import 'package:mobile/main.dart';
 import 'package:mobile/screens/account_screen.dart';
 import 'package:mobile/screens/character_creation_screen.dart';
+import 'package:mobile/screens/endgame_screen.dart';
 import 'package:mobile/screens/game_screen.dart';
 import 'package:mobile/screens/gamecreation_screen.dart';
 import 'package:mobile/screens/waiting_room_screen.dart';
@@ -19,16 +21,40 @@ class AppRouter {
         path: '/:gameId/waiting-room/player',
         name: 'waiting-room',
         builder: (context, state) {
-          final code = state.pathParameters['gameId'] ?? '';
-          return WaitingRoomScreen(gameId: code);
+          final gameId = state.pathParameters['gameId'];
+          final extra = state.extra;
+
+          GameSettings? settings;
+          if (extra is GameSettings) {
+            settings = extra;
+          } else if (extra is Map<String, dynamic>) {
+            settings = extra['settings'] as GameSettings?;
+          }
+
+          return WaitingRoomScreen(
+            gameId: gameId,
+            gameSettings: settings,
+          );
         },
       ),
       GoRoute(
         path: '/:mapName/waiting-room/host',
         name: 'waiting-room-host',
         builder: (context, state) {
-          final mapName = state.pathParameters['mapName'] ?? '';
-          return WaitingRoomScreen(mapName: mapName);
+          final mapName = state.pathParameters['mapName'];
+          final extra = state.extra;
+
+          GameSettings? settings;
+          if (extra is GameSettings) {
+            settings = extra;
+          } else if (extra is Map<String, dynamic>) {
+            settings = extra['settings'] as GameSettings?;
+          }
+
+          return WaitingRoomScreen(
+            mapName: mapName,
+            gameSettings: settings,
+          );
         },
       ),
       GoRoute(
@@ -36,7 +62,14 @@ class AppRouter {
         name: 'choose-character',
         builder: (context, state) {
           final code = state.pathParameters['gameId'] ?? '';
-          return CharacterCreationScreen(gameId: code);
+          final extra = state.extra;
+
+          GameSettings? settings;
+          if (extra is GameSettings) {
+            settings = extra;
+          }
+
+          return CharacterCreationScreen(gameId: code, gameSettings: settings);
         },
       ),
       GoRoute(
@@ -64,7 +97,26 @@ class AppRouter {
         path: '/create-game/:mapName/choose-character',
         builder: (context, state) {
           final mapName = state.pathParameters['mapName'] ?? '';
-          return CharacterCreationScreen(mapName: mapName);
+          final extra = state.extra;
+
+          GameSettings? settings;
+          if (extra is GameSettings) {
+            settings = extra;
+          }
+
+          return CharacterCreationScreen(
+            mapName: mapName,
+            gameSettings: settings,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/endgame/:gameId',
+        name: 'endgame',
+        builder: (context, state) {
+          final gameId = state.pathParameters['gameId'] ?? '';
+          final game = state.extra! as GameClassic;
+          return EndgameScreen(gameId: gameId, game: game);
         },
       ),
     ],

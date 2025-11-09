@@ -114,16 +114,16 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
           _channelService.isPartyChannel(c.name) &&
           c.name.toLowerCase().contains(query),
     );
-    filtered.addAll(matchingParty);
-
-    filtered.addAll(
-      channels.where(
-        (c) =>
-            c.name.toLowerCase() != 'global' &&
-            !_channelService.isPartyChannel(c.name) &&
-            c.name.toLowerCase().contains(query),
-      ),
-    );
+    filtered
+      ..addAll(matchingParty)
+      ..addAll(
+        channels.where(
+          (c) =>
+              c.name.toLowerCase() != 'global' &&
+              !_channelService.isPartyChannel(c.name) &&
+              c.name.toLowerCase().contains(query),
+        ),
+      );
     return filtered;
   }
 
@@ -171,7 +171,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
           CustomSnackBar.success(message: 'Salon "$name" créé avec succès'),
         );
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         showTopSnackBar(
           Overlay.of(context),
@@ -212,7 +212,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
           CustomSnackBar.success(message: 'Salon "$name" supprimé avec succès'),
         );
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         showTopSnackBar(
           Overlay.of(context),
@@ -376,7 +376,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                       decoration: InputDecoration(
                         hintText: 'Rechercher un salon...',
                         hintStyle: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withValues(alpha: 0.5),
                           fontSize: 9,
                           fontFamily: 'Press Start 2P',
                         ),
@@ -622,7 +622,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
         onTap: () {}, // Prevent closing on background tap
         child: Container(
           constraints: const BoxConstraints(minHeight: 300),
-          color: Colors.black.withOpacity(0.7),
+          color: Colors.black.withValues(alpha: 0.7),
           child: Center(
             child: GestureDetector(
               onTap: () {}, // Prevent tap propagation
@@ -658,7 +658,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                       decoration: InputDecoration(
                         labelText: 'Nom du salon',
                         labelStyle: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 10,
                           fontFamily: 'Press Start 2P',
                         ),
@@ -721,7 +721,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
         onTap: () {}, // Prevent closing on background tap
         child: Container(
           constraints: const BoxConstraints(minHeight: 300),
-          color: Colors.black.withOpacity(0.7),
+          color: Colors.black.withValues(alpha: 0.7),
           child: Center(
             child: GestureDetector(
               onTap: () {}, // Prevent tap propagation

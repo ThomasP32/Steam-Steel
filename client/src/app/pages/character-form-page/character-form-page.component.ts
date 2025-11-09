@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { Character } from '@app/interfaces/character';
 import { AuthService } from '@app/services/auth/auth.service';
+import { ChallengeService } from '@app/services/challenge/challenge.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
@@ -31,7 +32,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     name: string = '';
     isEditing: boolean = false;
     isChatVisible: boolean = false;
-    
+
     lifeOrSpeedBonus: 'life' | 'speed';
     attackOrDefenseBonus: 'attack' | 'defense';
 
@@ -41,7 +42,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     game: Game | undefined;
     gameId: string | null = null;
     mapName: string | null = null;
-    gameSettings: { isFastElimination: boolean, isDropInOut:boolean } = { isFastElimination: false, isDropInOut: false };
+    gameSettings: { isFastElimination: boolean; isDropInOut: boolean } = { isFastElimination: false, isDropInOut: false };
 
     gameHasStarted: boolean = false;
     gameLockedModal: boolean = false;
@@ -63,6 +64,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         private readonly route: ActivatedRoute,
         private readonly authService: AuthService,
         private readonly gameService: GameService,
+        private readonly challengeService: ChallengeService,
     ) {
         this.communicationMapService = communicationMapService;
         this.socketService = socketService;
@@ -72,6 +74,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         this.route = route;
         this.authService = authService;
         this.gameService = gameService;
+        this.challengeService = challengeService;
     }
 
     async ngOnInit(): Promise<void> {
@@ -83,6 +86,10 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         this.selectedCharacter = this.characters[0];
         this.currentIndex = 0;
 
+        // Reinitialize challenge listeners when entering character creation
+        // This ensures listeners are ready after leaving a previous game
+        this.challengeService.reinitializeListeners();
+
         if (!this.router.url.includes('create-game')) {
             this.listenToGameStatus();
             this.listenToPlayerJoin();
@@ -93,7 +100,6 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         } else {
             this.mapName = this.route.snapshot.params['mapName'];
             // Get game settings from navigation state
-            console.log('In the on init');
             if (window.history.state?.gameSettings) {
                 this.gameSettings = window.history.state.gameSettings;
             }
@@ -156,7 +162,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
                 if (game) {
                     this.game = game;
                     if (game.settings) {
-                        this.gameSettings =  game.settings;
+                        this.gameSettings = game.settings;
                     }
                     if (game.hasStarted) {
                         this.gameHasStarted = true;
@@ -169,22 +175,21 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     listenToPlayerJoin(): void {
         this.socketSubscription.add(
             this.socketService
-            .listen<{ updatedPlayer: Player, updatedGame: Game }>(GameCreationEvents.YouJoined)
-            .subscribe(({ updatedPlayer, updatedGame }) => {
-                this.playerService.setPlayer(updatedPlayer);
-                if(updatedPlayer.isObservationMode || this.gameSettings.isDropInOut && this.gameHasStarted){
-                    if (updatedGame) {
-                        this.gameService.setGame(updatedGame);
-                        this.router.navigate([`/game/${updatedGame.id}/${updatedGame.name}`], {
-                            state: { player: this.playerService.player, gameId: updatedGame.id },
-                        });
+                .listen<{ updatedPlayer: Player; updatedGame: Game }>(GameCreationEvents.YouJoined)
+                .subscribe(({ updatedPlayer, updatedGame }) => {
+                    this.playerService.setPlayer(updatedPlayer);
+                    if (updatedPlayer.isObservationMode || (this.gameSettings.isDropInOut && this.gameHasStarted)) {
+                        if (updatedGame) {
+                            this.gameService.setGame(updatedGame);
+                            this.router.navigate([`/game/${updatedGame.id}/${updatedGame.name}`], {
+                                state: { player: this.playerService.player, gameId: updatedGame.id },
+                            });
+                        }
+                    } else {
+                        this.router.navigate([`${this.gameId}/waiting-room/player`]);
                     }
-                }                
-                else {
-                    this.router.navigate([`${this.gameId}/waiting-room/player`])
-                }
-                this.socketService.sendMessage(FriendsEvents.UpdateUserStatus, { status: UserStatus.InGame });
-            }),
+                    this.socketService.sendMessage(FriendsEvents.UpdateUserStatus, { status: UserStatus.InGame });
+                }),
         );
 
         this.socketSubscription.add(

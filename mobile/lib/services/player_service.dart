@@ -10,29 +10,7 @@ class PlayerService {
   static final PlayerService _instance = PlayerService._();
 
   final ValueNotifier<Player> notifier = ValueNotifier(
-    Player(
-      socketId: '',
-      name: '',
-      avatar: Avatar.avatar1,
-      specs: Specs(
-        life: 0,
-        speed: 0,
-        attack: 0,
-        defense: 0,
-        attackBonus: Bonus.d4,
-        defenseBonus: Bonus.d6,
-        evasions: 0,
-        actions: 0,
-        movePoints: 0,
-        nVictories: 0,
-        nDefeats: 0,
-        nCombats: 0,
-        nEvasions: 0,
-        nLifeTaken: 0,
-        nLifeLost: 0,
-        nItemsUsed: 0,
-      ),
-    ),
+    Player(socketId: '', name: '', avatar: Avatar.avatar1, specs: Specs()),
   );
 
   Player get player => notifier.value;
@@ -68,6 +46,7 @@ class PlayerService {
       name: json['name'] as String? ?? '',
       avatar: Avatar.values[(json['avatar'] as int? ?? 1) - 1],
       isActive: json['isActive'] as bool? ?? true,
+      isObservationMode: json['isObservationMode'] as bool? ?? false,
       isGameWinner: json['isGameWinner'] as bool? ?? false,
       specs: Specs(
         life: specsJson['life'] as int? ?? 0,

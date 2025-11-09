@@ -77,3 +77,15 @@
         </div>
     </div>
 </div>
+
+<div class="actions-info">
+    <div class="actions">
+        <p>Actions restantes: {{ player.specs.actions }}</p>
+        <p>Mouvements restants: {{ player.specs.movePoints }}</p>
+    </div>
+</div>
+<app-actions-component
+    [player]="player"
+    [currentPlayerTurn]="currentPlayerTurn"
+    (showExitModalChange)="onShowExitModalChange($event)"
+></app-actions-component>

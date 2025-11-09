@@ -3,9 +3,11 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/common/game.dart';
 import 'package:mobile/services/api_client.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
+import 'package:mobile/widgets/game/game_options_modal_widget.dart';
 
 class GameCreationScreen extends StatefulWidget {
   const GameCreationScreen({super.key});
@@ -22,6 +24,11 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
   bool loading = true;
   bool userError = false;
   bool gameChoiceError = false;
+  bool showGameOptionsModal = false;
+  Map<String, bool> gameSettings = {
+    'isFastElimination': false,
+    'isFriendsOnly': false,
+  };
 
   @override
   void initState() {
@@ -60,29 +67,40 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
       selectedMap = name;
       userError = false;
       gameChoiceError = false;
+      showGameOptionsModal = true;
     });
+  }
+
+  void closeGameOptionsModal() {
+    setState(() {
+      showGameOptionsModal = false;
+      selectedMap = null;
+    });
+  }
+
+  void onGameOptionsNext({
+    required bool isFastElimination,
+    required bool isFriendsOnly,
+  }) {
+    final settings = GameSettings(
+      isFastElimination: isFastElimination,
+      isFriendsOnly: isFriendsOnly,
+    );
+
+    setState(() {
+      showGameOptionsModal = false;
+    });
+
+    if (selectedMap != null && mounted) {
+      final encoded = Uri.encodeComponent(selectedMap!);
+      context.go('/create-game/$encoded/choose-character', extra: settings);
+    }
   }
 
   int getMapPlayers(int width) {
     if (width <= 10) return 2;
     if (width <= 15) return 4;
     return 6;
-  }
-
-  void _onNext() {
-    if (selectedMap == null) {
-      setState(() => userError = true);
-      return;
-    }
-
-    final exists = maps.any((m) => m['name'] == selectedMap);
-    if (!exists) {
-      setState(() => gameChoiceError = true);
-      return;
-    }
-
-    final encoded = Uri.encodeComponent(selectedMap!);
-    context.go('/create-game/$encoded/choose-character');
   }
 
   Widget _buildImage(String? imagePreview) {
@@ -121,7 +139,6 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
             fit: BoxFit.cover,
           ),
         ),
-
         child: Stack(
           children: [
             Column(
@@ -130,10 +147,9 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
                   bottom: false,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8.0,
-                      vertical: 8.0,
+                      horizontal: 8,
+                      vertical: 8,
                     ),
-                    // use a Stack so the title remains perfectly centered
                     child: SizedBox(
                       height: kToolbarHeight,
                       child: Stack(
@@ -160,7 +176,6 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
                     ),
                   ),
                 ),
-
                 Expanded(
                   child:
                       loading
@@ -194,7 +209,6 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
                                       return GestureDetector(
                                         onTap: () => selectMap(name),
                                         child: Container(
-                                          // compute a single card dimension and use it for both width & height
                                           width:
                                               (() {
                                                 final screenW =
@@ -222,7 +236,7 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
                                             border: Border.all(
                                               color:
                                                   isSelected
-                                                      ? Colors.blueAccent
+                                                      ? Colors.orange
                                                       : Colors.transparent,
                                               width: 3,
                                             ),
@@ -307,10 +321,24 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
                                                           color: Colors.white,
                                                           fontWeight:
                                                               FontWeight.bold,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                      const Padding(
+                                                        padding:
+                                                            EdgeInsets.only(
+                                                              top: 4,
+                                                            ),
+                                                      ),
+                                                      Text(
+                                                        'Taille: ${width}x${size?['y'] ?? width}',
+                                                        style: const TextStyle(
+                                                          color: Colors.white70,
+                                                          fontSize: 12,
                                                         ),
                                                       ),
                                                       Text(
-                                                        'Mode de jeu: ${map['mode'] ?? ''}',
+                                                        'Mode: ${map['mode'] ?? ''}',
                                                         style: const TextStyle(
                                                           color: Colors.white70,
                                                           fontSize: 12,
@@ -320,7 +348,7 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
                                                         Padding(
                                                           padding:
                                                               const EdgeInsets.only(
-                                                                top: 6,
+                                                                top: 4,
                                                               ),
                                                           child: Text(
                                                             desc,
@@ -364,21 +392,17 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
                           "Le jeu n'est plus disponible.",
                           style: TextStyle(color: Colors.red),
                         ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          ElevatedButton(
-                            onPressed: _onNext,
-                            child: const Text('Suivant'),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
               ],
             ),
+            if (showGameOptionsModal && selectedMap != null)
+              GameOptionsModalWidget(
+                selectedMapName: selectedMap!,
+                onClose: closeGameOptionsModal,
+                onNext: onGameOptionsNext,
+              ),
             const Positioned(top: 18, right: 12, child: ChatWidget()),
           ],
         ),

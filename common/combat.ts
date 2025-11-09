@@ -13,6 +13,9 @@ export interface Combat {
     opponentDefense: number;
 }
 
+export type PlayerId = string;
+export type GameId = string;
+
 export interface RollResult {
     attackDice: number;
     defenseDice: number;

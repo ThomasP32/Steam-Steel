@@ -3,10 +3,8 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:mobile/common/game.dart';
-import 'package:mobile/common/map_types.dart';
 import 'package:mobile/services/api_client.dart';
 import 'package:mobile/services/channel_service.dart';
-import 'package:mobile/services/game_service.dart';
 import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
@@ -28,11 +26,15 @@ class WaitingRoomService {
 
   final Map<String, StreamSubscription<dynamic>> _subscriptions = {};
 
-  void initialize(String? initialGameId, String? initialMapName) {
+  void initialize(
+    String? initialGameId,
+    String? initialMapName,
+    GameSettings? gameSettings,
+  ) {
     gameId.value = initialGameId ?? '';
 
     if (initialMapName != null && initialMapName.isNotEmpty) {
-      _createGameForHost(initialMapName);
+      _createGameForHost(initialMapName, gameSettings ?? GameSettings());
     } else {
       requestPlayers();
       requestGameData();
@@ -88,60 +90,7 @@ class WaitingRoomService {
               ? data.whereType<Map<String, dynamic>>().toList()
               : <Map<String, dynamic>>[];
 
-      final parsed =
-          list.map((j) {
-            final specsJson = j['specs'] as Map<String, dynamic>? ?? {};
-            return Player(
-              socketId: (j['socketId'] ?? '').toString(),
-              name: (j['name'] ?? '').toString(),
-              avatar: _avatarFromRaw(j['avatar']),
-              isActive: j['isActive'] as bool? ?? true,
-              isGameWinner: j['isGameWinner'] as bool? ?? false,
-              specs: Specs(
-                life: specsJson['life'] as int? ?? 0,
-                speed: specsJson['speed'] as int? ?? 0,
-                attack: specsJson['attack'] as int? ?? 0,
-                defense: specsJson['defense'] as int? ?? 0,
-                attackBonus:
-                    (specsJson['attackBonus'] as int? ?? 4) == 6
-                        ? Bonus.d6
-                        : Bonus.d4,
-                defenseBonus:
-                    (specsJson['defenseBonus'] as int? ?? 6) == 6
-                        ? Bonus.d6
-                        : Bonus.d4,
-                evasions: specsJson['evasions'] as int? ?? 0,
-                actions: specsJson['actions'] as int? ?? 0,
-                movePoints: specsJson['movePoints'] as int? ?? 0,
-                nVictories: specsJson['nVictories'] as int? ?? 0,
-                nDefeats: specsJson['nDefeats'] as int? ?? 0,
-                nCombats: specsJson['nCombats'] as int? ?? 0,
-                nEvasions: specsJson['nEvasions'] as int? ?? 0,
-                nLifeTaken: specsJson['nLifeTaken'] as int? ?? 0,
-                nLifeLost: specsJson['nLifeLost'] as int? ?? 0,
-                nItemsUsed: specsJson['nItemsUsed'] as int? ?? 0,
-              ),
-              inventory:
-                  (j['inventory'] as List<dynamic>? ?? [])
-                      .map((i) => GameService.parseItemCategory(i.toString()))
-                      .toList(),
-              position:
-                  (j['position'] as Map<String, dynamic>?) != null
-                      ? [
-                        Coordinate(
-                          (j['position'] as Map<String, dynamic>)['x'] as int,
-                          (j['position'] as Map<String, dynamic>)['y'] as int,
-                        ),
-                      ]
-                      : [],
-              turn: j['turn'] as int? ?? 0,
-              visitedTiles:
-                  (j['visitedTiles'] as List<dynamic>? ?? [])
-                      .map((v) => Coordinate(v['x'] as int, v['y'] as int))
-                      .toList(),
-              profile: GameService.parseProfileType(j['profile'] as String?),
-            );
-          }).toList();
+      final parsed = list.map(PlayerService.parsePlayer).toList();
 
       players.value = parsed;
 
@@ -212,21 +161,6 @@ class WaitingRoomService {
     }
   }
 
-  Avatar _avatarFromRaw(dynamic raw) {
-    if (raw == null) return Avatar.avatar1;
-    if (raw is int) {
-      final idx = (raw - 1).clamp(0, Avatar.values.length - 1);
-      return Avatar.values[idx];
-    }
-    if (raw is String) {
-      return Avatar.values.firstWhere(
-        (a) => a.name.toLowerCase() == raw.toLowerCase(),
-        orElse: () => Avatar.avatar1,
-      );
-    }
-    return Avatar.avatar1;
-  }
-
   String generateGameId() {
     const minCode = 1000;
     const maxCode = 9999;
@@ -237,14 +171,13 @@ class WaitingRoomService {
     return number.toString();
   }
 
-  Future<void> _createGameForHost(String mapNameParam) async {
+  Future<void> _createGameForHost(
+    String mapNameParam,
+    GameSettings gameSettings,
+  ) async {
     try {
       final newGameId = generateGameId();
       final storedPlayer = _playerService.notifier.value;
-
-      if (storedPlayer == null) {
-        throw Exception('No player configured');
-      }
 
       Map<String, dynamic>? fullMapData;
       var mapData = <String, dynamic>{'x': 10, 'y': 10};
@@ -276,6 +209,7 @@ class WaitingRoomService {
         'name': storedPlayer.name,
         'socketId': SocketService().socketId ?? storedPlayer.socketId,
         'isActive': storedPlayer.isActive,
+        'isObservationMode': storedPlayer.isObservationMode,
         'avatar': storedPlayer.avatar.index + 1,
         'specs': {
           'life': storedPlayer.specs.life,
@@ -308,6 +242,7 @@ class WaitingRoomService {
         'name': mapNameParam,
         'mapSize': mapData,
         'players': [playerPayload],
+        'participants': [playerPayload],
         'isLocked': false,
         'hasStarted': false,
         'currentTurn': 0,
@@ -315,7 +250,7 @@ class WaitingRoomService {
         'duration': 0,
         'nTurns': 0,
         'debug': false,
-        'settings': {'isFastElimination': false, 'isFriendsOnly': false},
+        'settings': gameSettings.toJson(),
         if (fullMapData != null) ...{
           'tiles': fullMapData['tiles'] ?? <dynamic>[],
           'startTiles': fullMapData['startTiles'] ?? <dynamic>[],
@@ -341,7 +276,7 @@ class WaitingRoomService {
       ChannelService().createPartyChannel(newGameId);
 
       DebugLogger.log(
-        'Party channel created for game: $newGameId',
+        'Game created: $newGameId with settings: ${gameSettings.toJson()}',
         tag: 'WaitingRoomService',
       );
     } on Exception catch (e) {

@@ -19,6 +19,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { FriendsController } from './http/controllers/friends/friends.controller';
 import { FriendsService } from './http/services/friends/friends.service';
+import { ChallengeService } from './services/challenge/challenge.service';
 import { ChatroomService } from './services/chatroom/chatroom.service';
 import { CombatService } from './services/combat/combat.service';
 import { CombatCountdownService } from './services/countdown/combat/combat-countdown.service';
@@ -76,6 +77,7 @@ import { GameManagerGateway } from './socket/game/gateways/game-manager/game-man
         AdminGateway,
         FriendsService,
         FriendsGateway,
+        ChallengeService,
     ],
 })
 export class AppModule {}

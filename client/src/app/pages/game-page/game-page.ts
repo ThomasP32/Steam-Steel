@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ActionsComponentComponent } from '@app/components/actions-component/actions-component.component';
+import { ChallengeComponent } from '@app/components/challenge/challenge.component';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { CombatModalComponent } from '@app/components/combat-modal/combat-modal.component';
 import { GameMapComponent } from '@app/components/game-map/game-map.component';
@@ -10,6 +11,7 @@ import { InventoryModalComponent } from '@app/components/inventory-modal/invento
 import { ObservationModeModalComponent } from '@app/components/observation-mode-modal/observation-mode-modal.component';
 import { PlayerInfosComponent } from '@app/components/player-infos/player-infos.component';
 import { AuthService } from '@app/services/auth/auth.service';
+import { ChallengeService } from '@app/services/challenge/challenge.service';
 import { ChannelService } from '@app/services/channel/channel.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { CombatService } from '@app/services/combat/combat.service';
@@ -45,6 +47,7 @@ import { Subscription } from 'rxjs';
         PlayerInfosComponent,
         InventoryModalComponent,
         ObservationModeModalComponent,
+        ChallengeComponent,
     ],
     templateUrl: './game-page.html',
     styleUrl: './game-page.scss',
@@ -102,6 +105,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         protected readonly mapConversionService: MapConversionService,
         private readonly authService: AuthService,
         private readonly channelService: ChannelService,
+        private readonly challengeService: ChallengeService,
     ) {
         this.router = router;
         this.socketService = socketService;
@@ -115,6 +119,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         this.mapConversionService = mapConversionService;
         this.authService = authService;
         this.channelService = channelService;
+        this.challengeService = challengeService;
     }
 
     ngOnInit() {
@@ -187,6 +192,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         this.socketService.sendMessage(GameCreationEvents.LeaveGame, this.game.id);
         this.playerService.resetPlayer();
         this.channelService.removePartyChannel(this.game.id);
+        this.challengeService.resetChallenge();
         this.socketService.sendMessage(FriendsEvents.UpdateUserStatus, { status: UserStatus.Online });
 
         setTimeout(() => {

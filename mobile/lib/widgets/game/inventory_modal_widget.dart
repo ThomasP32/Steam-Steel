@@ -76,9 +76,10 @@ class InventoryModalWidget extends StatelessWidget {
           alignment: WrapAlignment.center,
           spacing: 16,
           runSpacing: 16,
-          children: player.inventory
-              .map((item) => _buildInventorySlot(context, item))
-              .toList(),
+          children:
+              player.inventory
+                  .map((item) => _buildInventorySlot(context, item))
+                  .toList(),
         ),
       ),
     );
@@ -96,11 +97,8 @@ class InventoryModalWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Image.asset(
-            getItemAssetPath(item),
-            fit: BoxFit.contain,
-          ),
+          padding: const EdgeInsets.all(8),
+          child: Image.asset(getItemAssetPath(item), fit: BoxFit.contain),
         ),
       ),
     );

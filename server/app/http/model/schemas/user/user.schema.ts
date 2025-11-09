@@ -25,6 +25,7 @@ export class User extends Document {
             classique: { gamesPlayed: 0, gamesWon: 0 },
             ctf: { gamesPlayed: 0, gamesWon: 0 },
             avgTime: 0,
+            challengesCompleted: 0,
         },
         type: Object,
     })

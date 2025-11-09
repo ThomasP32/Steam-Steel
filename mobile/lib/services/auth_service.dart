@@ -336,4 +336,45 @@ class AuthService {
     }
     throw Exception('Update failed ${r.statusCode}');
   }
+
+  Future<void> updateStats({
+    required String mode,
+    required bool isWin,
+    required int duration,
+  }) async {
+    final t = await token;
+    if (t == null) {
+      DebugLogger.log(
+        'No auth token, skipping stats update',
+        tag: 'AuthService',
+      );
+      return;
+    }
+
+    final uri = Uri.parse('${ApiClient.baseUrl}/api/auth/stats?token=$t');
+    try {
+      final r = await _client.patch(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'mode': mode, 'isWin': isWin, 'duration': duration}),
+      );
+
+      DebugLogger.log(
+        'Auth.updateStats response status: ${r.statusCode}',
+        tag: 'AuthService',
+      );
+
+      if (r.statusCode == 200) {
+        DebugLogger.log('Stats updated successfully', tag: 'AuthService');
+        return;
+      }
+
+      DebugLogger.log(
+        'Stats update failed: ${r.statusCode} - ${r.body}',
+        tag: 'AuthService',
+      );
+    } on Object catch (e) {
+      DebugLogger.log('Stats update request failed: $e', tag: 'AuthService');
+    }
+  }
 }

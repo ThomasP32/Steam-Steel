@@ -1,14 +1,16 @@
 import { ALL_ITEMS, BONUS_REDUCTION, HALF, MapConfig, MapSize } from '@common/constants';
 import { Game, Player } from '@common/game';
-import { ItemCategory, TileCategory } from '@common/map.types';
-import { Coordinate } from '@common/map.types';
-import { Injectable } from '@nestjs/common';
+import { Coordinate, ItemCategory, TileCategory } from '@common/map.types';
+import { Inject, Injectable } from '@nestjs/common';
 import { Socket } from 'socket.io';
+import { ChallengeService } from '../challenge/challenge.service';
 
 @Injectable()
 export class GameCreationService {
+    @Inject(ChallengeService) private readonly challengeService: ChallengeService;
+
     private gameRooms: Record<string, Game> = {};
-    
+
     getGameById(gameId: string): Game {
         const game = this.gameRooms[gameId];
         if (!game) {
@@ -42,17 +44,30 @@ export class GameCreationService {
         if (player.isObservationMode === undefined) {
             player.isObservationMode = false;
         }
+
+        if (!game.participants) {
+            game.participants = [];
+        }
+
         const existingPlayer = game.players.find((plyr) => plyr.name === player.name);
-        if(existingPlayer){
-            if(existingPlayer.specs.life !== 0){
+        if (existingPlayer) {
+            if (existingPlayer.specs.life !== 0) {
                 existingPlayer.isActive = true;
                 existingPlayer.inventory = [];
-            } 
+            }
             existingPlayer.socketId = socketId;
         } else {
             player.turn = game.participants.length - 1;
             game.participants.push(player);
             this.gameRooms[gameId].players.push(player);
+
+            // Assign challenge to new player
+            if (!player.socketId.includes('virtual')) {
+                console.log(`[GameCreationService] Assigning challenge to new player ${player.name}`);
+                this.challengeService.assignForPlayer(game, player);
+            }
+
+            return game;
         }
         return game;
     }
@@ -92,6 +107,10 @@ export class GameCreationService {
                 game.isLocked = false;
             }
         }
+
+        // Cleanup challenge data for the leaving player
+        this.challengeService.cleanupPlayer(gameId, client.id);
+
         return this.getGameById(gameId);
     }
 
@@ -144,10 +163,10 @@ export class GameCreationService {
         });
     }
 
-    sameCoords(coordsA: Coordinate, coordsB: Coordinate){
+    sameCoords(coordsA: Coordinate, coordsB: Coordinate) {
         return coordsA.x === coordsB.x && coordsA.y === coordsB.y;
     }
-    
+
     isGameStartable(gameId: string): boolean {
         const game = this.getGameById(gameId);
         const mapSize = Object.values(MapSize).find((size) => MapConfig[size].size === game.mapSize.x);
@@ -169,7 +188,8 @@ export class GameCreationService {
         this.gameRooms[gameId].isLocked = true;
     }
 
-    deleteRoom(gameId: string): void {
+    async deleteRoom(gameId: string): Promise<void> {
+        // Cleanup all challenge data for this game
         delete this.gameRooms[gameId];
     }
 }

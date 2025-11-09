@@ -26,7 +26,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _loading = false;
   bool _showRegister = false;
   Avatar _selectedAvatar = Avatar.avatar1;
-  String? _customAvatarPreview; // data URL or file path
+  String? _customAvatarPreview;
   late VoidCallback _authListener;
 
   @override
@@ -71,12 +71,15 @@ class _AuthScreenState extends State<AuthScreen> {
         _selectedAvatar,
         _customAvatarPreview,
       );
+      await _authService.login(_usernameCtrl.text, _passCtrl.text);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Inscription réussie')));
+        context.go('/');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Compte créé avec succès')),
+          );
+        });
       }
-      await _authService.login(_emailCtrl.text, _passCtrl.text);
     } on Exception catch (e) {
       final raw = e.toString();
       final msg =
@@ -98,9 +101,14 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       await _authService.login(_usernameCtrl.text, _passCtrl.text);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Connecté')));
+        context.go('/');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Connexion réussie')));
+          }
+        });
       }
     } on Exception catch (e) {
       final raw = e.toString();
@@ -109,6 +117,7 @@ class _AuthScreenState extends State<AuthScreen> {
               ? raw.substring('Exception: '.length)
               : raw;
       DebugLogger.log('Login error: $msg', tag: 'AuthScreen');
+
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -304,82 +313,27 @@ class _AuthScreenState extends State<AuthScreen> {
 
     Widget pageContent;
     if (user == null) {
-      if (_showRegister) {
-        pageContent = Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _emailCtrl,
-              decoration: const InputDecoration(labelText: 'Email'),
+      // Login/Register forms - centered without scroll
+      pageContent = LayoutBuilder(
+        builder: (context, constraints) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 400,
+                  maxHeight: constraints.maxHeight * 0.9,
+                ),
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  child:
+                      _showRegister ? _buildRegisterForm() : _buildLoginForm(),
+                ),
+              ),
             ),
-            TextField(
-              controller: _passCtrl,
-              decoration: const InputDecoration(labelText: 'Mot de passe'),
-              obscureText: true,
-            ),
-            TextField(
-              controller: _usernameCtrl,
-              decoration: const InputDecoration(labelText: 'Pseudonyme'),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Choisissez un avatar :',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            AvatarPicker(
-              selected: _selectedAvatar,
-              customPreview: _customAvatarPreview,
-              onAvatarChanged: (a) => setState(() => _selectedAvatar = a),
-              onCustomPreviewChanged:
-                  (p) => setState(() => _customAvatarPreview = p),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loading ? null : _register,
-              child:
-                  _loading
-                      ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                      : const Text("S'inscrire"),
-            ),
-            TextButton(
-              onPressed: () => setState(() => _showRegister = false),
-              child: const Text('Déjà inscrit ? Se connecter'),
-            ),
-          ],
-        );
-      } else {
-        pageContent = Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _usernameCtrl,
-              decoration: const InputDecoration(labelText: 'Pseudonyme'),
-            ),
-            TextField(
-              controller: _passCtrl,
-              decoration: const InputDecoration(labelText: 'Mot de passe'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: _loading ? null : _login,
-              child:
-                  _loading
-                      ? const CircularProgressIndicator()
-                      : const Text('Se connecter'),
-            ),
-            TextButton(
-              onPressed: () => setState(() => _showRegister = true),
-              child: const Text('Pas encore inscrit ? Inscription'),
-            ),
-          ],
-        );
-      }
+          );
+        },
+      );
     } else {
       Widget avatarWidget;
       final custom = user.avatarCustom;
@@ -556,13 +510,18 @@ class _AuthScreenState extends State<AuthScreen> {
         ],
       );
 
-      pageContent = Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: profileSection),
-          const SizedBox(width: 24),
-          Expanded(child: statsSection),
-        ],
+      pageContent = Padding(
+        padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: profileSection),
+              const SizedBox(width: 24),
+              Expanded(child: statsSection),
+            ],
+          ),
+        ),
       );
     }
 
@@ -574,6 +533,7 @@ class _AuthScreenState extends State<AuthScreen> {
         return false;
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         body: DecoratedBox(
           decoration: const BoxDecoration(
             image: DecorationImage(
@@ -581,14 +541,201 @@ class _AuthScreenState extends State<AuthScreen> {
               fit: BoxFit.cover,
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Expanded(child: SingleChildScrollView(child: pageContent)),
-              ],
+          child: SafeArea(child: pageContent),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoginForm() {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Se connecter',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
             ),
-          ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _usernameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Pseudonyme',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.person),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 12,
+                ),
+              ),
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _passCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Mot de passe',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.lock),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 12,
+                ),
+              ),
+              obscureText: true,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _loading ? null : _login(),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _loading ? null : _login,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child:
+                  _loading
+                      ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                      : const Text(
+                        'Se connecter',
+                        style: TextStyle(fontSize: 16),
+                      ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => setState(() => _showRegister = true),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+              ),
+              child: const Text('Pas encore inscrit ? Inscription'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRegisterForm() {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              "S'inscrire",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _emailCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.email),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 12,
+                ),
+              ),
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _passCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Mot de passe',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.lock),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 12,
+                ),
+              ),
+              obscureText: true,
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _usernameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Pseudonyme',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.person),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 12,
+                ),
+              ),
+              textInputAction: TextInputAction.done,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Choisissez un avatar :',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            AvatarPicker(
+              selected: _selectedAvatar,
+              customPreview: _customAvatarPreview,
+              onAvatarChanged: (a) => setState(() => _selectedAvatar = a),
+              onCustomPreviewChanged:
+                  (p) => setState(() => _customAvatarPreview = p),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loading ? null : _register,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child:
+                  _loading
+                      ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                      : const Text(
+                        "S'inscrire",
+                        style: TextStyle(fontSize: 16),
+                      ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => setState(() => _showRegister = false),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+              ),
+              child: const Text('Déjà inscrit ? Se connecter'),
+            ),
+          ],
         ),
       ),
     );

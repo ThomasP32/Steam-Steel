@@ -302,4 +302,17 @@ export class UserService {
             username: user.username,
         }));
     }
+
+    async incrementChallengesCompleted(userId: string): Promise<User | null> {
+        const user = await this.userModel.findById(userId);
+        if (!user) return null;
+
+        if (!user.stats.challengesCompleted) {
+            user.stats.challengesCompleted = 0;
+        }
+        user.stats.challengesCompleted += 1;
+        user.markModified('stats');
+        await user.save();
+        return user.toObject();
+    }
 }

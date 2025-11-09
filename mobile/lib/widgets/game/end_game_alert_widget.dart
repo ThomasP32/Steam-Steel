@@ -9,8 +9,8 @@ class EndGameAlertWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String winnerName = 'Un joueur';
-    String winMessage = 'a gagné la partie';
+    var winnerName = 'Un joueur';
+    var winMessage = 'a gagné la partie';
 
     if (game != null && game!.players.isNotEmpty) {
       final winner = game!.players.firstWhere(
@@ -25,7 +25,7 @@ class EndGameAlertWidget extends StatelessWidget {
         if (gameMode == Mode.ctf) {
           winMessage = '$winnerName a capturé le drapeau';
         } else {
-          winMessage = '$winnerName a gagné 3 combats';
+          winMessage = '$winnerName a gagné';
         }
       }
     }

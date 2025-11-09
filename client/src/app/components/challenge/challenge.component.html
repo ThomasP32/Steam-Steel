@@ -1,0 +1,36 @@
+@if (challenge) {
+<div class="challenge-container" [ngClass]="{ 'completed': challenge.completed }">
+    <!-- Full display mode for waiting room -->
+    <div class="challenge-full">
+        <div class="challenge-header">
+            <div class="title-with-info">
+                <h3 class="challenge-title">{{ challenge.title }}</h3>
+                <div class="info-icon" (mouseenter)="onInfoMouseEnter()" (mouseleave)="onInfoMouseLeave()">
+                    <span>i</span>
+                    @if (showInfoTooltip) {
+                    <div class="info-tooltip">
+                        Complétez ce défi pour obtenir la récompense!
+                    </div>
+                    }
+                </div>
+            </div>
+            <div class="challenge-reward">
+                <span class="reward-icon">💰</span>
+                <span class="reward-amount">{{ challenge.reward }}</span>
+            </div>
+        </div>
+        <p class="challenge-description">{{ challenge.description }}</p>
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <div class="progress-bar" [style.width.%]="getProgressPercentage()"></div>
+                <div class="progress-pixels"></div>
+            </div>
+            <span class="progress-text">{{ getProgressPercentage() }}%</span>
+        </div>
+        @if (challenge.completed) {
+        <div class="completion-badge">✓ Défi Complété!</div>
+        }
+    </div>
+</div>
+}
+

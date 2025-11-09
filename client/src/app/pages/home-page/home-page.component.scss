@@ -52,12 +52,13 @@ button {
 
 .chat-toggle-button {
     position: fixed;
-    top: 12px;
-    right: 12px;
+    top: 22px;
+    right: 22px;
     z-index: 1200;
     width: 44px;
     height: 44px;
     padding: 0;
+    margin: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -90,12 +91,13 @@ button {
 
 .account-button {
     position: fixed;
-    top: 12px;
-    right: 130px;
+    top: 22px;
+    right: 202px;
     z-index: 1200;
     width: 44px;
     height: 44px;
     padding: 0;
+    margin: 0;
     display: flex;
     align-items: center;
     justify-content: center;

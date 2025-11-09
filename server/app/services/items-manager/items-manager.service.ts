@@ -9,6 +9,7 @@ import {
 import { GameCtf, Player } from '@common/game';
 import { Coordinate, ItemCategory, Mode } from '@common/map.types';
 import { Inject, Injectable } from '@nestjs/common';
+import { ChallengeService } from '../challenge/challenge.service';
 import { GameCreationService } from '../game-creation/game-creation.service';
 import { GameManagerService } from '../game-manager/game-manager.service';
 import { JournalService } from '../journal/journal.service';
@@ -18,6 +19,7 @@ export class ItemsManagerService {
     @Inject(GameCreationService) private readonly gameCreationService: GameCreationService;
     @Inject(GameManagerService) private readonly gameManagerService: GameManagerService;
     @Inject(JournalService) private readonly journalService: JournalService;
+    @Inject(ChallengeService) private readonly challengeService: ChallengeService;
 
     dropInventory(player: Player, gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
@@ -46,6 +48,9 @@ export class ItemsManagerService {
                 }
             }
             game.items.splice(itemIndex, 1);
+
+            // Track challenge progress
+            this.challengeService.onItemCollected(game, player);
 
             const involvedPlayers = game.players.map((player) => player.name);
 

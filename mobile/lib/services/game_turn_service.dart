@@ -20,6 +20,8 @@ class GameTurnService {
   final _possibleWallsNotifier = ValueNotifier<List<Tile>>([]);
   final _gameFinishedNotifier = ValueNotifier<bool>(false);
   final _gameFinishedDataNotifier = ValueNotifier<Map<String, dynamic>?>(null);
+  final _observationModeNotifier = ValueNotifier<bool>(false);
+  final _observationMessageNotifier = ValueNotifier<String>('');
   String _currentGameId = '';
   bool _pendingInventoryModal = false;
 
@@ -35,6 +37,9 @@ class GameTurnService {
   ValueNotifier<bool> get gameFinishedNotifier => _gameFinishedNotifier;
   ValueNotifier<Map<String, dynamic>?> get gameFinishedDataNotifier =>
       _gameFinishedDataNotifier;
+  ValueNotifier<bool> get observationModeNotifier => _observationModeNotifier;
+  ValueNotifier<String> get observationMessageNotifier =>
+      _observationMessageNotifier;
 
   String get currentPlayerTurn => _playerTurnNotifier.value;
   bool get isYourTurn => _yourTurnNotifier.value;
@@ -183,6 +188,27 @@ class GameTurnService {
           }
           _gameFinishedNotifier.value = true;
         }),
+      )
+      ..add(
+        SocketService().listen<dynamic>('playerEnteredObservationMode').listen((
+          data,
+        ) {
+          DebugLogger.log(
+            'GameTurnService: playerEnteredObservationMode -> $data',
+            tag: 'GameTurnService',
+          );
+          if (data is Map<String, dynamic>) {
+            final message =
+                data['message'] as String? ?? 'Vous êtes en mode observation';
+            _observationMessageNotifier.value = message;
+            _observationModeNotifier.value = true;
+
+            final playerData = data['player'] as Map<String, dynamic>?;
+            if (playerData != null) {
+              PlayerService().setPlayerFromJson(playerData);
+            }
+          }
+        }),
       );
 
     final currentPlayer = PlayerService().player;
@@ -300,9 +326,10 @@ class GameTurnService {
     final player = PlayerService().player;
     final hasAvailableActions = possibleActions.values.any((v) => v);
 
-    if (player.specs.movePoints == 0 &&
-        !hasAvailableActions &&
-        !_pendingInventoryModal) {
+    if (player.specs.movePoints == 0 && player.specs.actions == 0 ||
+        player.specs.movePoints == 0 &&
+            !hasAvailableActions &&
+            !_pendingInventoryModal) {
       endTurn(_currentGameId);
     }
   }
@@ -361,6 +388,8 @@ class GameTurnService {
     _possibleWallsNotifier.value = [];
     _gameFinishedNotifier.value = false;
     _gameFinishedDataNotifier.value = null;
+    _observationModeNotifier.value = false;
+    _observationMessageNotifier.value = '';
     _pendingInventoryModal = false;
     possibleActions = {'combat': false, 'door': false, 'wall': false};
   }

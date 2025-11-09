@@ -22,7 +22,9 @@ class ApiClient {
   }
 
   Future<List<dynamic>> getMaps() async {
-    final uri = _buildUri('/api/map');
+    final token = await AuthService().token;
+    if (token == null) throw Exception('No auth token available');
+    final uri = _buildUri('/api/map/user/visible?token=$token');
     final r = await _http.get(uri, headers: {'Accept': 'application/json'});
     if (r.statusCode == 200) return jsonDecode(r.body) as List<dynamic>;
     throw Exception('API error ${r.statusCode}: ${r.body}');

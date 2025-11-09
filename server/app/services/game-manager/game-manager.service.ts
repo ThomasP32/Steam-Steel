@@ -1,14 +1,20 @@
 import { DoorTile } from '@app/http/model/schemas/map/tiles.schema';
-import { ICE_ATTACK_PENALTY, ICE_DEFENSE_PENALTY } from '@common/constants';
+import { ICE_ATTACK_PENALTY, ICE_DEFENSE_PENALTY, N_WIN_VICTORIES } from '@common/constants';
 import { CORNER_DIRECTIONS, DIRECTIONS, MovesMap } from '@common/directions';
-import { Game, Player } from '@common/game';
+import { CombatEvents } from '@common/events/combat.events';
+import { GameCreationEvents } from '@common/events/game-creation.events';
+import { Game, GameEndReason, GameEndResult, Player } from '@common/game';
 import { Coordinate, ItemCategory, Mode, Tile, TileCategory } from '@common/map.types';
 import { Inject, Injectable } from '@nestjs/common';
+import { Server } from 'socket.io';
+import { ChallengeService } from '../challenge/challenge.service';
 import { GameCreationService } from '../game-creation/game-creation.service';
 
 @Injectable()
 export class GameManagerService {
     @Inject(GameCreationService) private readonly gameCreationService: GameCreationService;
+    @Inject(ChallengeService) private readonly challengeService: ChallengeService;
+
     public hasFallen: boolean = false;
 
     updatePosition(gameId: string, playerSocket: string, path: Coordinate[]): void {
@@ -20,6 +26,7 @@ export class GameManagerService {
         const player = game.players.find((player) => player.socketId === playerSocket);
         if (player) {
             this.updatePlayerPosition(player, path, game);
+            this.challengeService.onPlayerMove(game, player, path);
         }
     }
 
@@ -404,14 +411,8 @@ export class GameManagerService {
     }
 
     shouldTerminateGame(gameId: string): boolean {
-        const game = this.gameCreationService.getGameById(gameId);
-        if (!game) return true;
-
-        const activeNonObserving = game.players.filter((p) => p.isActive && !p.isObservationMode);
-        const observers = game.players.filter((p) => p.isObservationMode);
-
-        // Terminate if no active players and no observers
-        return activeNonObserving.length === 0 && observers.length === 0;
+        const endResult = this.checkAfterDisconnect(gameId);
+        return endResult.reason === GameEndReason.NoWinner_Termination;
     }
 
     validateGameState(gameId: string, playerSocketId: string): { valid: boolean; reason?: string; recovered?: boolean } {
@@ -480,5 +481,139 @@ export class GameManagerService {
         });
         console.log(`  - Current turn: ${game.currentTurn}`);
         console.log(`  - Turn count: ${game.nTurns}`);
+    }
+
+    // ===== Centralized Game Ending Logic =====
+
+    /**
+     * Helper: Get count of active non-observer players
+     */
+    private getActiveNonObserverCount(gameId: string): number {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) return 0;
+        return game.players.filter((p) => p.isActive && !p.isObservationMode).length;
+    }
+
+    /**
+     * Helper: Get list of active non-observer players
+     */
+    private getActiveNonObservers(gameId: string): Player[] {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) return [];
+        return game.players.filter((p) => p.isActive && !p.isObservationMode);
+    }
+
+    /**
+     * Helper: Check if player has 3 victories (Classic mode only)
+     */
+    private hasThreeVictories(player: Player, gameId: string): boolean {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game || game.mode !== Mode.Classic) return false;
+        return player.specs.nVictories >= N_WIN_VICTORIES;
+    }
+
+    /**
+     * Helper: Mark a player as the game winner
+     */
+    private markGameWinner(gameId: string, winner: Player): void {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) return;
+
+        game.players.forEach((player) => {
+            player.isGameWinner = player.socketId === winner.socketId;
+        });
+    }
+
+    /**
+     * Check game end condition after a player disconnects or leaves
+     * Only checks for termination (< 2 active non-observers)
+     */
+    checkAfterDisconnect(gameId: string): GameEndResult {
+        const count = this.getActiveNonObserverCount(gameId);
+
+        if (count < 2) {
+            console.log(`[GameManager] Game ${gameId} terminating: ${count} active non-observers`);
+            return {
+                reason: GameEndReason.NoWinner_Termination,
+            };
+        }
+
+        return { reason: GameEndReason.Ongoing};
+    }
+
+    /**
+     * Check game end condition after a combat ends
+     * Checks for elimination victory (1 player left) or 3-win victory (Classic mode)
+     */
+    checkAfterCombat(gameId: string, winner: Player, isFastElimination: boolean): GameEndResult {
+        const activePlayers = this.getActiveNonObservers(gameId);
+
+        // Check elimination (1 player left)
+        if (isFastElimination && activePlayers.length === 1) {
+            console.log(`[GameManager] Victory by elimination: ${activePlayers[0].name}`);
+            this.markGameWinner(gameId, activePlayers[0]);
+            return {
+                reason: GameEndReason.Victory_Elimination,
+                winner: activePlayers[0],
+            };
+        }
+
+        // Check 3 victories (Classic mode)
+        if (this.hasThreeVictories(winner, gameId)) {
+            console.log(`[GameManager] Victory by 3 wins: ${winner.name}`);
+            this.markGameWinner(gameId, winner);
+            return {
+                reason: GameEndReason.Victory_CombatWins,
+                winner,
+            };
+        }
+
+        return { reason: GameEndReason.Ongoing } ;
+    }
+
+    /**
+     * Check game end condition after a player moves
+     * Checks for CTF flag victory
+     */
+    checkAfterMove(gameId: string, player: Player): GameEndResult {
+        if (this.checkForWinnerCtf(player, gameId)) {
+            console.log(`[GameManager] CTF victory: ${player.name}`);
+            this.markCtfGameWinners(gameId, this.gameCreationService.getGameById(gameId));
+            return {
+                reason: GameEndReason.Victory_CtfFlag,
+                winner: player,
+            };
+        }
+
+        return { reason: GameEndReason.Ongoing };
+    }
+
+    /**
+     * Handle game end based on the end result
+     * Emits appropriate events and cleans up resources
+     * Note: Caller (gateways) should also delete countdown and cleanup combat resources
+     * 
+     * IMPORTANT: This method marks the game for deletion. Any timers or callbacks
+     * that reference this game should check if the game still exists before proceeding.
+     */
+    async handleGameEnd(gameId: string, endResult: GameEndResult, server: Server): Promise<void> {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) return;
+
+        console.log(`[GameManager] Ending game ${gameId}, reason: ${endResult.reason}`);
+        await this.challengeService.cleanupGame(game, endResult.reason);
+
+        // Termination (no winner)
+        if (endResult.reason === GameEndReason.NoWinner_Termination) {
+            server.to(gameId).emit(GameCreationEvents.GameEndedNoActivePlayers);
+            await this.gameCreationService.deleteRoom(gameId);
+            return;
+        }
+
+        server.to(gameId).emit(CombatEvents.GameFinished, { updatedGame: game });
+        server.to(gameId).emit(CombatEvents.GameFinishedPlayerWon, endResult.winner);
+        
+        // Delete room to prevent further game operations
+        this.gameCreationService.deleteRoom(gameId);
     }
 }

@@ -210,7 +210,7 @@ class CharacterCreationService {
       DebugLogger.log('[CharacterCreationService] Received youJoined event');
       try {
         gameLockedSub?.cancel();
-      } catch (_) {}
+      } on Exception catch (_) {}
       if (data is Map<String, dynamic>) {
         final serverPlayer = _parsePlayerFromJson(data);
         onSuccess(serverPlayer ?? localPlayer);
@@ -231,7 +231,7 @@ class CharacterCreationService {
       );
       try {
         youJoinedSub?.cancel();
-      } catch (_) {}
+      } on Exception catch (_) {}
       gameLockedSub?.cancel();
       onTimeout();
     });
