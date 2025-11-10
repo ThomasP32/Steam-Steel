@@ -18,7 +18,7 @@
 
 .account-title {
     margin: 0 0 1.5rem 0;
-    color: #4f8cff;
+    color: #c0c0c0;
     font-size: 1.3rem;
     font-weight: bold;
     text-align: center;
@@ -39,9 +39,18 @@
     background: rgba(0, 0, 0, 0.3);
     border-radius: 8px;
     border: 2px solid #3b3f46;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 2px solid #3b3f46;
 }
 
 .avatar-square {
+    width: 80px;
+    height: 80px;
+    background: #1c242c;
     width: 80px;
     height: 80px;
     background: #1c242c;
@@ -51,10 +60,14 @@
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     border: 2px solid #7d7f7d;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    border: 2px solid #7d7f7d;
     flex-shrink: 0;
 }
 
 .avatar-img-square {
+    width: 72px;
+    height: 72px;
     width: 72px;
     height: 72px;
     border-radius: 6px;
@@ -69,6 +82,9 @@
     gap: 0.8rem;
     justify-content: center;
     flex: 1;
+    gap: 0.8rem;
+    justify-content: center;
+    flex: 1;
 }
 
 .info-row {
@@ -77,10 +93,13 @@
     gap: 0.3rem;
     font-size: 0.75rem;
     line-height: 1.4;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
 }
 
 .info-label {
-    color: #4f8cff;
+    color: #c0c0c0;
     font-weight: bold;
     margin-bottom: 0.2rem;
 }
@@ -92,6 +111,9 @@
 
 .button-row {
     display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
     gap: 1rem;
     margin-top: 1rem;
     flex-wrap: wrap;
@@ -116,54 +138,54 @@
 }
 
 .button:hover {
-    background-color: #3b3f46;
-    color: #ffffff;
+    background-color: #555;
+    color: white;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .modify-button {
-    background-color: #4f8cff;
-    border-color: #357ae8;
-    color: #ffffff;
+    background-color: #2c3e50;
+    border: 3px solid #202020;
+    color: #c0c0c0;
 }
 
 .modify-button:hover {
-    background-color: #357ae8;
-    border-color: #4f8cff;
+    background-color: #555;
+    color: white;
 }
 
 .delete-button {
-    background-color: #aa3d3d;
-    border-color: #8b2e2e;
-    color: #ffffff;
+    background-color: #2c3e50;
+    border: 3px solid #202020;
+    color: #c0c0c0;
 }
 
 .delete-button:hover {
-    background-color: #8b2e2e;
-    border-color: #aa3d3d;
+    background-color: #555;
+    color: white;
 }
 
 .save-button {
-    background-color: #27ae60;
-    border-color: #229954;
-    color: #ffffff;
+    background-color: #2c3e50;
+    border: 3px solid #202020;
+    color: #c0c0c0;
 }
 
 .save-button:hover {
-    background-color: #229954;
-    border-color: #27ae60;
+    background-color: #555;
+    color: white;
 }
 
 .cancel-button {
-    background-color: #7d7f7d;
-    border-color: #5a5c5a;
-    color: #ffffff;
+    background-color: #2c3e50;
+    border: 3px solid #202020;
+    color: #c0c0c0;
 }
 
 .cancel-button:hover {
-    background-color: #5a5c5a;
-    border-color: #7d7f7d;
+    background-color: #555;
+    color: white;
 }
 
 .edit-form {
@@ -183,7 +205,7 @@
 }
 
 .form-label {
-    color: #4f8cff;
+    color: #c0c0c0;
     font-size: 0.7rem;
     font-weight: bold;
     margin-bottom: 0.3rem;
@@ -202,18 +224,18 @@
 
 .form-input:focus {
     outline: none;
-    border-color: #4f8cff;
-    box-shadow: 0 0 8px rgba(79, 140, 255, 0.4);
+    border-color: #b5651d;
+    box-shadow: 0 0 8px rgba(181, 101, 29, 0.4);
     background-color: #2c3e50;
 }
 
 .edit-message {
-    color: #4f8cff;
+    color: #c0c0c0;
     font-size: 0.65rem;
     margin-top: 0.5rem;
     padding: 0.5rem;
-    background: rgba(79, 140, 255, 0.1);
-    border: 1px solid #4f8cff;
+    background: rgba(44, 62, 80, 0.3);
+    border: 1px solid #7d7f7d;
     border-radius: 4px;
     text-align: center;
 }
@@ -221,6 +243,17 @@
 .avatar-selection {
     width: 100%;
     margin-top: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.avatar-selection .form-label {
+    margin-bottom: 0.8rem;
+}
+
+.stats-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #7d7f7d;
 }
 
 .avatar-selection .form-label {
@@ -236,6 +269,7 @@
 .status-block {
     display: flex;
     align-items: center;
+    align-items: center;
     justify-content: center;
     gap: 0.8rem;
     padding: 0.8rem;
@@ -246,7 +280,7 @@
 }
 
 .status-label {
-    color: #4f8cff;
+    color: #c0c0c0;
     font-size: 0.7rem;
     font-weight: bold;
 }
@@ -262,7 +296,7 @@
 }
 
 .stats-title {
-    color: #4f8cff;
+    color: #c0c0c0;
     font-size: 1rem;
     margin-bottom: 1rem;
     text-align: center;
@@ -289,7 +323,7 @@
 }
 
 .stat-label {
-    color: #4f8cff;
+    color: #c0c0c0;
     font-weight: bold;
     margin-bottom: 0.2rem;
 }

@@ -20,6 +20,10 @@ export class CountdownService {
     }
 
     listenCountdown() {
+        // Unsubscribe from old listeners before creating new ones
+        this.socketSubscription.unsubscribe();
+        this.socketSubscription = new Subscription();
+
         this.socketSubscription.add(
             this.socketService.listen<number>(CountdownEvents.SecondPassed).subscribe((remainingTime) => {
                 this.countdown.next(remainingTime);
@@ -30,5 +34,13 @@ export class CountdownService {
                 this.countdown.next('--');
             }),
         );
+    }
+
+    reinitializeListeners(): void {
+        this.listenCountdown();
+    }
+
+    resetCountdown(): void {
+        this.countdown.next(this.countdownDuration);
     }
 }

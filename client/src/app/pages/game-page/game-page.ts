@@ -16,6 +16,7 @@ import { ChannelService } from '@app/services/channel/channel.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { CombatService } from '@app/services/combat/combat.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
+import { CombatCountdownService } from '@app/services/countdown/combat/combat-countdown.service';
 import { CountdownService } from '@app/services/countdown/game/countdown.service';
 import { GameTurnService } from '@app/services/game-turn/game-turn.service';
 import { GameService } from '@app/services/game/game.service';
@@ -100,6 +101,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         private readonly gameService: GameService,
         private readonly gameTurnService: GameTurnService,
         private readonly countDownService: CountdownService,
+        private readonly combatCountdownService: CombatCountdownService,
         private readonly combatService: CombatService,
         protected readonly imageService: ImageService,
         protected readonly mapConversionService: MapConversionService,
@@ -113,6 +115,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         this.playerService = playerService;
         this.gameTurnService = gameTurnService;
         this.countDownService = countDownService;
+        this.combatCountdownService = combatCountdownService;
         this.gameService = gameService;
         this.combatService = combatService;
         this.imageService = imageService;
@@ -156,6 +159,10 @@ export class GamePageComponent implements OnInit, OnDestroy {
             this.listenForCombatModal();
             this.listenForObservationModeModal();
             this.listenForNoActivePlayers();
+
+            this.challengeService.reinitializeListeners();
+            this.countDownService.reinitializeListeners();
+            this.combatCountdownService.reinitializeListeners();
 
             this.activePlayers = this.gameService.game.players;
 

@@ -70,4 +70,14 @@ export class CombatCountdownService extends EventEmitter {
             this.countdowns.delete(id);
         }
     }
+
+    getCurrentCountdown(id: string): number | undefined {
+        const countdown = this.countdowns.get(id);
+        return countdown?.remaining;
+    }
+
+    hasActiveCountdown(id: string): boolean {
+        const countdown = this.countdowns.get(id);
+        return countdown !== undefined && countdown.timerSubscription !== undefined;
+    }
 }

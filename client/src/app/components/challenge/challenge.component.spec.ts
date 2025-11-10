@@ -52,3 +52,4 @@ describe('ChallengeComponent', () => {
         expect(component['subscription'].unsubscribe).toHaveBeenCalled();
     });
 });
+

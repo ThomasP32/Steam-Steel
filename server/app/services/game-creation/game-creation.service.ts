@@ -8,7 +8,7 @@ import { ChallengeService } from '../challenge/challenge.service';
 @Injectable()
 export class GameCreationService {
     @Inject(ChallengeService) private readonly challengeService: ChallengeService;
-
+    
     private gameRooms: Record<string, Game> = {};
 
     getGameById(gameId: string): Game {
@@ -60,13 +60,13 @@ export class GameCreationService {
             player.turn = game.participants.length - 1;
             game.participants.push(player);
             this.gameRooms[gameId].players.push(player);
-
+            
             // Assign challenge to new player
-            if (!player.socketId.includes('virtual')) {
+            if(!player.socketId.includes('virtual')) {
                 console.log(`[GameCreationService] Assigning challenge to new player ${player.name}`);
                 this.challengeService.assignForPlayer(game, player);
             }
-
+            
             return game;
         }
         return game;
@@ -107,10 +107,7 @@ export class GameCreationService {
                 game.isLocked = false;
             }
         }
-
-        // Cleanup challenge data for the leaving player
-        this.challengeService.cleanupPlayer(gameId, client.id);
-
+        
         return this.getGameById(gameId);
     }
 
