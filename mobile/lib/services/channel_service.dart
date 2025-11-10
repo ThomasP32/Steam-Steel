@@ -72,7 +72,6 @@ class ChannelService {
     _channelsListSub = _socketService
         .listen<dynamic>(ChatEvents.channelsList)
         .listen((data) {
-          DebugLogger.log('Received channelsList: $data');
           if (data is List) {
             final channels =
                 data

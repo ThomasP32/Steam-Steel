@@ -20,11 +20,13 @@ class CharacterCreationScreen extends StatefulWidget {
     this.gameId,
     this.mapName,
     this.gameSettings,
+    this.isObserver = false,
     super.key,
   });
   final String? gameId;
   final String? mapName;
   final GameSettings? gameSettings;
+  final bool isObserver;
 
   @override
   State<CharacterCreationScreen> createState() =>
@@ -125,7 +127,9 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
       );
     }
 
-    if (widget.mapName != null && widget.mapName!.isNotEmpty) {
+    if (widget.mapName != null &&
+        widget.mapName!.isNotEmpty &&
+        !widget.isObserver) {
       final player = Player(
         socketId: SocketService().socketId ?? '',
         name: name.isNotEmpty ? name : 'Hôte',
@@ -137,7 +141,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
         visitedTiles: [],
       );
       try {
-        final ps = PlayerService()..setPlayer(player);
+        PlayerService().setPlayer(player);
       } catch (_) {}
 
       try {
@@ -172,50 +176,94 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     }
 
     try {
-      await _creationService.joinGame(
-        gameId: widget.gameId!,
-        name: name.isNotEmpty ? name : 'Joueur',
-        socketId: SocketService().socketId ?? '',
-        avatar: _creationService.selectedAvatar.value,
-        specs: finalSpecs,
-        onSuccess: (player) {
-          try {
-            PlayerService().setPlayer(player);
-          } catch (_) {}
+      if (widget.isObserver) {
+        await _creationService.observeGame(
+          gameId: widget.gameId!,
+          name: name.isNotEmpty ? name : 'Observateur',
+          socketId: SocketService().socketId ?? '',
+          avatar: _creationService.selectedAvatar.value,
+          specs: finalSpecs,
+          onSuccess: (player) {
+            try {
+              PlayerService().setPlayer(player);
+            } catch (_) {}
 
-          try {
-            GoRouter.of(context).go(
-              '/${widget.gameId}/waiting-room/player',
-              extra: widget.gameSettings,
-            );
-          } on Exception catch (e) {
-            DebugLogger.log(
-              'Navigation to waiting-room player failed: $e',
-              tag: 'CharacterCreation',
-            );
-          } finally {
-            if (mounted) {
-              setState(() {
-                _isSubmitting = false;
-              });
+            try {
+              GoRouter.of(
+                context,
+              ).go('/game/${widget.gameId}/${widget.mapName}');
+            } on Exception catch (e) {
+              DebugLogger.log(
+                'Navigation to game screen failed: $e',
+                tag: 'CharacterCreation',
+              );
+            } finally {
+              if (mounted) {
+                setState(() {
+                  _isSubmitting = false;
+                });
+              }
             }
-          }
-        },
-        onTimeout: () {
-          if (!mounted) return;
-          setState(() {
-            _isSubmitting = false;
-          });
-          showTopSnackBar(
-            Overlay.of(context),
-            const CustomSnackBar.error(
-              message: 'Impossible de rejoindre la partie',
-            ),
-          );
-        },
-      );
+          },
+          onTimeout: () {
+            if (!mounted) return;
+            setState(() {
+              _isSubmitting = false;
+            });
+            showTopSnackBar(
+              Overlay.of(context),
+              const CustomSnackBar.error(
+                message: 'Impossible de rejoindre la partie en observation',
+              ),
+            );
+          },
+        );
+      } else {
+        await _creationService.joinGame(
+          gameId: widget.gameId!,
+          name: name.isNotEmpty ? name : 'Joueur',
+          socketId: SocketService().socketId ?? '',
+          avatar: _creationService.selectedAvatar.value,
+          specs: finalSpecs,
+          onSuccess: (player) {
+            try {
+              PlayerService().setPlayer(player);
+            } catch (_) {}
+
+            try {
+              GoRouter.of(context).go(
+                '/${widget.gameId}/waiting-room/player',
+                extra: widget.gameSettings,
+              );
+            } on Exception catch (e) {
+              DebugLogger.log(
+                'Navigation to waiting-room player failed: $e',
+                tag: 'CharacterCreation',
+              );
+            } finally {
+              if (mounted) {
+                setState(() {
+                  _isSubmitting = false;
+                });
+              }
+            }
+          },
+          onTimeout: () {
+            if (!mounted) return;
+            setState(() {
+              _isSubmitting = false;
+            });
+            showTopSnackBar(
+              Overlay.of(context),
+              const CustomSnackBar.error(
+                message: 'Impossible de rejoindre la partie',
+              ),
+            );
+          },
+        );
+      }
     } on Exception catch (e) {
-      DebugLogger.log('joinGame failed: $e', tag: 'CharacterCreation');
+      DebugLogger.log('Join/observe game failed: $e', tag: 'CharacterCreation');
       if (mounted) {
         setState(() {
           _isSubmitting = false;
@@ -424,9 +472,11 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
             ElevatedButton(
               onPressed: canSubmit ? _onSubmit : null,
               child: Text(
-                widget.gameId?.isEmpty ?? true
-                    ? 'Créer une partie'
-                    : 'Rejoindre la partie',
+                widget.isObserver
+                    ? 'Observer'
+                    : (widget.gameId?.isEmpty ?? true
+                        ? 'Créer une partie'
+                        : 'Rejoindre la partie'),
               ),
             ),
           ],

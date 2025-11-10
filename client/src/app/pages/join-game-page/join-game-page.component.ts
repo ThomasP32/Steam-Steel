@@ -1,19 +1,19 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
-import { JoinGameModalComponent } from '@app/components/join-game-modal/join-game-modal.component';
 import { ErrorMessageComponent } from "@app/components/error-message-component/error-message.component";
-import { Subject, Subscription, takeUntil } from 'rxjs';
+import { GamePreviewComponent } from "@app/components/game-preview/game-preview.component";
+import { JoinGameModalComponent } from '@app/components/join-game-modal/join-game-modal.component';
 import { AuthService } from '@app/services/auth/auth.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
-import { GamePreviewComponent } from "@app/components/game-preview/game-preview.component";
-import { Game, Player } from '@common/game';
-import { GameCreationEvents, JoinGameData } from '@common/events/game-creation.events';
-import { PlayerService } from '@app/services/player-service/player.service';
-import { GameService } from '@app/services/game/game.service';
 import { FriendsService } from '@app/services/friends/friends.service';
-import { Friend } from '@common/user-friends';
+import { GameService } from '@app/services/game/game.service';
+import { PlayerService } from '@app/services/player-service/player.service';
 import { FriendsEvents } from '@common/events/friends.events';
+import { GameCreationEvents, JoinGameData } from '@common/events/game-creation.events';
+import { Game, Player } from '@common/game';
+import { Friend } from '@common/user-friends';
+import { Subject, Subscription, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-join-game-page',
@@ -65,6 +65,14 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
         .subscribe(() => {
             this.loadGames();
         });
+
+    this.socketService
+        .listen<Game[]>(GameCreationEvents.GetGames)
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe((gameRooms) => {
+            this.waitingGames = gameRooms.filter(game => game.hasStarted === false); 
+            this.activeGames = gameRooms.filter(game => game.hasStarted === true);
+        });
     
     this.configureJoinGameSocketFeatures();
     this.friendIds = await this.friendsService.getFriends();
@@ -77,10 +85,7 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
   }
 
   private async loadGames(): Promise<void> {
-    this.socketService.sendMessage(GameCreationEvents.GetGames, (gameRooms: Game[]) => {
-      this.waitingGames = gameRooms.filter(game => game.hasStarted === false); 
-      this.activeGames = gameRooms.filter(game => game.hasStarted === true);
-    })
+    this.socketService.sendMessage(GameCreationEvents.GetGames);
   }
 
   canSeeGame(game: Game): boolean {

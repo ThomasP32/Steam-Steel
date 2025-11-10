@@ -142,8 +142,9 @@ export class GameGateway {
     }
 
     @SubscribeMessage(GameCreationEvents.GetGames)
-    getGames(): Game[] {
-        return this.gameCreationService.getGames();
+    getGames(client: Socket): void {
+        const games = this.gameCreationService.getGames();
+        client.emit(GameCreationEvents.GetGames, games);
     }
 
     @SubscribeMessage(GameCreationEvents.AccessGame)
