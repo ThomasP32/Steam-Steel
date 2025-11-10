@@ -7,6 +7,7 @@ import 'package:mobile/common/game.dart';
 import 'package:mobile/services/api_client.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
+import 'package:mobile/widgets/friends/friend_button.dart';
 import 'package:mobile/widgets/game/game_options_modal_widget.dart';
 
 class GameCreationScreen extends StatefulWidget {
@@ -403,7 +404,14 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
                 onClose: closeGameOptionsModal,
                 onNext: onGameOptionsNext,
               ),
-            const Positioned(top: 18, right: 12, child: ChatWidget()),
+            const Positioned(
+              top: 18,
+              right: 12,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [FriendButton(), ChatWidget()],
+              ),
+            ),
           ],
         ),
       ),

@@ -14,6 +14,7 @@ import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
+import 'package:mobile/widgets/friends/friend_button.dart';
 import 'package:mobile/widgets/game/action_button_widget.dart';
 import 'package:mobile/widgets/game/challenges_widget.dart';
 import 'package:mobile/widgets/game/combat_modal_widget.dart';
@@ -792,24 +793,7 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2C3E50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
-                        onPressed: quitGame,
-                        child: const Icon(
-                          Icons.logout,
-                          color: Color(0xFFC0C0C0),
-                        ),
-                      ),
-                    ),
+                    const FriendButton(withPadding: false),
                     const SizedBox(width: 8),
                     const Padding(
                       padding: EdgeInsets.only(bottom: 18),
@@ -962,6 +946,20 @@ class _GameScreenState extends State<GameScreen> {
                 iconPath: 'lib/assets/icons/endturn_icon.png',
                 onPressed: () => _gameTurnService.endTurn(widget.gameId),
                 isEnabled: _gameTurnService.isYourTurn,
+              ),
+            ),
+            Positioned(
+              left:
+                  PlayerService().player.inventory.contains(
+                        ItemCategory.wallBreaker,
+                      )
+                      ? 296
+                      : 226,
+              bottom: 16,
+              child: ActionButton(
+                iconPath: 'lib/assets/icons/quit_icon.png',
+                onPressed: quitGame,
+                isEnabled: true,
               ),
             ),
           ],
