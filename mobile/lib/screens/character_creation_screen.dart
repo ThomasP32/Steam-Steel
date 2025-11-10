@@ -11,6 +11,7 @@ import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
+import 'package:mobile/widgets/friends/friend_button.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
@@ -294,7 +295,14 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
               ),
             ),
           ),
-          const Positioned(top: 18, right: 12, child: ChatWidget()),
+          const Positioned(
+            top: 18,
+            right: 12,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [FriendButton(), ChatWidget()],
+            ),
+          ),
         ],
       ),
     );

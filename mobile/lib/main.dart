@@ -10,6 +10,7 @@ import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
+import 'package:mobile/widgets/friends/friend_button.dart';
 import 'package:mobile/widgets/mainpage/join_game_code.dart';
 import 'package:mobile/widgets/mainpage/main_page_footer.dart';
 
@@ -200,7 +201,10 @@ class HomeScreen extends StatelessWidget {
                 return const Positioned(
                   top: 18,
                   right: 12,
-                  child: ChatWidget(),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [FriendButton(), ChatWidget()],
+                  ),
                 );
               }
               return const SizedBox.shrink();

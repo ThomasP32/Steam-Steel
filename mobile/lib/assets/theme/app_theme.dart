@@ -109,7 +109,7 @@ class AppTheme {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(8)),
-        borderSide: BorderSide(color: AppColors.primaryCyan, width: 2),
+        borderSide: BorderSide(color: AppColors.warning, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -128,6 +128,15 @@ class AppTheme {
       selectedItemColor: AppColors.primaryCyan,
       unselectedItemColor: AppColors.mediumGray,
       type: BottomNavigationBarType.fixed,
+    ),
+
+    // Tab Bar Theme
+    tabBarTheme: const TabBarThemeData(
+      labelColor: AppColors.warning,
+      unselectedLabelColor: AppColors.white,
+      labelStyle: AppTextStyles.labelMedium,
+      unselectedLabelStyle: AppTextStyles.labelMedium,
+      indicatorColor: AppColors.warning,
     ),
 
     // Divider Theme

@@ -9,6 +9,7 @@ import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/services/waiting_room_service.dart';
 import 'package:mobile/widgets/chat_widget.dart';
+import 'package:mobile/widgets/friends/friend_button.dart';
 import 'package:mobile/widgets/game/challenges_widget.dart';
 import 'package:mobile/widgets/waiting_room/profile_modal_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
@@ -271,7 +272,14 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
               ],
             ),
           ),
-          const Positioned(top: 18, right: 12, child: ChatWidget()),
+          const Positioned(
+            top: 18,
+            right: 12,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [FriendButton(), ChatWidget()],
+            ),
+          ),
         ],
       ),
     );
@@ -364,7 +372,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                                 const SizedBox(width: 24),
                                 Expanded(
                                   child: Padding(
-                                    padding: const EdgeInsets.only(right: 55),
+                                    padding: const EdgeInsets.only(right: 120),
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.end,

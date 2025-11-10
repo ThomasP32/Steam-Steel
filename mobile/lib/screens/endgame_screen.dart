@@ -6,6 +6,7 @@ import 'package:mobile/services/endgame_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
+import 'package:mobile/widgets/friends/friend_button.dart';
 
 class EndgameScreen extends StatefulWidget {
   const EndgameScreen({required this.game, required this.gameId, super.key});
@@ -61,7 +62,10 @@ class _EndgameScreenState extends State<EndgameScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      ChatWidget(),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [FriendButton(), ChatWidget()],
+                      ),
                     ],
                   ),
                 ),
