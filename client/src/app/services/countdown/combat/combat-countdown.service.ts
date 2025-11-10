@@ -19,10 +19,22 @@ export class CombatCountdownService {
     }
 
     listenCountdown() {
+        // Unsubscribe from old listeners before creating new ones
+        this.socketSubscription.unsubscribe();
+        this.socketSubscription = new Subscription();
+
         this.socketSubscription.add(
             this.socketService.listen<number>(CountdownEvents.CombatSecondPassed).subscribe((remainingTime) => {
                 this.combatCountdown.next(remainingTime);
             }),
         );
+    }
+
+    reinitializeListeners(): void {
+        this.listenCountdown();
+    }
+
+    resetCountdown(): void {
+        this.combatCountdown.next(this.countdownDuration);
     }
 }

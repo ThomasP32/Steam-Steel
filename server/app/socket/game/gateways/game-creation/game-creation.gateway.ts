@@ -3,6 +3,7 @@ import { CombatService } from '@app/services/combat/combat.service';
 import { CombatCountdownService } from '@app/services/countdown/combat/combat-countdown.service';
 import { GameCountdownService } from '@app/services/countdown/game/game-countdown.service';
 import { GameCreationService } from '@app/services/game-creation/game-creation.service';
+import { ChallengeEvent } from '@common/events/challenge.events';
 import { CountdownEvents } from '@common/events/countdown.events';
 import { GameCreationEvents, JoinGameData, KickPlayerData, ToggleGameLockStateData } from '@common/events/game-creation.events';
 import { GameTurnEvents } from '@common/events/game-turn.events';
@@ -37,7 +38,7 @@ export class GameGateway {
         newGame.hostSocketId = client.id;
         this.gameCreationService.addGame(newGame);
         const initialPlayer = newGame.players[0];
-        if (initialPlayer) {
+        if(initialPlayer){
             this.challengeService.assignForPlayer(newGame, initialPlayer);
         }
         this.server.to(newGame.id).emit(GameCreationEvents.GameCreated, newGame);
@@ -68,8 +69,12 @@ export class GameGateway {
             if (this.gameCreationService.isMaxPlayersReached(game.players, data.gameId)) {
                 this.gameCreationService.lockGame(data.gameId);
             }
-
-            const newPlayer = game.players.filter((player) => player.socketId === client.id)[0];
+            
+            const newPlayer = game.players.find((player) => player.socketId === client.id);
+            if (!newPlayer) {
+                client.emit(GameCreationEvents.GameNotFound, 'Erreur lors de la connexion au jeu.');
+                return;
+            }
             newPlayer.isObservationMode = false;
             if (game.hasStarted) {
                 const activePlayers = game.players.filter((plyr) => plyr.isActive);
@@ -101,6 +106,18 @@ export class GameGateway {
             this.server.to(data.gameId).emit(GameCreationEvents.CurrentPlayers, game.players);
             this.server.to(data.gameId).emit(GameCreationEvents.GameUpdated, game);
             this.server.emit(GameCreationEvents.GameListUpdated);
+
+            // Send current timer state if game has started
+            if (game.hasStarted) {
+                this.syncTimerState(client, game.id);
+            }
+
+            const existingChallenge = this.challengeService.getPlayerChallenge(game.id, newPlayer.name);
+            if (existingChallenge) {
+                client.emit(ChallengeEvent.Updated, existingChallenge);
+            } else if (!newPlayer.socketId.includes('virtual') && !newPlayer.isObservationMode) {
+                this.challengeService.assignForPlayer(game, newPlayer);
+            }
         } else {
             client.emit(GameCreationEvents.GameNotFound, 'La partie a été fermée.');
         }
@@ -188,6 +205,8 @@ export class GameGateway {
                 }
                 client.join(gameId);
                 client.emit(GameCreationEvents.GameAccessed, game.id);
+                // Sync timer state for drop-in player
+                this.syncTimerState(client, gameId);
                 return;
             } else if (game.isLocked) {
                 client.emit(GameCreationEvents.GameLocked, 'La partie est vérouillée, veuillez réessayer plus tard.');
@@ -318,6 +337,8 @@ export class GameGateway {
                 }
                 client.join(gameId);
                 client.emit(GameCreationEvents.GameResumed, game);
+                // Sync timer state for resuming player
+                this.syncTimerState(client, gameId);
             }
         } else {
             client.emit(GameCreationEvents.GameNotFound, 'La partie a été fermée.');
@@ -355,6 +376,8 @@ export class GameGateway {
                     // Send delay = 0 to hide the turn overlay and show the game board
                     client.emit(CountdownEvents.Delay, 0);
                 }
+                // Sync timer state for observer
+                this.syncTimerState(client, game.id);
             }
         } else {
             client.emit(GameCreationEvents.GameNotFound, 'La partie a été fermée.');
@@ -386,6 +409,24 @@ export class GameGateway {
         } catch (error) {
             console.error('Error checking friend status:', error);
             return false;
+        }
+    }
+
+    private syncTimerState(client: Socket, gameId: string): void {
+        // Sync game countdown timer
+        if (this.gameCountdownService.hasActiveCountdown(gameId)) {
+            const currentCountdown = this.gameCountdownService.getCurrentCountdown(gameId);
+            if (currentCountdown !== undefined) {
+                client.emit(CountdownEvents.SecondPassed, currentCountdown);
+            }
+        }
+
+        // Sync combat countdown timer if active
+        if (this.combatCountdownService.hasActiveCountdown(gameId)) {
+            const currentCombatCountdown = this.combatCountdownService.getCurrentCountdown(gameId);
+            if (currentCombatCountdown !== undefined) {
+                client.emit(CountdownEvents.CombatSecondPassed, currentCombatCountdown);
+            }
         }
     }
 }
