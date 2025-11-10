@@ -1,0 +1,442 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mobile/services/join_game_service.dart';
+import 'package:mobile/services/socket_service.dart';
+import 'package:mobile/utils/debug_logger.dart';
+import 'package:mobile/widgets/chat_widget.dart';
+import 'package:mobile/widgets/waiting_room/game_preview_widget.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
+
+class JoinGameScreen extends StatefulWidget {
+  const JoinGameScreen({super.key});
+
+  @override
+  State<JoinGameScreen> createState() => _JoinGameScreenState();
+}
+
+class _JoinGameScreenState extends State<JoinGameScreen> {
+  static const int _codeLength = 4;
+
+  late List<TextEditingController> _controllers;
+  late List<FocusNode> _focusNodes;
+  late JoinGameService _joinService;
+  late SocketService _socketService;
+
+  final List<StreamSubscription<dynamic>> _subs = [];
+  Timer? _accessTimeout;
+  
+  bool _isLoading = false;
+  List<Map<String, dynamic>> _games = [];
+  bool _loadingGames = true;
+  String? _pendingGameCode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = List.generate(_codeLength, (_) => TextEditingController());
+    _focusNodes = List.generate(_codeLength, (_) => FocusNode());
+    _joinService = JoinGameService();
+    _socketService = SocketService();
+    
+    _setupListeners();
+    _joinService.fetchGames();
+  }
+
+  void _setupListeners() {
+    _subs
+      ..add(_joinService.gamesStream.listen(_handleGamesUpdate))
+      ..add(_joinService.loadingStream.listen(_handleLoadingUpdate))
+      ..add(_socketService.listen<void>('gameListUpdated').listen(_onGameListUpdated))
+      ..add(_socketService.listen<dynamic>('getGames').listen(_onGetGames))
+      ..add(_socketService.listen<void>('gameAccessed').listen(_onGameAccessed))
+      ..add(_socketService.listen<Map<String, dynamic>>('youJoined').listen(_onYouJoined))
+      ..add(_socketService.listen<String>('gameNotFound').listen(_onGameNotFound))
+      ..add(_socketService.listen<String>('gameLocked').listen(_onGameLocked));
+  }
+
+  void _handleGamesUpdate(List<Map<String, dynamic>> games) {
+    if (!mounted) return;
+    setState(() => _games = games);
+  }
+
+  void _handleLoadingUpdate(bool loading) {
+    if (!mounted) return;
+    setState(() => _loadingGames = loading);
+  }
+
+  void _onGameListUpdated(void _) => _joinService.fetchGames();
+
+  void _onGetGames(dynamic data) => _joinService.handleGamesResponse(data);
+
+  void _onGameAccessed(void _) {
+    _cancelTimeout();
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+    final code = _pendingGameCode ?? _getEnteredCode();
+    _navigateToCharacterCreation(code);
+  }
+
+  void _onYouJoined(Map<String, dynamic> data) {
+    _cancelTimeout();
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+    
+    try {
+      _joinService.handleYouJoined(data);
+      final updatedGame = data['updatedGame'] as Map<String, dynamic>?;
+      
+      if (updatedGame != null) {
+        _pendingGameCode = null;
+        final route = _joinService.buildGameRoute(updatedGame);
+        context.go(route);
+      }
+    } on Exception catch (e) {
+      DebugLogger.log('Navigation failed after youJoined: $e', tag: 'JoinGameScreen');
+    }
+  }
+
+  void _onGameNotFound(String reason) {
+    _cancelTimeout();
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+    _showError('Partie introuvable');
+    _resetInputs();
+  }
+
+  void _onGameLocked(String reason) {
+    _cancelTimeout();
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+    _showError(reason);
+    _resetInputs();
+  }
+
+  void _onGameTap(Map<String, dynamic> game) {
+    final gameId = game['id'] as String?;
+    if (gameId == null) return;
+
+    final hasStarted = game['hasStarted'] as bool? ?? false;
+
+    if (hasStarted) {
+      _handleObserverFlow(game, gameId);
+    } else {
+      _handleJoinFlow(gameId);
+    }
+  }
+
+  void _handleObserverFlow(Map<String, dynamic> game, String gameId) {
+    final existingPlayer = _joinService.getExistingPlayer(game);
+
+    if (existingPlayer != null) {
+      _observeWithExistingPlayer(gameId, existingPlayer);
+    } else {
+      _navigateToObserverCharacterCreation(game, gameId);
+    }
+  }
+
+  void _observeWithExistingPlayer(String gameId, Map<String, dynamic> player) {
+    DebugLogger.log(
+      'Existing player found: ${player['name']}',
+      tag: 'JoinGameScreen',
+    );
+
+    setState(() {
+      _isLoading = true;
+      _pendingGameCode = gameId;
+    });
+
+    _joinService.observeGame(gameId: gameId, player: player);
+    _startTimeout();
+  }
+
+  void _navigateToObserverCharacterCreation(
+    Map<String, dynamic> game,
+    String gameId,
+  ) {
+    DebugLogger.log('No existing player, creating character', tag: 'JoinGameScreen');
+
+    final mapName = _joinService.extractMapName(game);
+    context.go(
+      '/$gameId/choose-character',
+      extra: {'isObserver': true, 'mapName': mapName},
+    );
+  }
+
+  void _handleJoinFlow(String gameId) {
+    setState(() {
+      _isLoading = true;
+      _pendingGameCode = gameId;
+    });
+
+    _joinService.accessGame(gameId);
+    _startTimeout();
+  }
+
+  void _navigateToCharacterCreation(String code) {
+    _pendingGameCode = null;
+    try {
+      context.go('/$code/choose-character');
+    } on Exception catch (e) {
+      DebugLogger.log('Navigation failed: $e', tag: 'JoinGameScreen');
+    }
+  }
+
+  void _onCodeComplete() {
+    final code = _getEnteredCode();
+    setState(() => _isLoading = true);
+    
+    _joinService.accessGame(code);
+    _startTimeout();
+  }
+
+  void _startTimeout() {
+    _cancelTimeout();
+    _accessTimeout = Timer(const Duration(seconds: 5), () {
+      if (!mounted || !_isLoading) return;
+      
+      setState(() {
+        _isLoading = false;
+        _pendingGameCode = null;
+      });
+      
+      _showError("Délai d'attente dépassé");
+      _resetInputs();
+    });
+  }
+
+  void _cancelTimeout() {
+    _accessTimeout?.cancel();
+  }
+
+  void _resetInputs() {
+    for (final c in _controllers) {
+      c.clear();
+    }
+    if (_focusNodes.isNotEmpty) {
+      _focusNodes.first.requestFocus();
+    }
+  }
+
+  String _getEnteredCode() => _controllers.map((c) => c.text).join();
+
+  void _showError(String message) {
+    showTopSnackBar(
+      Overlay.of(context),
+      CustomSnackBar.error(message: message),
+    );
+  }
+
+  @override
+  void dispose() {
+    _cancelTimeout();
+    _pendingGameCode = null;
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    for (final f in _focusNodes) {
+      f.dispose();
+    }
+    for (final s in _subs) {
+      s.cancel();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('lib/assets/backgrounds/backgroundcombat.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 25),
+                _buildCodeEntry(),
+                const SizedBox(height: 24),
+                _buildGamesSection(),
+              ],
+            ),
+            if (_isLoading) _buildLoadingOverlay(),
+            const Positioned(top: 18, right: 12, child: ChatWidget()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: SizedBox(
+          height: kToolbarHeight,
+          child: Stack(
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => context.go('/'),
+                  child: const Text('Retour'),
+                ),
+              ),
+              const Center(
+                child: Text(
+                  'REJOINS UNE PARTIE',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCodeEntry() {
+    return Column(
+      children: [
+        const Text(
+          'Veuillez entrer le code de la partie',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(_codeLength, _buildCodeInput),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCodeInput(int index) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 6),
+      width: 60,
+      height: 60,
+      child: TextField(
+        enabled: !_isLoading,
+        controller: _controllers[index],
+        focusNode: _focusNodes[index],
+        textAlign: TextAlign.center,
+        maxLength: 1,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        keyboardType: TextInputType.text,
+        decoration: const InputDecoration(
+          counterText: '',
+          border: InputBorder.none,
+        ),
+        onChanged: (value) => _onCodeInputChanged(index, value),
+      ),
+    );
+  }
+
+  void _onCodeInputChanged(int index, String value) {
+    if (_isLoading) return;
+
+    if (value.isEmpty) {
+      if (index > 0) {
+        _focusNodes[index - 1].requestFocus();
+        _controllers[index - 1].clear();
+      }
+      return;
+    }
+
+    _controllers[index]
+      ..text = value[0]
+      ..selection = const TextSelection.collapsed(offset: 1);
+
+    if (index + 1 < _codeLength) {
+      _focusNodes[index + 1].requestFocus();
+    } else {
+      _onCodeComplete();
+    }
+  }
+
+  Widget _buildGamesSection() {
+    return Expanded(
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'Parties en cours',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(child: _buildGamesList()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGamesList() {
+    if (_loadingGames) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_games.isEmpty) {
+      return const Center(
+        child: Text(
+          'Aucune partie disponible',
+          style: TextStyle(color: Colors.white70, fontSize: 16),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 5,
+        childAspectRatio: 0.68,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: _games.length,
+      itemBuilder: (context, index) {
+        final game = _games[index];
+        return GamePreviewWidget(
+          game: game,
+          onTap: () => _onGameTap(game),
+        );
+      },
+    );
+  }
+
+  Widget _buildLoadingOverlay() {
+    return const Positioned.fill(
+      child: ColoredBox(
+        color: Color.fromRGBO(0, 0, 0, 0.5),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    );
+  }
+}

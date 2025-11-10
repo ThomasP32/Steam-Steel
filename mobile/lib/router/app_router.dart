@@ -6,6 +6,7 @@ import 'package:mobile/screens/character_creation_screen.dart';
 import 'package:mobile/screens/endgame_screen.dart';
 import 'package:mobile/screens/game_screen.dart';
 import 'package:mobile/screens/gamecreation_screen.dart';
+import 'package:mobile/screens/join_game_screen.dart';
 import 'package:mobile/screens/waiting_room_screen.dart';
 
 class AppRouter {
@@ -16,6 +17,11 @@ class AppRouter {
         path: '/',
         name: 'home',
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: '/join-game',
+        name: 'join-game',
+        builder: (context, state) => const JoinGameScreen(),
       ),
       GoRoute(
         path: '/:gameId/waiting-room/player',
@@ -31,10 +37,7 @@ class AppRouter {
             settings = extra['settings'] as GameSettings?;
           }
 
-          return WaitingRoomScreen(
-            gameId: gameId,
-            gameSettings: settings,
-          );
+          return WaitingRoomScreen(gameId: gameId, gameSettings: settings);
         },
       ),
       GoRoute(
@@ -51,10 +54,7 @@ class AppRouter {
             settings = extra['settings'] as GameSettings?;
           }
 
-          return WaitingRoomScreen(
-            mapName: mapName,
-            gameSettings: settings,
-          );
+          return WaitingRoomScreen(mapName: mapName, gameSettings: settings);
         },
       ),
       GoRoute(
@@ -65,11 +65,23 @@ class AppRouter {
           final extra = state.extra;
 
           GameSettings? settings;
-          if (extra is GameSettings) {
+          var isObserver = false;
+          String? mapName;
+
+          if (extra is Map<String, dynamic>) {
+            settings = extra['settings'] as GameSettings?;
+            isObserver = extra['isObserver'] as bool? ?? false;
+            mapName = extra['mapName'] as String?;
+          } else if (extra is GameSettings) {
             settings = extra;
           }
 
-          return CharacterCreationScreen(gameId: code, gameSettings: settings);
+          return CharacterCreationScreen(
+            gameId: code,
+            mapName: mapName,
+            gameSettings: settings,
+            isObserver: isObserver,
+          );
         },
       ),
       GoRoute(

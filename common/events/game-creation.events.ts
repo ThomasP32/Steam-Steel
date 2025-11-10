@@ -1,20 +1,5 @@
 import { Player } from '@common/game';
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 export enum GameCreationEvents {
     GameClosed = 'gameClosed',
     GameEndedNoActivePlayers = 'gameEndedNoActivePlayers',
@@ -56,7 +41,7 @@ export enum GameCreationEvents {
 
     LeaveGame = 'leaveGame',
     ResumeGame = "resumeGame",
-    ObserveGame = "ObserveGame",
+    ObserveGame = "observeGame",
 }
 
 export interface KickPlayerData {

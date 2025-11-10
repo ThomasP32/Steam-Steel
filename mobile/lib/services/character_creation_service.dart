@@ -103,11 +103,13 @@ class CharacterCreationService {
     required String socketId,
     required int avatar,
     required Specs specs,
+    bool isObserver = false,
   }) {
     return {
       'name': name,
       'socketId': socketId,
-      'isActive': true,
+      'isActive': !isObserver,
+      'isObservationMode': isObserver,
       'avatar': avatar,
       'specs': {
         'life': specs.life,
@@ -141,6 +143,7 @@ class CharacterCreationService {
     required String socketId,
     required int avatar,
     required Specs specs,
+    bool isObserver = false,
   }) {
     return Player(
       socketId: socketId,
@@ -150,10 +153,12 @@ class CharacterCreationService {
       inventory: [],
       visitedTiles: [],
       specs: specs,
+      isActive: !isObserver,
+      isObservationMode: isObserver,
     );
   }
 
-  Future<void> joinGame({
+  Future<void> observeGame({
     required String gameId,
     required String name,
     required String socketId,
@@ -162,6 +167,40 @@ class CharacterCreationService {
     required void Function(Player) onSuccess,
     required VoidCallback onTimeout,
   }) async {
+    await _ensureSocketConnection(socketId, onTimeout);
+
+    final player = buildPlayerPayload(
+      name: name,
+      socketId: SocketService().socketId ?? socketId,
+      avatar: avatar,
+      specs: specs,
+      isObserver: true,
+    );
+
+    final localPlayer = buildLocalPlayer(
+      name: name,
+      socketId: SocketService().socketId ?? socketId,
+      avatar: avatar,
+      specs: specs,
+      isObserver: true,
+    );
+
+    final payload = {'gameId': gameId, 'player': player};
+
+    _handleJoinResponse(
+      event: 'observeGame',
+      payload: payload,
+      gameId: gameId,
+      localPlayer: localPlayer,
+      onSuccess: onSuccess,
+      onTimeout: onTimeout,
+    );
+  }
+
+  Future<void> _ensureSocketConnection(
+    String socketId,
+    VoidCallback onTimeout,
+  ) async {
     if (SocketService().socketId == null) {
       DebugLogger.log(
         '[CharacterCreationService] Socket not connected, reconnecting...',
@@ -183,26 +222,18 @@ class CharacterCreationService {
           '[CharacterCreationService] Failed to reconnect socket after 3 seconds',
         );
         onTimeout();
-        return;
       }
     }
+  }
 
-    final player = buildPlayerPayload(
-      name: name,
-      socketId: SocketService().socketId ?? socketId,
-      avatar: avatar,
-      specs: specs,
-    );
-
-    final localPlayer = buildLocalPlayer(
-      name: name,
-      socketId: SocketService().socketId ?? socketId,
-      avatar: avatar,
-      specs: specs,
-    );
-
-    final payload = {'gameId': gameId, 'player': player};
-
+  void _handleJoinResponse({
+    required String event,
+    required Map<String, dynamic> payload,
+    required String gameId,
+    required Player localPlayer,
+    required void Function(Player) onSuccess,
+    required VoidCallback onTimeout,
+  }) {
     StreamSubscription<dynamic>? youJoinedSub;
     StreamSubscription<dynamic>? gameLockedSub;
 
@@ -236,7 +267,44 @@ class CharacterCreationService {
       onTimeout();
     });
 
-    SocketService().send('joinGame', payload);
+    SocketService().send(event, payload);
+  }
+
+  Future<void> joinGame({
+    required String gameId,
+    required String name,
+    required String socketId,
+    required int avatar,
+    required Specs specs,
+    required void Function(Player) onSuccess,
+    required VoidCallback onTimeout,
+  }) async {
+    await _ensureSocketConnection(socketId, onTimeout);
+
+    final player = buildPlayerPayload(
+      name: name,
+      socketId: SocketService().socketId ?? socketId,
+      avatar: avatar,
+      specs: specs,
+    );
+
+    final localPlayer = buildLocalPlayer(
+      name: name,
+      socketId: SocketService().socketId ?? socketId,
+      avatar: avatar,
+      specs: specs,
+    );
+
+    final payload = {'gameId': gameId, 'player': player};
+
+    _handleJoinResponse(
+      event: 'joinGame',
+      payload: payload,
+      gameId: gameId,
+      localPlayer: localPlayer,
+      onSuccess: onSuccess,
+      onTimeout: onTimeout,
+    );
   }
 
   Player? _parsePlayerFromJson(Map<String, dynamic> json) {
@@ -252,6 +320,8 @@ class CharacterCreationService {
               0,
               Avatar.values.length - 1,
             )],
+        isActive: json['isActive'] as bool? ?? true,
+        isObservationMode: json['isObservationMode'] as bool? ?? false,
         specs: Specs(
           life: specs['life'] as int? ?? DEFAULT_HP,
           speed: specs['speed'] as int? ?? DEFAULT_SPEED,
