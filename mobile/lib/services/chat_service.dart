@@ -70,6 +70,14 @@ class ChatService {
         (m['_id'] as String?) ??
         (m['id'] as String?);
 
+    final authorAvatar =
+        (msgMap['authorAvatar'] as int?) ?? (m['authorAvatar'] as int?);
+    final authorAvatarCustom =
+        (msgMap['authorAvatarCustom'] as String?) ??
+        (m['authorAvatarCustom'] as String?);
+    final authorStatus =
+        (msgMap['authorStatus'] as String?) ?? (m['authorStatus'] as String?);
+
     return Message(
       id: id,
       author: author,
@@ -79,6 +87,9 @@ class ChatService {
       roomId: roomId,
       gameId: gameId,
       channel: channel,
+      authorAvatar: authorAvatar,
+      authorAvatarCustom: authorAvatarCustom,
+      authorStatus: authorStatus,
     );
   }
 

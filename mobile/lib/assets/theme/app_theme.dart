@@ -132,11 +132,11 @@ class AppTheme {
 
     // Tab Bar Theme
     tabBarTheme: const TabBarThemeData(
-      labelColor: AppColors.warning,
+      labelColor: AppColors.accentHighlight,
       unselectedLabelColor: AppColors.white,
       labelStyle: AppTextStyles.labelMedium,
       unselectedLabelStyle: AppTextStyles.labelMedium,
-      indicatorColor: AppColors.warning,
+      indicatorColor: AppColors.accentHighlight,
     ),
 
     // Divider Theme

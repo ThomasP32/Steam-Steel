@@ -8,6 +8,9 @@ class Message {
     this.roomId,
     this.gameId,
     this.channel,
+    this.authorAvatar,
+    this.authorAvatarCustom,
+    this.authorStatus,
   });
   final String? id;
   final String author;
@@ -20,4 +23,9 @@ class Message {
   // backward compatibility
   final String? gameId;
   final String? channel;
+
+  // Author info
+  final int? authorAvatar;
+  final String? authorAvatarCustom;
+  final String? authorStatus;
 }
