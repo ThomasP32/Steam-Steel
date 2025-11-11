@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/models/user_models.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/friend_service.dart';
+import 'package:mobile/widgets/profile_picture_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
@@ -177,7 +178,6 @@ class _FriendListModalState extends State<FriendListModal>
           await _loadAllUsers(forceRefresh: true);
         }
       } else {
-        print('Erreur lors de l\'envoi de la demande: $e');
         if (mounted) {
           showTopSnackBar(
             Overlay.of(context),
@@ -246,7 +246,6 @@ class _FriendListModalState extends State<FriendListModal>
         setState(() => _friends = friends);
       }
     } catch (e) {
-      print('Erreur lors du chargement des amis: $e');
       if (mounted) {
         showTopSnackBar(
           Overlay.of(context),
@@ -284,12 +283,12 @@ class _FriendListModalState extends State<FriendListModal>
         setState(() {
           _friendRequests = requests;
 
-          _sentRequests.removeWhere((username) {
-            return !existingUsernames.contains(username) &&
-                !serverSentRequests.contains(username);
-          });
-
-          _sentRequests.addAll(serverSentRequests);
+          _sentRequests
+            ..removeWhere((username) {
+              return !existingUsernames.contains(username) &&
+                  !serverSentRequests.contains(username);
+            })
+            ..addAll(serverSentRequests);
 
           _recentlySentRequests.removeWhere((username, timestamp) {
             return now.difference(timestamp).inSeconds > 60;
@@ -720,7 +719,7 @@ class _FriendListModalState extends State<FriendListModal>
                                 ? IconButton(
                                   icon: const Icon(
                                     Icons.person_add,
-                                    color: Color(0xFF2E8B57),
+                                    color: Colors.green,
                                   ),
                                   onPressed:
                                       _isAddingFriend
@@ -762,7 +761,14 @@ class _FriendListModalState extends State<FriendListModal>
 
   Widget _buildFriendItem(Friend friend) {
     return ListTile(
-      leading: _buildAvatarWidget(friend.avatar, friend.username),
+      leading: ProfilePictureWidget(
+        size: 40,
+        avatar: friend.avatar,
+        avatarCustom: friend.avatarCustom,
+        status: friend.status,
+        showStatusIndicator: true,
+        username: friend.username,
+      ),
       title: Text(friend.username, style: const TextStyle(fontSize: 12)),
       subtitle: Text(
         _getStatusText(friend.status),
@@ -775,26 +781,15 @@ class _FriendListModalState extends State<FriendListModal>
     );
   }
 
-  Widget _buildAvatarWidget(int? avatarId, String username) {
-    if (avatarId != null && avatarId >= 1 && avatarId <= 12) {
-      return CircleAvatar(
-        radius: 20,
-        backgroundColor: Colors.transparent,
-        backgroundImage: AssetImage(
-          'lib/assets/previewcharacters/${avatarId}_preview.png',
-        ),
-      );
-    }
-    return CircleAvatar(
-      radius: 20,
-      backgroundColor: const Color(0xFF2C3E50),
-      child: Text(username[0].toUpperCase()),
-    );
-  }
-
   Widget _buildRequestItem(FriendRequest request) {
     return ListTile(
-      leading: _buildAvatarWidget(request.avatar, request.from),
+      leading: ProfilePictureWidget(
+        size: 40,
+        avatar: request.avatar,
+        avatarCustom: request.avatarCustom,
+        showStatusIndicator: false,
+        username: request.from,
+      ),
       title: Text(request.from, style: const TextStyle(fontSize: 12)),
       subtitle: const Text(
         'Souhaite être votre ami',

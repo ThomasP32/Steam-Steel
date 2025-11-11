@@ -269,14 +269,13 @@ class FriendService {
         final friends =
             friendsList
                 .whereType<Map<String, dynamic>>()
-                .map((friendData) => Friend.fromJson(friendData))
+                .map(Friend.fromJson)
                 .toList();
 
         _cachedFriends = friends;
 
         getAllUsers()
             .then((users) {
-              // Notifier les listeners de la liste complète
               for (final listener in _onAllUsersUpdatedListeners) {
                 listener(users);
               }
@@ -309,7 +308,7 @@ class FriendService {
         final requests =
             requestsList
                 .whereType<Map<String, dynamic>>()
-                .map((requestData) => FriendRequest.fromJson(requestData))
+                .map(FriendRequest.fromJson)
                 .toList();
 
         _cachedRequests = requests;
@@ -401,7 +400,6 @@ class FriendService {
       }
       return _cachedRequests;
     } catch (e) {
-      // En cas d'erreur, retourner le cache s'il existe
       if (_cachedRequests.isNotEmpty) return _cachedRequests;
       throw Exception('Erreur lors du chargement des demandes d\'ami: $e');
     }
@@ -497,17 +495,42 @@ class FriendService {
       final data = await _processResponse(response);
 
       if (data['success'] as bool && data['users'] != null) {
-        _cachedAllUsers =
+        return _cachedAllUsers =
             (data['users'] as List)
                 .map((user) => User(username: user['username'] as String))
                 .toList();
-        return _cachedAllUsers;
       }
       return _cachedAllUsers;
     } catch (e) {
-      // En cas d'erreur, retourner le cache s'il existe
       if (_cachedAllUsers.isNotEmpty) return _cachedAllUsers;
       throw Exception('Erreur lors du chargement des utilisateurs: $e');
+    }
+  }
+
+  void updateUserStatus(UserStatus status) {
+    try {
+      final statusString =
+          status == UserStatus.online
+              ? 'online'
+              : status == UserStatus.offline
+              ? 'offline'
+              : 'ingame';
+
+      _socketService.send('updateUserStatus', {'status': statusString});
+
+      final currentUser = AuthService().notifier.value;
+      if (currentUser != null) {
+        AuthService().notifier.value = currentUser.copyWith(
+          status: statusString,
+        );
+      }
+
+      DebugLogger.log(
+        'Updated user status to: $statusString',
+        tag: 'FriendService',
+      );
+    } catch (e) {
+      DebugLogger.log('Error updating user status: $e', tag: 'FriendService');
     }
   }
 

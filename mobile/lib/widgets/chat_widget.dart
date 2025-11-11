@@ -1,13 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/message.dart';
+import 'package:mobile/models/user_models.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/channel_service.dart';
 import 'package:mobile/services/chat_service.dart';
+import 'package:mobile/services/friend_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/channel_manager_widget.dart';
+import 'package:mobile/widgets/profile_picture_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
@@ -47,7 +51,12 @@ class _ChatWidgetState extends State<ChatWidget>
 
   ChatService chatService = ChatService();
   final ChannelService _channelService = ChannelService();
+  final FriendService _friendService = FriendService();
   VoidCallback? _closeDropdownsCallback;
+
+  List<Friend> _friends = [];
+  void Function(String, UserStatus)? _statusUpdateListener;
+  void Function(Friend)? _friendAddedListener;
 
   @override
   void initState() {
@@ -221,6 +230,40 @@ class _ChatWidgetState extends State<ChatWidget>
       AuthService().notifier.addListener(_authListener!);
     } on Object catch (_) {}
 
+    _loadFriends();
+    _statusUpdateListener = (username, status) {
+      if (!mounted) return;
+      setState(() {
+        final friendIndex = _friends.indexWhere((f) => f.username == username);
+        if (friendIndex != -1) {
+          _friends[friendIndex] = _friends[friendIndex].copyWith(
+            status: status,
+          );
+        }
+      });
+      _overlayEntry?.markNeedsBuild();
+      DebugLogger.log(
+        'Status updated for $username to $status, overlay refreshed',
+        tag: 'ChatWidget',
+      );
+    };
+    _friendService.addOnFriendStatusUpdateListener(_statusUpdateListener!);
+
+    _friendAddedListener = (friend) {
+      if (!mounted) return;
+      setState(() {
+        if (!_friends.any((f) => f.username == friend.username)) {
+          _friends.add(friend);
+        }
+      });
+      _overlayEntry?.markNeedsBuild();
+      DebugLogger.log(
+        'Friend added: ${friend.username}, overlay refreshed',
+        tag: 'ChatWidget',
+      );
+    };
+    _friendService.addOnFriendAddedListener(_friendAddedListener!);
+
     _channelService.init();
 
     if (widget.initiallyVisible) {
@@ -229,6 +272,84 @@ class _ChatWidgetState extends State<ChatWidget>
           _showOverlay();
         }
       });
+    }
+  }
+
+  Future<void> _loadFriends() async {
+    DebugLogger.log('Starting to load friends...', tag: 'ChatWidget');
+    try {
+      final friends = await _friendService.getFriends();
+      DebugLogger.log(
+        'getFriends() returned ${friends.length} friends',
+        tag: 'ChatWidget',
+      );
+      if (!mounted) return;
+      setState(() {
+        _friends = friends;
+      });
+      DebugLogger.log(
+        'Loaded ${_friends.length} friends: ${_friends.map((f) => f.username).join(", ")}',
+        tag: 'ChatWidget',
+      );
+    } catch (e) {
+      DebugLogger.log('Error loading friends: $e', tag: 'ChatWidget');
+    }
+  }
+
+  Friend? _getFriendInfo(String username) {
+    try {
+      final friend = _friends.firstWhere((f) => f.username == username);
+      DebugLogger.log(
+        'Found friend info for $username: avatar=${friend.avatar}, status=${friend.status}',
+        tag: 'ChatWidget',
+      );
+      return friend;
+    } catch (e) {
+      DebugLogger.log(
+        'No friend info found for $username (not a friend or list not loaded)',
+        tag: 'ChatWidget',
+      );
+      return null;
+    }
+  }
+
+  String _getStatusText(UserStatus status) {
+    switch (status) {
+      case UserStatus.online:
+        return 'En ligne';
+      case UserStatus.offline:
+        return 'Hors ligne';
+      case UserStatus.inGame:
+        return 'En jeu';
+      case UserStatus.unknown:
+        return 'Inconnu';
+    }
+  }
+
+  Color _getStatusColor(UserStatus status) {
+    switch (status) {
+      case UserStatus.online:
+        return Colors.green;
+      case UserStatus.offline:
+        return Colors.grey;
+      case UserStatus.inGame:
+        return Colors.orange;
+      case UserStatus.unknown:
+        return Colors.grey;
+    }
+  }
+
+  UserStatus _parseUserStatus(String? status) {
+    if (status == null) return UserStatus.unknown;
+    switch (status.toLowerCase()) {
+      case 'online':
+        return UserStatus.online;
+      case 'offline':
+        return UserStatus.offline;
+      case 'ingame':
+        return UserStatus.inGame;
+      default:
+        return UserStatus.unknown;
     }
   }
 
@@ -328,6 +449,12 @@ class _ChatWidgetState extends State<ChatWidget>
         AuthService().notifier.removeListener(_authListener!);
       } on Object catch (_) {}
     }
+    if (_statusUpdateListener != null) {
+      _friendService.removeOnFriendStatusUpdateListener(_statusUpdateListener!);
+    }
+    if (_friendAddedListener != null) {
+      _friendService.removeOnFriendAddedListener(_friendAddedListener!);
+    }
     _inputCtrl.dispose();
     _listController.dispose();
     _inputFocusNode.dispose();
@@ -355,6 +482,8 @@ class _ChatWidgetState extends State<ChatWidget>
         _loadChannelMessages(channel.name);
       }
     });
+
+    _loadFriends();
 
     _getMessagesFromDB();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -528,7 +657,7 @@ class _ChatWidgetState extends State<ChatWidget>
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'Press Start 2P',
-                  color: Color(0xFF2E8B57),
+                  color: AppColors.accentHighlight,
                 ),
               ),
             );
@@ -565,6 +694,17 @@ class _ChatWidgetState extends State<ChatWidget>
                               final time =
                                   '${m.timestamp.hour.toString().padLeft(2, '0')}:${m.timestamp.minute.toString().padLeft(2, '0')}:${m.timestamp.second.toString().padLeft(2, '0')}';
                               final mine = m.author == _userName;
+                              final friendInfo = _getFriendInfo(m.author);
+                              final isFriend = friendInfo != null;
+                              final currentUser =
+                                  mine ? AuthService().notifier.value : null;
+
+                              if (!mine) {
+                                DebugLogger.log(
+                                  'Message from ${m.author}: isFriend=$isFriend, friendInfo=$friendInfo, authorAvatar=${m.authorAvatar}, authorAvatarCustom=${m.authorAvatarCustom}',
+                                  tag: 'ChatWidget',
+                                );
+                              }
 
                               return Align(
                                 alignment:
@@ -576,57 +716,157 @@ class _ChatWidgetState extends State<ChatWidget>
                                     vertical: 4,
                                     horizontal: 8,
                                   ),
-                                  padding: const EdgeInsets.all(8),
-                                  constraints: BoxConstraints(
-                                    maxWidth:
-                                        MediaQuery.of(context).size.width / 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        mine
-                                            ? const Color(0xFF2E8B57)
-                                            : const Color(0xFF3B3F46),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Column(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            m.author,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 10,
-                                              fontFamily: 'Press Start 2P',
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            time,
-                                            style: TextStyle(
-                                              color: Colors.white.withValues(
-                                                alpha: 0.6,
-                                              ),
-                                              fontSize: 8,
-                                              fontFamily: 'Press Start 2P',
-                                            ),
-                                          ),
-                                        ],
+                                      ProfilePictureWidget(
+                                        size: 32,
+                                        username: m.author,
+                                        avatar:
+                                            mine
+                                                ? (currentUser?.avatar !=
+                                                            null &&
+                                                        currentUser!
+                                                            .avatar
+                                                            .isNotEmpty
+                                                    ? int.tryParse(
+                                                      currentUser.avatar,
+                                                    )
+                                                    : null)
+                                                : (isFriend
+                                                    ? friendInfo.avatar
+                                                    : m.authorAvatar),
+                                        avatarCustom:
+                                            mine
+                                                ? currentUser?.avatarCustom
+                                                : (isFriend
+                                                    ? friendInfo.avatarCustom
+                                                    : m.authorAvatarCustom),
+                                        status:
+                                            mine
+                                                ? _parseUserStatus(
+                                                  currentUser?.status,
+                                                )
+                                                : (isFriend
+                                                    ? friendInfo.status
+                                                    : null),
+                                        showStatusIndicator: mine || isFriend,
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        m.text,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontFamily: 'Press Start 2P',
+                                      const SizedBox(width: 8),
+                                      // Message
+                                      Flexible(
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          constraints: BoxConstraints(
+                                            maxWidth:
+                                                MediaQuery.of(
+                                                  context,
+                                                ).size.width /
+                                                4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF3B3F46),
+                                            border:
+                                                mine
+                                                    ? Border.all(
+                                                      color:
+                                                          AppColors
+                                                              .accentHighlight,
+                                                      width: 2,
+                                                    )
+                                                    : null,
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              // Statut au-dessus du pseudonyme pour tous
+                                              if (mine &&
+                                                  currentUser?.status !=
+                                                      null) ...[
+                                                Text(
+                                                  _getStatusText(
+                                                    _parseUserStatus(
+                                                      currentUser?.status,
+                                                    ),
+                                                  ),
+                                                  style: TextStyle(
+                                                    color: _getStatusColor(
+                                                      _parseUserStatus(
+                                                        currentUser?.status,
+                                                      ),
+                                                    ),
+                                                    fontSize: 7,
+                                                    fontFamily:
+                                                        'Press Start 2P',
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                              ] else if (!mine && isFriend) ...[
+                                                Text(
+                                                  _getStatusText(
+                                                    friendInfo.status,
+                                                  ),
+                                                  style: TextStyle(
+                                                    color: _getStatusColor(
+                                                      friendInfo.status,
+                                                    ),
+                                                    fontSize: 7,
+                                                    fontFamily:
+                                                        'Press Start 2P',
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                              ],
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    m.author,
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 10,
+                                                      fontFamily:
+                                                          'Press Start 2P',
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    time,
+                                                    style: TextStyle(
+                                                      color: Colors.white
+                                                          .withValues(
+                                                            alpha: 0.6,
+                                                          ),
+                                                      fontSize: 8,
+                                                      fontFamily:
+                                                          'Press Start 2P',
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                m.text,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontFamily: 'Press Start 2P',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ],

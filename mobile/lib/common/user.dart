@@ -3,6 +3,7 @@ class User {
     required this.id,
     required this.username,
     required this.email,
+    this.status = 'offline',
     this.stats = const UserStats(
       classique: GameStats(gamesPlayed: 0, gamesWon: 0),
       ctf: GameStats(gamesPlayed: 0, gamesWon: 0),
@@ -18,6 +19,7 @@ class User {
       id: j['_id']?.toString() ?? j['id']?.toString() ?? '',
       username: j['username']?.toString() ?? '',
       email: j['email']?.toString() ?? '',
+      status: j['status']?.toString() ?? 'offline',
       avatar: j['avatar']?.toString() ?? '',
       avatarCustom: j['avatarCustom']?.toString(),
       stats: stats,
@@ -27,9 +29,30 @@ class User {
   final String id;
   final String username;
   final String email;
+  final String status;
   final String avatar;
   final UserStats stats;
   final String? avatarCustom;
+
+  User copyWith({
+    String? id,
+    String? username,
+    String? email,
+    String? status,
+    String? avatar,
+    UserStats? stats,
+    String? avatarCustom,
+  }) {
+    return User(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      email: email ?? this.email,
+      status: status ?? this.status,
+      avatar: avatar ?? this.avatar,
+      stats: stats ?? this.stats,
+      avatarCustom: avatarCustom ?? this.avatarCustom,
+    );
+  }
 }
 
 class GameStats {

@@ -32,6 +32,10 @@ class AppColors {
   static const Color warning = Color(0xFFFF9800);
   static const Color error = Color(0xFFF44336);
   static const Color info = Color(0xFF2196F3);
+
+  // Theme Accent Colors
+  static const Color accentHighlight = Color(0xFFFF9800);
+
   // Brand Colors
   static const Color primaryCyan = Color(0xFF62FBF2);
   static const Color primaryMagenta = Color(0xFFF158FF);

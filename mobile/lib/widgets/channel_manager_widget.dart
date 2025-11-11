@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/models/channel.dart';
 import 'package:mobile/services/channel_service.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
@@ -362,7 +363,11 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  const Icon(Icons.search, color: Color(0xFF2E8B57), size: 20),
+                  const Icon(
+                    Icons.search,
+                    color: AppColors.accentHighlight,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
@@ -396,7 +401,10 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.add, color: Color(0xFF2E8B57)),
+                    icon: const Icon(
+                      Icons.add,
+                      color: AppColors.accentHighlight,
+                    ),
                     iconSize: 20,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -530,7 +538,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFF2E8B57) : const Color(0xFF3B3F46),
+        color: isActive ? AppColors.accentHighlight : const Color(0xFF3B3F46),
         borderRadius: BorderRadius.circular(4),
       ),
       child: InkWell(
@@ -632,7 +640,10 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF2E3136),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF2E8B57), width: 2),
+                  border: Border.all(
+                    color: AppColors.accentHighlight,
+                    width: 2,
+                  ),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -688,7 +699,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                         ElevatedButton(
                           onPressed: _createChannel,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2E8B57),
+                            backgroundColor: AppColors.accentHighlight,
                           ),
                           child: const Text(
                             'Créer',

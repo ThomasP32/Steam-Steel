@@ -6,6 +6,7 @@ import 'package:mobile/services/join_game_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
+import 'package:mobile/widgets/friends/friend_button.dart';
 import 'package:mobile/widgets/waiting_room/game_preview_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
@@ -27,7 +28,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
 
   final List<StreamSubscription<dynamic>> _subs = [];
   Timer? _accessTimeout;
-  
+
   bool _isLoading = false;
   List<Map<String, dynamic>> _games = [];
   bool _loadingGames = true;
@@ -40,7 +41,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     _focusNodes = List.generate(_codeLength, (_) => FocusNode());
     _joinService = JoinGameService();
     _socketService = SocketService();
-    
+
     _setupListeners();
     _joinService.fetchGames();
   }
@@ -49,11 +50,21 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     _subs
       ..add(_joinService.gamesStream.listen(_handleGamesUpdate))
       ..add(_joinService.loadingStream.listen(_handleLoadingUpdate))
-      ..add(_socketService.listen<void>('gameListUpdated').listen(_onGameListUpdated))
+      ..add(
+        _socketService
+            .listen<void>('gameListUpdated')
+            .listen(_onGameListUpdated),
+      )
       ..add(_socketService.listen<dynamic>('getGames').listen(_onGetGames))
       ..add(_socketService.listen<void>('gameAccessed').listen(_onGameAccessed))
-      ..add(_socketService.listen<Map<String, dynamic>>('youJoined').listen(_onYouJoined))
-      ..add(_socketService.listen<String>('gameNotFound').listen(_onGameNotFound))
+      ..add(
+        _socketService
+            .listen<Map<String, dynamic>>('youJoined')
+            .listen(_onYouJoined),
+      )
+      ..add(
+        _socketService.listen<String>('gameNotFound').listen(_onGameNotFound),
+      )
       ..add(_socketService.listen<String>('gameLocked').listen(_onGameLocked));
   }
 
@@ -85,18 +96,21 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     if (!mounted) return;
 
     setState(() => _isLoading = false);
-    
+
     try {
       _joinService.handleYouJoined(data);
       final updatedGame = data['updatedGame'] as Map<String, dynamic>?;
-      
+
       if (updatedGame != null) {
         _pendingGameCode = null;
         final route = _joinService.buildGameRoute(updatedGame);
         context.go(route);
       }
     } on Exception catch (e) {
-      DebugLogger.log('Navigation failed after youJoined: $e', tag: 'JoinGameScreen');
+      DebugLogger.log(
+        'Navigation failed after youJoined: $e',
+        tag: 'JoinGameScreen',
+      );
     }
   }
 
@@ -160,8 +174,6 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     Map<String, dynamic> game,
     String gameId,
   ) {
-    DebugLogger.log('No existing player, creating character', tag: 'JoinGameScreen');
-
     final mapName = _joinService.extractMapName(game);
     context.go(
       '/$gameId/choose-character',
@@ -191,7 +203,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
   void _onCodeComplete() {
     final code = _getEnteredCode();
     setState(() => _isLoading = true);
-    
+
     _joinService.accessGame(code);
     _startTimeout();
   }
@@ -200,12 +212,12 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     _cancelTimeout();
     _accessTimeout = Timer(const Duration(seconds: 5), () {
       if (!mounted || !_isLoading) return;
-      
+
       setState(() {
         _isLoading = false;
         _pendingGameCode = null;
       });
-      
+
       _showError("Délai d'attente dépassé");
       _resetInputs();
     });
@@ -272,7 +284,11 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
               ],
             ),
             if (_isLoading) _buildLoadingOverlay(),
-            const Positioned(top: 18, right: 12, child: ChatWidget()),
+            const Positioned(
+              top: 18,
+              right: 12,
+              child: Row(children: [FriendButton(), ChatWidget()]),
+            ),
           ],
         ),
       ),
@@ -383,7 +399,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              'Parties en cours',
+              'Parties disponibles',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -423,10 +439,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
       itemCount: _games.length,
       itemBuilder: (context, index) {
         final game = _games[index];
-        return GamePreviewWidget(
-          game: game,
-          onTap: () => _onGameTap(game),
-        );
+        return GamePreviewWidget(game: game, onTap: () => _onGameTap(game));
       },
     );
   }

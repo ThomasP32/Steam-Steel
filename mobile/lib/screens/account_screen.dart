@@ -418,6 +418,17 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 16),
+                    const Text('Status:'),
+                    Text(
+                      _getStatusText(user.status),
+                      style: TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                        color: _getStatusColor(user.status),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
@@ -781,5 +792,31 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
       ),
     );
+  }
+
+  String _getStatusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'online':
+        return 'En ligne';
+      case 'offline':
+        return 'Hors ligne';
+      case 'ingame':
+        return 'En jeu';
+      default:
+        return 'Inconnu';
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'online':
+        return Colors.green;
+      case 'offline':
+        return Colors.grey;
+      case 'ingame':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
   }
 }

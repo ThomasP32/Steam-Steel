@@ -6,8 +6,10 @@ import 'package:mobile/assets/theme/diagonal_painter.dart';
 import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/map_types.dart';
+import 'package:mobile/models/user_models.dart';
 import 'package:mobile/services/channel_service.dart';
 import 'package:mobile/services/countdown_service.dart';
+import 'package:mobile/services/friend_service.dart';
 import 'package:mobile/services/game_service.dart';
 import 'package:mobile/services/game_turn_service.dart';
 import 'package:mobile/services/player_service.dart';
@@ -68,6 +70,9 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
+
+    FriendService().updateUserStatus(UserStatus.inGame);
+
     _ensureGameDataLoaded();
     _gameTurnService.initialize(widget.gameId);
     _listenToGameEvents();
@@ -547,6 +552,8 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
+    FriendService().updateUserStatus(UserStatus.online);
+
     _deleteSubs();
     if (_playerTurnListener != null) {
       _gameTurnService.playerTurnNotifier.removeListener(_playerTurnListener!);
@@ -623,6 +630,9 @@ class _GameScreenState extends State<GameScreen> {
                 Navigator.of(dialogContext).pop();
                 await ChannelService().removeGameChannel(widget.gameId);
                 SocketService().send('leaveGame', widget.gameId);
+
+                FriendService().updateUserStatus(UserStatus.online);
+
                 try {
                   SocketService().send('leaveGame', widget.gameId);
                   await Future.delayed(const Duration(milliseconds: 100));
