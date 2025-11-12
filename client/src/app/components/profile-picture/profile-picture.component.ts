@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
+import { Character } from '@app/interfaces/character';
 import { CharacterService } from '@app/services/character/character.service';
 import { Avatar } from '@common/game';
 
@@ -10,18 +11,33 @@ import { Avatar } from '@common/game';
     templateUrl: './profile-picture.component.html',
     styleUrls: ['./profile-picture.component.scss'],
 })
-export class ProfilePictureComponent {
+export class ProfilePictureComponent implements OnInit {
     @Input() selectedAvatar: Avatar = Avatar.Avatar1;
     @Input() customAvatarPreview: string | undefined;
+    @Input() showShopAvatars: boolean = true;
     @Output() selectedAvatarChange = new EventEmitter<Avatar>();
     @Output() customAvatarPreviewChange = new EventEmitter<string | undefined>();
 
+    allAvatars: Character[] = [];
+
     get avatars() {
-        return this.characterService.characters;
+        if (this.showShopAvatars) {
+            return this.allAvatars;
+        } else {
+            return this.allAvatars.filter(avatar => !avatar.isShopAvatar);
+        }
     }
 
     constructor(public characterService: CharacterService) {
         this.characterService = characterService;
+    }
+
+    async ngOnInit(): Promise<void> {
+        this.allAvatars = await this.characterService.getAllAvatars();
+    }
+
+    isSelected(avatarId: Avatar): boolean {
+        return this.selectedAvatar === avatarId && !this.customAvatarPreview;
     }
 
     selectPredefinedAvatar(avatarId: Avatar) {

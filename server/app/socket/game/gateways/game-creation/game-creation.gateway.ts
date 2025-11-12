@@ -16,6 +16,7 @@ import { FriendsService } from '../../../../http/services/friends/friends.servic
 import { UserService } from '../../../../http/services/user/user.service';
 import { GameManagerService } from '../../../../services/game-manager/game-manager.service';
 import { UserSocketService } from '../../../../services/user-socket/user-socket.service';
+import { ShopGateway } from '../shop/shop.gateway';
 
 @WebSocketGateway({ namespace: '/game', cors: { origin: '*' } })
 export class GameGateway {
@@ -31,14 +32,29 @@ export class GameGateway {
     @Inject(FriendsService) private readonly friendsService: FriendsService;
     @Inject(UserService) private readonly userService: UserService;
     @Inject(ChallengeService) private readonly challengeService: ChallengeService;
+    @Inject(ShopGateway) private readonly shopGateway: ShopGateway;
 
     @SubscribeMessage(GameCreationEvents.CreateGame)
-    handleCreateGame(client: Socket, newGame: Game): void {
+    async handleCreateGame(client: Socket, newGame: Game): Promise<void> {
         client.join(newGame.id);
         newGame.hostSocketId = client.id;
+        const userId = this.userSocketSession.getUserIdBySocket(client.id);
+
+        if (userId && newGame.settings?.entryFee > 0) {
+            const paymentSuccess = await this.gameCreationService.chargeHostForGameCreation(userId, newGame.id, newGame.settings.entryFee);
+            if (!paymentSuccess) {
+                client.emit(
+                    GameCreationEvents.GameCreationError,
+                    `Vous n'avez pas assez de monnaie virtuelle pour créer cette partie. Frais d'entrée: ${newGame.settings.entryFee}`,
+                );
+                return;
+            }
+
+            await this.shopGateway.notifyMoneyUpdate(userId);
+        }
         this.gameCreationService.addGame(newGame);
         const initialPlayer = newGame.players[0];
-        if(initialPlayer){
+        if (initialPlayer) {
             this.challengeService.assignForPlayer(newGame, initialPlayer);
         }
         this.server.to(newGame.id).emit(GameCreationEvents.GameCreated, newGame);
@@ -65,11 +81,26 @@ export class GameGateway {
                 }
             }
 
-            game = this.gameCreationService.addPlayerToGame(client.id, data.player, data.gameId);
+            let userId: string | undefined;
+            if (!data.player.socketId.includes('virtualPlayer')) {
+                userId = this.userSocketSession.getUserIdBySocket(client.id);
+            }
+
+            const result = await this.gameCreationService.addPlayerToGame(client.id, data.player, data.gameId, userId);
+            if (!result.success) {
+                client.emit(GameCreationEvents.GameLocked, result.message);
+                return;
+            }
+
+            if (userId && game.settings?.entryFee > 0 && !game.hasStarted) {
+                await this.shopGateway.notifyMoneyUpdate(userId);
+            }
+
+            game = result.game!;
             if (this.gameCreationService.isMaxPlayersReached(game.players, data.gameId)) {
                 this.gameCreationService.lockGame(data.gameId);
             }
-            
+
             const newPlayer = game.players.find((player) => player.socketId === client.id);
             if (!newPlayer) {
                 client.emit(GameCreationEvents.GameNotFound, 'Erreur lors de la connexion au jeu.');
@@ -134,8 +165,26 @@ export class GameGateway {
     }
 
     @SubscribeMessage(GameCreationEvents.KickPlayer)
-    handleKickPlayer(client: Socket, data: KickPlayerData): void {
+    async handleKickPlayer(client: Socket, data: KickPlayerData): Promise<void> {
         const game = this.gameCreationService.getGameById(data.gameId);
+        if (!game) {
+            client.emit(GameCreationEvents.GameNotFound, 'La partie a été fermée.');
+            return;
+        }
+
+        const kickedPlayer = game.players.find((player) => player.socketId === data.playerId);
+        let kickedUserId: string | undefined;
+
+        if (kickedPlayer && !kickedPlayer.socketId.includes('virtualPlayer')) {
+            kickedUserId = this.userSocketSession.getUserIdBySocket(data.playerId);
+        }
+
+        const { refundAmount } = await this.gameCreationService.handlePlayerKicked(data.gameId, data.playerId, kickedUserId);
+
+        if (refundAmount > 0 && kickedUserId) {
+            console.log(`[KickPlayer] Refunding ${refundAmount} to kicked user ${kickedUserId}`);
+            await this.shopGateway.notifyMoneyUpdate(kickedUserId);
+        }
         game.players = game.players.filter((player) => player.socketId !== data.playerId);
         game.participants = [...game.players];
         if (!this.gameCreationService.isMaxPlayersReached(game.players, data.gameId)) {
@@ -159,9 +208,8 @@ export class GameGateway {
     }
 
     @SubscribeMessage(GameCreationEvents.GetGames)
-    getGames(client: Socket): void {
-        const games = this.gameCreationService.getGames();
-        client.emit(GameCreationEvents.GetGames, games);
+    getGames(): Game[] {
+        return this.gameCreationService.getGames();
     }
 
     @SubscribeMessage(GameCreationEvents.AccessGame)
@@ -264,13 +312,19 @@ export class GameGateway {
     }
 
     @SubscribeMessage(GameCreationEvents.LeaveGame)
-    handleLeaveGame(client: Socket, gameId: string): void {
+    async handleLeaveGame(client: Socket, gameId: string): Promise<void> {
         let game = this.gameCreationService.getGameById(gameId);
         if (!game) {
             return;
         }
+        const userId = this.userSocketSession.getUserIdBySocket(client.id);
         if (!game.hasStarted) {
             if (this.gameCreationService.isPlayerHost(client.id, game.id)) {
+                const { totalRefunded, refundedUsers } = await this.gameCreationService.refundAllPlayersInGame(gameId);
+                for (const refundedUserId of refundedUsers) {
+                    await this.shopGateway.notifyMoneyUpdate(refundedUserId);
+                }
+                console.log(`[GameCreationGateway] Host leaving - refunded ${totalRefunded} to ${refundedUsers.length} players`);
                 this.server.to(game.id).emit(GameCreationEvents.GameClosed);
                 this.gameCreationService.deleteRoom(game.id);
                 this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
@@ -278,6 +332,11 @@ export class GameGateway {
                 this.combatCountdownService.deleteCountdown(game.id);
                 return;
             } else {
+                const { refundAmount } = await this.gameCreationService.handlePlayerLeaving(client, gameId, userId);
+
+                if (refundAmount > 0 && userId) {
+                    await this.shopGateway.notifyMoneyUpdate(userId);
+                }
                 game.players = game.players.filter((player) => player.socketId !== client.id);
                 if (!this.gameCreationService.isMaxPlayersReached(game.players, game.id)) {
                     game.isLocked = false;

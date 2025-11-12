@@ -8,13 +8,13 @@
             }
         </div>
         <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
-        <i class="fas fa-comments" aria-hidden="true"></i>
-    </button>
-    @if (isChatVisible) {
-    <div class="global-chat-wrapper">
-        <app-chatroom [isInGame]="false" (closed)="isChatVisible = false"></app-chatroom>
-    </div>
-    }
+            <i class="fas fa-comments" aria-hidden="true"></i>
+        </button>
+        @if (isChatVisible) {
+        <div class="global-chat-wrapper">
+            <app-chatroom [isInGame]="false" (closed)="isChatVisible = false"></app-chatroom>
+        </div>
+        }
         <div class="left-side">
             <div class="player-stats">
                 <div class="stats">
@@ -92,10 +92,16 @@
         </div>
 
         <div class="character-display">
-            <button class="arrow-button left-arrow" (click)="previousCharacter()">&#9664;</button>
+            <button class="arrow-button left-arrow" (click)="previousCharacter()" [disabled]="isLoadingCharacters">&#9664;</button>
             <div class="selected-character">
                 <h1>CHOISIS TON AVATAR</h1>
+                @if (isLoadingCharacters) {
+                <div class="loading-characters">Chargement des avatars...</div>
+                } @else if (selectedCharacter && selectedCharacter.image) {
                 <img [src]="selectedCharacter.image" alt="Selected Character" />
+                } @else {
+                <div class="no-character">Aucun avatar disponible</div>
+                }
                 <h2 class="character-name">
                     <span> {{ name || 'Choisis ton nom' }}</span>
                 </h2>
@@ -113,7 +119,7 @@
                 <div class="error-message">Le joueur selectionné n'est plus disponible.</div>
                 }
             </div>
-            <button class="arrow-button right-arrow" (click)="nextCharacter()">&#9654;</button>
+            <button class="arrow-button right-arrow" (click)="nextCharacter()" [disabled]="isLoadingCharacters">&#9654;</button>
         </div>
 
         <div class="character-list">

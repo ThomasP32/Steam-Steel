@@ -38,6 +38,8 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
 
     selectedCharacter: Character;
     currentIndex: number;
+    allCharacters: Character[] = [];
+    isLoadingCharacters: boolean = true;
 
     game: Game | undefined;
     gameId: string | null = null;
@@ -83,8 +85,25 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         this.name = userInfo?.user?.username || 'Joueur';
         this.playerService.setPlayerName(this.name);
 
-        this.selectedCharacter = this.characters[0];
-        this.currentIndex = 0;
+        try {
+            this.allCharacters = await this.characterService.getAllAvatars();
+            if (this.allCharacters.length > 0) {
+                this.selectedCharacter = this.allCharacters[0];
+                this.currentIndex = 0;
+
+                const extendedCharacter = this.selectedCharacter as Character & { isShopAvatar?: boolean; shopId?: string };
+                if (!extendedCharacter.isShopAvatar && typeof this.selectedCharacter.id === 'number') {
+                    this.playerService.setPlayerAvatar(this.selectedCharacter.id);
+                }
+            }
+        } catch (error) {
+            console.error('Erreur lors du chargement des avatars:', error);
+            this.allCharacters = this.characterService.characters;
+            this.selectedCharacter = this.allCharacters[0];
+            this.currentIndex = 0;
+        } finally {
+            this.isLoadingCharacters = false;
+        }
 
         // Reinitialize challenge listeners when entering character creation
         // This ensures listeners are ready after leaving a previous game
@@ -130,8 +149,8 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         return this.playerService.player.specs.defenseBonus;
     }
 
-    get characters(): Character[] {
-        return this.characterService.characters;
+    get characters(): Array<Character & { isShopAvatar?: boolean; shopId?: string }> {
+        return this.allCharacters;
     }
 
     listenToGameStatus(): void {
@@ -194,17 +213,22 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
 
         this.socketSubscription.add(
             this.socketService.listen<Player[]>(GameCreationEvents.CurrentPlayers).subscribe((players: Player[]) => {
-                this.characters.forEach((character) => {
+                this.allCharacters.forEach((character) => {
                     character.isAvailable = true;
                     if (players.some((player) => player.avatar === character.id)) {
                         character.isAvailable = false;
                     }
                 });
-                if (!this.selectedCharacter.isAvailable) {
-                    for (let i = 0; i < this.characters.length; i++) {
-                        if (this.characters[i].isAvailable) {
-                            this.selectedCharacter = this.characters[i];
-                            this.playerService.setPlayerAvatar(this.selectedCharacter.id);
+                if (this.selectedCharacter && !this.selectedCharacter.isAvailable) {
+                    for (let i = 0; i < this.allCharacters.length; i++) {
+                        if (this.allCharacters[i].isAvailable) {
+                            this.selectedCharacter = this.allCharacters[i];
+
+                            const extendedCharacter = this.selectedCharacter as Character & { isShopAvatar?: boolean; shopId?: string };
+                            if (!extendedCharacter.isShopAvatar && typeof this.selectedCharacter.id === 'number') {
+                                this.playerService.setPlayerAvatar(this.selectedCharacter.id);
+                            }
+
                             this.currentIndex = i;
                             break;
                         }
@@ -229,17 +253,33 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     }
 
     previousCharacter() {
+        if (this.allCharacters.length === 0 || this.isLoadingCharacters) return;
+
         do {
-            this.currentIndex = this.currentIndex === 0 ? this.characters.length - 1 : this.currentIndex - 1;
-        } while (!this.characters[this.currentIndex].isAvailable);
-        this.selectedCharacter = this.characters[this.currentIndex];
+            this.currentIndex = this.currentIndex === 0 ? this.allCharacters.length - 1 : this.currentIndex - 1;
+        } while (!this.allCharacters[this.currentIndex].isAvailable && this.allCharacters[this.currentIndex] !== this.selectedCharacter);
+
+        this.selectedCharacter = this.allCharacters[this.currentIndex];
+
+        const extendedCharacter = this.selectedCharacter as Character & { isShopAvatar?: boolean; shopId?: string };
+        if (!extendedCharacter.isShopAvatar && typeof this.selectedCharacter.id === 'number') {
+            this.playerService.setPlayerAvatar(this.selectedCharacter.id);
+        }
     }
 
     nextCharacter() {
+        if (this.allCharacters.length === 0 || this.isLoadingCharacters) return;
+
         do {
-            this.currentIndex = this.currentIndex === this.characters.length - 1 ? 0 : this.currentIndex + 1;
-        } while (!this.characters[this.currentIndex].isAvailable);
-        this.selectedCharacter = this.characters[this.currentIndex];
+            this.currentIndex = this.currentIndex === this.allCharacters.length - 1 ? 0 : this.currentIndex + 1;
+        } while (!this.allCharacters[this.currentIndex].isAvailable && this.allCharacters[this.currentIndex] !== this.selectedCharacter);
+
+        this.selectedCharacter = this.allCharacters[this.currentIndex];
+
+        const extendedCharacter = this.selectedCharacter as Character & { isShopAvatar?: boolean; shopId?: string };
+        if (!extendedCharacter.isShopAvatar && typeof this.selectedCharacter.id === 'number') {
+            this.playerService.setPlayerAvatar(this.selectedCharacter.id);
+        }
     }
 
     addBonus(bonusType: 'life' | 'speed'): void {
@@ -257,6 +297,10 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
             this.gameLockedModal = false;
         }
         if (this.verifyErrors()) {
+            const extendedCharacter = this.selectedCharacter as Character & { isShopAvatar?: boolean; shopId?: string };
+            if (!extendedCharacter.isShopAvatar && typeof this.selectedCharacter.id === 'number') {
+                this.playerService.setPlayerAvatar(this.selectedCharacter.id);
+            }
             this.playerService.createPlayer();
 
             if (this.router.url.includes('create-game')) {
@@ -304,6 +348,11 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         this.showCharacterNameError = false;
         this.showBonusError = false;
         this.showDiceError = false;
+
+        if (!this.selectedCharacter) {
+            this.showSelectionError = true;
+            return false;
+        }
 
         if (this.name === 'Choisis un nom' || this.playerService.player.name === '') {
             this.showCharacterNameError = true;

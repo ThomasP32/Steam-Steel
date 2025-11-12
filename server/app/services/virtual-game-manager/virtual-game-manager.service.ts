@@ -27,6 +27,7 @@ import { GameCreationService } from '../game-creation/game-creation.service';
 import { GameManagerService } from '../game-manager/game-manager.service';
 import { ItemsManagerService } from '../items-manager/items-manager.service';
 import { JournalService } from '../journal/journal.service';
+import { UserSocketService } from '../user-socket/user-socket.service';
 
 @Injectable()
 export class VirtualGameManagerService extends EventEmitter {
@@ -38,6 +39,7 @@ export class VirtualGameManagerService extends EventEmitter {
     @Inject(GameCountdownService) private readonly gameCountdownService: GameCountdownService;
     @Inject(ItemsManagerService) private readonly itemsManagerService: ItemsManagerService;
     @Inject(ChallengeService) private readonly challengeService: ChallengeService;
+    @Inject(UserSocketService) private readonly userSocketService: UserSocketService;
     server: Server;
     hasFallen: boolean = false;
 
@@ -104,7 +106,16 @@ export class VirtualGameManagerService extends EventEmitter {
             this.server.to(gameId).emit(GameManagerEvents.PositionToUpdate, { game: game, player: player });
             await new Promise((resolve) => setTimeout(resolve, TIME_FOR_POSITION_UPDATE));
             if (this.gameManagerService.checkForWinnerCtf(player, game.id)) {
+                player.isGameWinner = true;
+
+                const { winners, activePlayers } = this.gameCreationService.getPlayerUserIdsForRewards(game.id, (socketId) =>
+                    this.userSocketService.getUserIdBySocket(socketId),
+                );
+
                 this.server.to(game.id).emit(CombatEvents.GameFinishedPlayerWon, player);
+
+                await this.gameCreationService.endGameAndDistributeRewards(game.id, winners, activePlayers);
+                return;
             }
         }
         player.position = path[path.length - MINIMUM_MOVES];
@@ -179,7 +190,9 @@ export class VirtualGameManagerService extends EventEmitter {
     }
 
     getPlayersInArea(area: Coordinate[], players: Player[], activePlayer: Player): Player[] {
-        const filteredPlayers = players.filter((player) => player !== activePlayer && player.isActive && player.isObservationMode !== true && player.position);
+        const filteredPlayers = players.filter(
+            (player) => player !== activePlayer && player.isActive && player.isObservationMode !== true && player.position,
+        );
         return filteredPlayers.filter((player) =>
             area.some((coordinate) => coordinate.x === player.position.x && coordinate.y === player.position.y),
         );

@@ -5,6 +5,7 @@ import { ChallengeComponent } from '@app/components/challenge/challenge.componen
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { PlayersListComponent } from '@app/components/players-list/players-list.component';
 import { ProfileModalComponent } from '@app/components/profile-modal/profile-modal.component';
+import { VirtualMoneyComponent } from '@app/components/virtual-money/virtual-money.component';
 import { ChannelService } from '@app/services/channel/channel.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
@@ -24,7 +25,7 @@ import { firstValueFrom, Subscription } from 'rxjs';
 @Component({
     selector: 'app-waiting-room-page',
     standalone: true,
-    imports: [CommonModule, PlayersListComponent, ChatroomComponent, ProfileModalComponent, ChallengeComponent],
+    imports: [CommonModule, PlayersListComponent, ChatroomComponent, ProfileModalComponent, ChallengeComponent, VirtualMoneyComponent],
     templateUrl: './waiting-room-page.component.html',
     styleUrls: ['./waiting-room-page.component.scss'],
 })
@@ -73,15 +74,18 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     maxPlayers: number;
     showProfileModal: boolean = false;
     isChatVisible: boolean = false;
-    gameSettings: { isFastElimination: boolean, isDropInOut: boolean, isFriendsOnly: boolean } = { 
-        isFastElimination: false, 
-        isDropInOut: false, 
-        isFriendsOnly: false };
+    gameSettings: { isFastElimination: boolean; isDropInOut: boolean; isFriendsOnly: boolean; entryFee: number } = {
+        isFastElimination: false,
+        isDropInOut: false,
+        isFriendsOnly: false,
+        entryFee: 0,
+    };
 
     async ngOnInit(): Promise<void> {
         if (!this.socketService.isSocketAlive()) {
             this.ngOnDestroy();
             this.characterService.resetCharacterAvailability();
+
             this.socketService.disconnect();
             this.router.navigate(['/main-menu']);
             return;
@@ -103,8 +107,11 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         } else {
             this.waitingRoomCode = this.route.snapshot.params['gameId'];
         }
-        this.socketService.sendMessage(GameCreationEvents.GetGameData, this.waitingRoomCode);
-        this.socketService.sendMessage(GameCreationEvents.GetPlayers, this.waitingRoomCode);
+
+        if (!this.isHost) {
+            this.socketService.sendMessage(GameCreationEvents.GetGameData, this.waitingRoomCode);
+            this.socketService.sendMessage(GameCreationEvents.GetPlayers, this.waitingRoomCode);
+        }
 
         this.channelService.createPartyChannel(this.waitingRoomCode);
     }
@@ -127,6 +134,7 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         } else {
             newGame = this.gameService.createNewGame(map, this.waitingRoomCode, this.gameSettings);
         }
+
         this.socketService.sendMessage(GameCreationEvents.CreateGame, newGame);
     }
 
@@ -156,6 +164,16 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     }
 
     listenToSocketMessages(): void {
+        this.socketSubscription.add(
+            this.socketService.listen<string>(GameCreationEvents.GameCreationError).subscribe((errorMessage) => {
+                this.dialogBoxMessage = errorMessage;
+                this.showExitModal = true;
+                setTimeout(() => {
+                    this.exitGame();
+                }, TIME_LIMIT_DELAY);
+            }),
+        );
+
         if (!this.isHost) {
             this.socketSubscription.add(
                 this.socketService.listen(GameCreationEvents.GameClosed).subscribe(() => {
@@ -248,6 +266,13 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         this.socketSubscription.add(
             this.socketService.listen(GameCreationEvents.IsStartable).subscribe(() => {
                 this.isStartable = true;
+            }),
+        );
+
+        this.socketSubscription.add(
+            this.socketService.listen<Game>(GameCreationEvents.GameCreated).subscribe(() => {
+                this.socketService.sendMessage(GameCreationEvents.GetGameData, this.waitingRoomCode);
+                this.socketService.sendMessage(GameCreationEvents.GetPlayers, this.waitingRoomCode);
             }),
         );
     }

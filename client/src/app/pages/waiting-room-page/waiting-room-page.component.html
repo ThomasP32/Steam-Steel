@@ -7,9 +7,14 @@
             <div class="player-name">
                 <h1>{{ playerName }}</h1>
             </div>
+            <div class="virtual-money-display">
+                <p>Mon argent: </p>
+                 <app-virtual-money [compact]="true"></app-virtual-money>
+            </div>
             <div class="player-challenge">
                 <app-challenge></app-challenge>
             </div>
+    
         </div>
 
         <div class="exit-button">
@@ -55,6 +60,15 @@
                     <p>Carte:</p>
                     <h1>{{ mapName }}</h1>
                 </div>
+                @if (gameSettings && gameSettings.entryFee > 0) {
+                <div class="entry-fee">
+                    <p>Frais d'entrée:</p>
+                    <h1>
+                        <img src="assets/icons/money.png" alt="Money" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px" />
+                        {{ gameSettings.entryFee }}
+                    </h1>
+                </div>
+                }
             </div>
             <div class="players-list">
                 <app-players-list

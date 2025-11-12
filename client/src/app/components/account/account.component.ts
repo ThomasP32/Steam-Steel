@@ -3,6 +3,7 @@ import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '@app/services/auth/auth.service';
 import { CharacterService } from '@app/services/character/character.service';
+import { ShopHttpService } from '@app/services/shop-http/shop-http.service';
 import { Avatar } from '@common/game';
 import { ProfilePictureComponent } from '../profile-picture/profile-picture.component';
 @Component({
@@ -20,15 +21,18 @@ export class AccountComponent implements OnInit {
     editAvatar: Avatar;
     editCustomAvatarPreview: string | undefined;
     editMessage = '';
+    equippedShopAvatarPreview: string | undefined;
 
     @Output() closed = new EventEmitter<void>();
 
     constructor(
         private readonly authService: AuthService,
         private readonly characterService: CharacterService,
+        private readonly shopHttpService: ShopHttpService,
     ) {
         this.authService = authService;
         this.characterService = characterService;
+        this.shopHttpService = shopHttpService;
         this.editAvatar = Avatar.Avatar1;
     }
 
@@ -38,7 +42,7 @@ export class AccountComponent implements OnInit {
 
     private async loadUserInfo(): Promise<void> {
         this.userInfo = await this.authService.getUserInfo();
-        this.resetEditFields();
+        await this.resetEditFields();
     }
 
     formatAvgTime(seconds: number): string {
@@ -52,12 +56,29 @@ export class AccountComponent implements OnInit {
         return this.userInfo?.user?.status === 'online' ? 'en ligne' : 'hors ligne';
     }
 
-    resetEditFields() {
+    async resetEditFields() {
         if (this.userInfo?.user) {
             this.editEmail = this.userInfo.user.email;
             this.editUsername = this.userInfo.user.username;
-            this.editAvatar = this.userInfo.user.avatar;
             this.editCustomAvatarPreview = this.userInfo.user.avatarCustom;
+            
+            try {
+                const equippedShopAvatar = await this.characterService.getEquippedShopAvatarId();
+                
+                if (equippedShopAvatar) {
+                    this.editAvatar = equippedShopAvatar;
+                    const allAvatars = await this.characterService.getAllAvatars();
+                    const shopAvatar = allAvatars.find(avatar => avatar.id === equippedShopAvatar);
+                    this.equippedShopAvatarPreview = shopAvatar?.preview;
+                } else {
+                    this.editAvatar = this.userInfo.user.avatar;
+                    this.equippedShopAvatarPreview = undefined;
+                }
+            } catch (error) {
+                console.error('Erreur lors de la récupération des items de boutique:', error);
+                this.editAvatar = this.userInfo.user.avatar;
+                this.equippedShopAvatarPreview = undefined;
+            }
         }
         this.editMessage = '';
     }
@@ -73,6 +94,14 @@ export class AccountComponent implements OnInit {
 
     async saveEdit() {
         try {
+            const allAvatars = await this.characterService.getAllAvatars();
+            const selectedAvatar = allAvatars.find(avatar => avatar.id === this.editAvatar);
+            
+            if (selectedAvatar?.isShopAvatar && selectedAvatar.shopItemId && this.userInfo?.user?._id) {
+                await this.shopHttpService.equipItem(this.userInfo.user._id, selectedAvatar.shopItemId).toPromise();
+                await this.characterService.refreshAvatars();
+            }
+            
             const result = await this.authService.updateAccount(this.editEmail, this.editUsername, this.editAvatar, this.editCustomAvatarPreview);
             if (result?.success === false) {
                 this.editMessage = result?.message || 'Erreur lors de la modification.';
@@ -80,7 +109,7 @@ export class AccountComponent implements OnInit {
             }
             this.editMode = false;
             this.userInfo = await this.authService.getUserInfo();
-            this.resetEditFields();
+            await this.resetEditFields();
             this.editMessage = 'Modifications enregistrées !';
         } catch (e: any) {
             this.editMode = true;
@@ -88,9 +117,9 @@ export class AccountComponent implements OnInit {
         }
     }
 
-    cancelEdit() {
+    async cancelEdit() {
         this.editMode = false;
-        this.resetEditFields();
+        await this.resetEditFields();
     }
 
     deleteAccount(): void {

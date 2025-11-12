@@ -7,12 +7,13 @@ import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { AuthService } from '@app/services/auth/auth.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { Subscription } from 'rxjs';
+import { ShopComponent } from '@app/components/shop/shop.component';
 @Component({
     selector: 'app-main-page',
     standalone: true,
     templateUrl: './home-page.component.html',
     styleUrls: ['./home-page.component.scss'],
-    imports: [ AuthenticationComponent, AccountComponent, CommonModule, ChatroomComponent ],
+    imports: [ AuthenticationComponent, AccountComponent, CommonModule, ChatroomComponent, ShopComponent ],
 })
 export class HomePageComponent implements OnInit, AfterViewInit, OnDestroy {
     teamNumber = 'Équipe 106';
@@ -23,6 +24,7 @@ export class HomePageComponent implements OnInit, AfterViewInit, OnDestroy {
     isAccountModalVisible: boolean = false;
     isChatVisible: boolean = false;
     isFriendsListVisible: boolean = false;
+    showShop: boolean = false;
 
     private authSubscription: Subscription = new Subscription();
 

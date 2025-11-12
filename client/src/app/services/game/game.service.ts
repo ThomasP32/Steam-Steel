@@ -24,10 +24,16 @@ export class GameService {
         this.game = newGame;
     }
 
-    createNewCtfGame(map: Map, gameId: string, gameSettings?: { isFastElimination: boolean, isDropInOut:boolean, isFriendsOnly: boolean }): GameCtf {
+    createNewCtfGame(
+        map: Map,
+        gameId: string,
+        gameSettings?: { isFastElimination: boolean; isDropInOut: boolean; isFriendsOnly: boolean; entryFee: number },
+    ): GameCtf {
         const isFastElimination = gameSettings?.isFastElimination ?? false;
         const isDropInOut = gameSettings?.isDropInOut ?? false;
         const isFriendsOnly = gameSettings?.isFriendsOnly ?? false;
+        const entryFee = gameSettings?.entryFee ?? 0;
+
         return {
             ...map,
             id: gameId,
@@ -45,16 +51,22 @@ export class GameService {
             settings: {
                 isFastElimination,
                 isDropInOut,
-                isFriendsOnly
+                isFriendsOnly,
+                entryFee,
             },
             participants: [],
         };
     }
 
-    createNewGame(map: Map, gameId: string, gameSettings?: { isFastElimination: boolean, isDropInOut: boolean, isFriendsOnly: boolean }): Game {
+    createNewGame(
+        map: Map,
+        gameId: string,
+        gameSettings?: { isFastElimination: boolean; isDropInOut: boolean; isFriendsOnly: boolean; entryFee: number },
+    ): Game {
         const isFastElimination = gameSettings?.isFastElimination ?? false;
         const isDropInOut = gameSettings?.isDropInOut ?? false;
         const isFriendsOnly = gameSettings?.isFriendsOnly ?? false;
+        const entryFee = gameSettings?.entryFee ?? 0;
         return {
             ...map,
             id: gameId,
@@ -70,7 +82,8 @@ export class GameService {
             settings: {
                 isFastElimination,
                 isDropInOut,
-                isFriendsOnly
+                isFriendsOnly,
+                entryFee,
             },
             participants: [],
         };
@@ -100,6 +113,6 @@ export class GameService {
     listenForGameUpdate(): void {
         this.socketService.listen<Game>(GameCreationEvents.GameUpdated).subscribe((game) => {
             this.setGame(game);
-        })
+        });
     }
 }

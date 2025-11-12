@@ -11,74 +11,112 @@
     background-color: rgba(0, 0, 0, 0.7);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     box-sizing: border-box;
-    transition: transform 0.3s, border-color 0.3s;
-  
+    transition:
+        transform 0.3s,
+        border-color 0.3s;
+
     &:hover {
-      border-color: #bdbdbd;
-      .gamemode-bar { border-color: #bdbdbd; }
+        border-color: #bdbdbd;
+        .gamemode-bar {
+            border-color: #bdbdbd;
+        }
     }
-  }
-  
-  .game-image-container {
+}
+
+.game-image-container {
     position: relative;
     width: 100%;
-    aspect-ratio: 1 / 1;      
-    overflow: hidden;           
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
     border: 1px solid #202020;
-  }
-  
-  .game-image-container .map-img {
+}
+
+.game-image-container .map-img {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;          
+    object-fit: cover;
     display: block;
-  }
-  
-  .game-details {
+}
+
+.game-details {
     color: #c0c0c0;
     text-align: center;
     padding: 0 4px;
-    flex: 1 1 auto;            
-  
+    flex: 1 1 auto;
+
     h2 {
-      font-size: 1.04rem;
-      margin: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+        font-size: 1.04rem;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
-  
+
     .mode,
     .size {
-      font-size: 0.75rem;
-      margin: 6px 0;
-      font-style: italic;
+        font-size: 0.75rem;
+        margin: 6px 0;
+        font-style: italic;
     }
-  }
-  
-  .join-actions {
-    margin-top: auto;           
+
+    .entry-fee-display {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin: 8px 0;
+        padding: 4px 8px;
+        background: linear-gradient(135deg, #ffd700, #ffed4e);
+        border-radius: 12px;
+        border: 1px solid #ffc107;
+    }
+
+    .money-icon-small {
+        width: 16px;
+        height: 16px;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+    }
+
+    .fee-amount {
+        font-size: 0.7rem;
+        font-weight: bold;
+        color: #7d4f00;
+        text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+    }
+}
+
+.join-actions {
+    margin-top: auto;
     display: flex;
     gap: 10px;
-  
+
     .join-button,
     .full-button,
     .observe-button {
-      flex: 1;
-      padding: 10px 12px;
-      border: 2px solid #202020;
-      color: white;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
+        flex: 1;
+        padding: 10px 12px;
+        border: 2px solid #202020;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
     }
 
-    .join-button   { background-color: #125719; }
-    .observe-button { background-color: #1c5276; }
-    .full-button { background-color: #5d1d14; }
-  
-    .join-button:hover   { background-color: #199027; }
-    .observe-button:hover { background-color: #2980b9; }
-  }
-  
+    .join-button {
+        background-color: #125719;
+    }
+    .observe-button {
+        background-color: #1c5276;
+    }
+    .full-button {
+        background-color: #5d1d14;
+    }
+
+    .join-button:hover {
+        background-color: #199027;
+    }
+    .observe-button:hover {
+        background-color: #2980b9;
+    }
+}

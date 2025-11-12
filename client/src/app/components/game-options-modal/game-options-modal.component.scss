@@ -34,10 +34,16 @@
     padding: 15px;
     border: 2px solid #202020;
     cursor: pointer;
-    transition: background-color 0.3s, border-color 0.3s;
+    transition:
+        background-color 0.3s,
+        border-color 0.3s;
 }
 
-.option-item:hover {
+.option-item.entry-fee-section {
+    cursor: default;
+}
+
+.option-item:hover:not(.entry-fee-section) {
     background-color: rgba(44, 62, 80, 0.8);
     border-color: #3b3f46;
 }
@@ -127,3 +133,56 @@
     transform: scale(0.9);
 }
 
+/* Styles pour les frais d'entrée */
+.entry-fee-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.fee-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 14px;
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.money-icon {
+    width: 20px;
+    height: 20px;
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.6));
+}
+
+.fee-input-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.fee-input {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 2px solid #ffd700;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 12px;
+    color: #ffd700;
+    width: 100px;
+    text-align: center;
+}
+
+.fee-input:focus {
+    outline: none;
+    border-color: #ffed4e;
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+.fee-unit {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 12px;
+    color: #ffd700;
+}
