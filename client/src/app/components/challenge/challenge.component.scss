@@ -87,7 +87,7 @@
                 z-index: 1000;
                 white-space: normal;
                 line-height: 1.4;
-                box-shadow: 
+                box-shadow:
                     0 0 10px rgba(243, 156, 18, 0.5),
                     0 2px 6px rgba(0, 0, 0, 0.6);
                 animation: info-tooltip-appear 0.2s ease-out;
@@ -115,6 +115,11 @@
 
             .reward-icon {
                 font-size: 14px;
+            }
+            .coin-icon {
+                width: 20px;
+                height: 20px;
+                filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
             }
 
             .reward-amount {
@@ -153,7 +158,6 @@
     }
 }
 
-
 // Progress bar styling (shared)
 .progress-bar-container {
     position: relative;
@@ -186,13 +190,7 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background-image: repeating-linear-gradient(
-            90deg,
-            transparent,
-            transparent 4px,
-            rgba(0, 0, 0, 0.3) 4px,
-            rgba(0, 0, 0, 0.3) 5px
-        );
+        background-image: repeating-linear-gradient(90deg, transparent, transparent 4px, rgba(0, 0, 0, 0.3) 4px, rgba(0, 0, 0, 0.3) 5px);
         pointer-events: none;
     }
 }
@@ -352,4 +350,3 @@
         min-width: 200px;
     }
 }
-

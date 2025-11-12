@@ -3,7 +3,10 @@
         <div class="header-buttons">
             <button class="return-button" (click)="navigateToMain()">Retour</button>
         </div>
-        <h2> Rejoins une partie! </h2>
+        <h2>Rejoins une partie!</h2>
+        <div class="user-money">
+            <app-virtual-money></app-virtual-money>
+        </div>
     </div>
 
     <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
@@ -22,34 +25,17 @@
             <h3>Parties en attente</h3>
         </div>
         <div class="game-grid">
-        @if (waitingGames.length > 0) {
-            @for (game of waitingGames; track game.id) {
-                @if(canSeeGame(game)){
-                    <app-game-preview 
-                        [game]="game"
-                        (join)="onJoin(game)"
-                        (rejoin)="onResume(game)"
-                        (observe)="onObserve(game)">
-                    </app-game-preview>
-            }}
-        }
+            @if (waitingGames.length > 0) { @for (game of waitingGames; track game.id) { @if(canSeeGame(game)){
+            <app-game-preview [game]="game" (join)="onJoin(game)" (rejoin)="onResume(game)" (observe)="onObserve(game)"> </app-game-preview>
+            }} }
         </div>
         <div class="section-header">
             <h3>Parties en cours</h3>
         </div>
         <div class="game-grid">
-        @if (activeGames.length > 0) {
-            @for (game of activeGames; track game.id) {
-                @if(canSeeGame(game)){
-                    <app-game-preview 
-                        [game]="game"
-                        (join)="onJoin(game)"
-                        (rejoin)="onResume(game)"
-                        (observe)="onObserve(game)">
-                    </app-game-preview>
-            }}
-        }
+            @if (activeGames.length > 0) { @for (game of activeGames; track game.id) { @if(canSeeGame(game)){
+            <app-game-preview [game]="game" (join)="onJoin(game)" (rejoin)="onResume(game)" (observe)="onObserve(game)"> </app-game-preview>
+            }} }
         </div>
     </div>
 </div>
-

@@ -26,14 +26,15 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
     };
     isChatVisible: boolean = false;
     showGameOptionsModal: boolean = false;
-    gameSettings: { isFastElimination: boolean, isDropInOut: boolean, isFriendsOnly: boolean } = { 
-        isFastElimination: false , 
+    gameSettings: { isFastElimination: boolean; isDropInOut: boolean; isFriendsOnly: boolean; entryFee: number } = {
+        isFastElimination: false,
         isDropInOut: false,
         isFriendsOnly: false,
+        entryFee: 0,
     };
 
     isFilterOpen: boolean = false;
-    sortBy: 'name' | 'players' | 'mode'| null = null;
+    sortBy: 'name' | 'players' | 'mode' | null = null;
     sortOrder: 'asc' | 'desc' = 'asc';
     sortedMaps: Map[];
 
@@ -81,33 +82,31 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
         return this.mapConversionService.getPlayerCountMessage(mapSize);
     }
 
-    toggleSort(sortOption: 'name' | 'players' | 'mode'){
-        if(this.sortBy === sortOption){
+    toggleSort(sortOption: 'name' | 'players' | 'mode') {
+        if (this.sortBy === sortOption) {
             this.sortBy = null;
-            this.sortedMaps = [...this.maps]
-
+            this.sortedMaps = [...this.maps];
         } else {
             this.sortBy = sortOption;
-            this.applySort()
+            this.applySort();
         }
     }
 
-    toggleOrder(){
+    toggleOrder() {
         this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
-        if(this.sortBy)this.applySort();
+        if (this.sortBy) this.applySort();
     }
 
-    applySort(){
+    applySort() {
         const direction = this.sortOrder === 'asc' ? 1 : -1;
-        const modeWeight = (mode: string) =>
-            mode === Mode.Classic ? 1:
-            mode === Mode.Ctf ? 2:99
-        
+        const modeWeight = (mode: string) => (mode === Mode.Classic ? 1 : mode === Mode.Ctf ? 2 : 99);
+
         this.sortedMaps.sort((a, b) => {
             let va: any, vb: any;
             switch (this.sortBy) {
                 case 'name':
-                    va = a.name.toLowerCase(); vb = b.name.toLowerCase();
+                    va = a.name.toLowerCase();
+                    vb = b.name.toLowerCase();
                     break;
                 case 'players':
                     va = this.getMapPlayers(a.mapSize.x);
@@ -143,7 +142,7 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
         this.selectedMap = undefined;
     }
 
-    onGameOptionsNext(options: { isFastElimination: boolean, isDropInOut: boolean, isFriendsOnly: boolean }): void {
+    onGameOptionsNext(options: { isFastElimination: boolean; isDropInOut: boolean; isFriendsOnly: boolean; entryFee: number }): void {
         this.gameSettings = options;
         this.showGameOptionsModal = false;
         if (this.selectedMap) {

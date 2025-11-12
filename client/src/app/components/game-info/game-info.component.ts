@@ -14,7 +14,9 @@ export class GameInfoComponent {
     @Input() game: Game;
     @Input() currentPlayerTurn: string | null;
 
-    constructor(protected readonly mapConversionService: MapConversionService) {}
+    constructor(protected readonly mapConversionService: MapConversionService) {
+        this.mapConversionService = mapConversionService;
+    }
 
     convertMapSize(value: number): string {
         return this.mapConversionService.convertNumberToString(value);

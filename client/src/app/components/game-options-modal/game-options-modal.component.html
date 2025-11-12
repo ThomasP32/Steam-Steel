@@ -9,18 +9,14 @@
                 <input type="checkbox" id="fastElimination" [(ngModel)]="isFastElimination" class="custom-checkbox" />
                 <label for="fastElimination" class="checkbox-label"> Mode d'élimination rapide </label>
             </div>
-            <p class="option-description">
-                Les joueurs éliminés en combat passent en mode observation.
-            </p>
+            <p class="option-description">Les joueurs éliminés en combat passent en mode observation.</p>
         </div>
         <div class="option-item" (click)="toggleDropInOut()">
             <div class="checkbox-container">
                 <input type="checkbox" [(ngModel)]="isDropInOut" class="custom-checkbox" />
                 <label for="dropInOut" class="checkbox-label"> Mode "Drop In/Drop Out" </label>
             </div>
-            <p class="option-description">
-                Les joueurs qui quittent une partie en mode classique libèrent leur place pour de nouveaux participants.
-            </p>
+            <p class="option-description">Les joueurs qui quittent une partie en mode classique libèrent leur place pour de nouveaux participants.</p>
         </div>
         <div class="option-item" (click)="toggleFriendsOnly()">
             <div class="checkbox-container">
@@ -28,6 +24,22 @@
                 <label for="friendsOnly" class="checkbox-label"> Partie amis seulement </label>
             </div>
             <p class="option-description">Seuls vos amis peuvent rejoindre cette partie.</p>
+        </div>
+
+        <div class="option-item entry-fee-section">
+            <div class="entry-fee-container">
+                <label for="entryFee" class="fee-label">
+                    <img src="assets/icons/money.png" alt="Monnaie" class="money-icon" />
+                    Frais d'entrée
+                </label>
+                <div class="fee-input-container">
+                    <input type="number" id="entryFee" [(ngModel)]="entryFee" min="0" max="1000" (keydown.enter)="onNext()" class="fee-input" />
+                    <span class="fee-unit">pièces</span>
+                </div>
+            </div>
+            <p class="option-description">
+                Montant que chaque joueur doit payer pour rejoindre la partie. Les gains seront redistribués aux gagnants.
+            </p>
         </div>
     </div>
 

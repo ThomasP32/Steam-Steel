@@ -1,16 +1,20 @@
 <div class="auth-flex-container">
     <div class="auth-container auth-register" *ngIf="mode === 'register' || mode === 'both'">
         <h2>Inscription</h2>
-        <input name="registerEmail" [(ngModel)]="registerEmail" 
-        placeholder="Email" 
-        (keydown.enter)="register()" 
-        maxlength="50" 
-        (input)="onInput($event, 'registerEmail')" />
+        <input
+            name="registerEmail"
+            [(ngModel)]="registerEmail"
+            placeholder="Email"
+            (keydown.enter)="register()"
+            maxlength="50"
+            (input)="onInput($event, 'registerEmail')"
+        />
         <input
             name="registerPassword"
             [(ngModel)]="registerPassword"
             placeholder="Mot de passe"
-            type="password"ss
+            type="password"
+            ss
             maxlength="30"
             (keydown.enter)="register()"
             (input)="onInput($event, 'registerPassword')"
@@ -28,6 +32,7 @@
             <app-profile-picture
                 [selectedAvatar]="registerAvatar"
                 [customAvatarPreview]="registerCustomAvatarPreview"
+                [showShopAvatars]="false"
                 (selectedAvatarChange)="registerAvatar = $event"
                 (customAvatarPreviewChange)="registerCustomAvatarPreview = $event"
             ></app-profile-picture>
@@ -37,12 +42,14 @@
     </div>
     <div class="auth-container auth-login" *ngIf="mode === 'login' || mode === 'both'">
         <h2>Connexion</h2>
-        <input name="loginUsername" 
-        [(ngModel)]="loginUsername" 
-        placeholder="Pseudo"
-        maxlength="50" 
-        (keydown.enter)="login()"
-        (input)="onInput($event, 'loginUsername')" />
+        <input
+            name="loginUsername"
+            [(ngModel)]="loginUsername"
+            placeholder="Pseudo"
+            maxlength="50"
+            (keydown.enter)="login()"
+            (input)="onInput($event, 'loginUsername')"
+        />
         <input
             name="loginPassword"
             [(ngModel)]="loginPassword"

@@ -14,6 +14,11 @@ export enum Avatar {
     Avatar10 = 10,
     Avatar11 = 11,
     Avatar12 = 12,
+    Avatar13 = 13,
+    Avatar14 = 14,
+    Avatar15 = 15,
+    Avatar16 = 16,
+    Avatar17 = 17,
 }
 
 export enum BotName {
@@ -88,6 +93,7 @@ interface GameSettings {
     isFastElimination: boolean;
     isDropInOut: boolean;
     isFriendsOnly: boolean;
+    entryFee: number;
 }
 
 export interface GameCtf extends GameClassic {

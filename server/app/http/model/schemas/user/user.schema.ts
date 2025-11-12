@@ -38,6 +38,12 @@ export class User extends Document {
     status: string;
 
     @Prop({
+        default: 0,
+        min: 0,
+    })
+    virtualMoney: number;
+
+    @Prop({
         default: [],
         type: [String],
     })
@@ -48,6 +54,12 @@ export class User extends Document {
         type: [{ from: String, to: String, status: String }],
     })
     friendRequests: FriendRequest[];
+
+    @Prop({
+        default: [],
+        type: [{ itemId: String, equipped: Boolean, purchaseDate: Date }],
+    })
+    shopItems: { itemId: string; equipped: boolean; purchaseDate: Date }[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

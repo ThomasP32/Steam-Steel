@@ -12,11 +12,12 @@ import { FormsModule } from '@angular/forms';
 export class GameOptionsModalComponent {
     @Input() selectedMapName: string = '';
     @Output() closed = new EventEmitter<void>();
-    @Output() next = new EventEmitter<{ isFastElimination: boolean, isDropInOut:boolean, isFriendsOnly: boolean }>();
+    @Output() next = new EventEmitter<{ isFastElimination: boolean; isDropInOut: boolean; isFriendsOnly: boolean; entryFee: number }>();
 
     isFastElimination: boolean = false;
     isDropInOut: boolean = false;
     isFriendsOnly: boolean = false;
+    entryFee: number = 0;
 
     onClose(): void {
         this.closed.emit();
@@ -27,6 +28,7 @@ export class GameOptionsModalComponent {
             isFastElimination: this.isFastElimination,
             isDropInOut: this.isDropInOut,
             isFriendsOnly: this.isFriendsOnly,
+            entryFee: this.entryFee,
         });
     }
 

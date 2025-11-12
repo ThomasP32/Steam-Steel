@@ -1,5 +1,5 @@
 @if (challenge) {
-<div class="challenge-container" [ngClass]="{ 'completed': challenge.completed }">
+<div class="challenge-container" [ngClass]="{ completed: challenge.completed }">
     <!-- Full display mode for waiting room -->
     <div class="challenge-full">
         <div class="challenge-header">
@@ -8,14 +8,12 @@
                 <div class="info-icon" (mouseenter)="onInfoMouseEnter()" (mouseleave)="onInfoMouseLeave()">
                     <span>i</span>
                     @if (showInfoTooltip) {
-                    <div class="info-tooltip">
-                        Complétez ce défi pour obtenir la récompense!
-                    </div>
+                    <div class="info-tooltip">Complétez ce défi pour obtenir la récompense!</div>
                     }
                 </div>
             </div>
             <div class="challenge-reward">
-                <span class="reward-icon">💰</span>
+                <span class="reward-icon"><img src="assets/icons/money.png" alt="Monnaie" class="coin-icon" /></span>
                 <span class="reward-amount">{{ challenge.reward }}</span>
             </div>
         </div>
@@ -33,4 +31,3 @@
     </div>
 </div>
 }
-

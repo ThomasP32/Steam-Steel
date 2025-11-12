@@ -6,9 +6,10 @@ export enum GameCreationEvents {
     PlayerLeft = 'playerLeft',
     CreateGame = 'createGame',
     GameCreated = 'gameCreated',
+    GameCreationError = 'gameCreationError',
     JoinGame = 'joinGame',
     GameLocked = 'gameLocked',
-    GameUpdated = "GameUpdated",
+    GameUpdated = 'GameUpdated',
     GameListUpdated = 'gameListUpdated',
 
     YouJoined = 'youJoined',
@@ -20,7 +21,7 @@ export enum GameCreationEvents {
     KickPlayer = 'kickPlayer',
     PlayerKicked = 'playerKicked',
 
-    GetGames = "getGames",
+    GetGames = 'getGames',
     GetGameData = 'getGameData',
     CurrentGame = 'currentGame',
 
@@ -40,8 +41,8 @@ export enum GameCreationEvents {
     IsStartable = 'isStartable',
 
     LeaveGame = 'leaveGame',
-    ResumeGame = "resumeGame",
-    ObserveGame = "observeGame",
+    ResumeGame = 'resumeGame',
+    ObserveGame = 'observeGame',
 }
 
 export interface KickPlayerData {

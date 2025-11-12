@@ -9,12 +9,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Server } from 'socket.io';
 import { ChallengeService } from '../challenge/challenge.service';
 import { GameCreationService } from '../game-creation/game-creation.service';
+import { UserSocketService } from '../user-socket/user-socket.service';
 
 @Injectable()
 export class GameManagerService {
     @Inject(GameCreationService) private readonly gameCreationService: GameCreationService;
     @Inject(ChallengeService) private readonly challengeService: ChallengeService;
-
+    @Inject(UserSocketService) private readonly userSocketService: UserSocketService;
     public hasFallen: boolean = false;
 
     updatePosition(gameId: string, playerSocket: string, path: Coordinate[]): void {
@@ -433,7 +434,7 @@ export class GameManagerService {
         // Check if position is undefined or has invalid coordinates
         if (!player.position || player.position.x === undefined || player.position.y === undefined) {
             console.warn(`[GameManagerService] Player ${player.name} has invalid position, attempting recovery...`);
-            
+
             // Attempt to recover by sending player to initial position
             if (player.initialPosition && player.initialPosition.x !== undefined && player.initialPosition.y !== undefined) {
                 const isPositionOccupied = game.players.some(
@@ -446,19 +447,23 @@ export class GameManagerService {
 
                 if (!isPositionOccupied) {
                     player.position = { x: player.initialPosition.x, y: player.initialPosition.y };
-                    console.log(`[GameManagerService] ✓ Recovered position for ${player.name} at initial position (${player.position.x}, ${player.position.y})`);
+                    console.log(
+                        `[GameManagerService] ✓ Recovered position for ${player.name} at initial position (${player.position.x}, ${player.position.y})`,
+                    );
                     return { valid: true, recovered: true };
                 } else {
                     // Find closest available position
                     const closestPosition = this.getFirstFreePosition(player.initialPosition, game);
                     if (closestPosition) {
                         player.position = closestPosition;
-                        console.log(`[GameManagerService] ✓ Recovered position for ${player.name} near initial position at (${player.position.x}, ${player.position.y})`);
+                        console.log(
+                            `[GameManagerService] ✓ Recovered position for ${player.name} near initial position at (${player.position.x}, ${player.position.y})`,
+                        );
                         return { valid: true, recovered: true };
                     }
                 }
             }
-            
+
             return { valid: false, reason: `Player ${player.name} has no position and recovery failed` };
         }
 
@@ -476,7 +481,9 @@ export class GameManagerService {
         console.log(`  - Players: ${game.players.length}`);
         game.players.forEach((p, i) => {
             console.log(
-                `    ${i}. ${p.name} (${p.socketId.substring(0, 8)}...) - Active: ${p.isActive}, Observing: ${p.isObservationMode}, Position: ${p.position ? `(${p.position.x},${p.position.y})` : 'UNDEFINED'}`,
+                `    ${i}. ${p.name} (${p.socketId.substring(0, 8)}...) - Active: ${p.isActive}, Observing: ${p.isObservationMode}, Position: ${
+                    p.position ? `(${p.position.x},${p.position.y})` : 'UNDEFINED'
+                }`,
             );
         });
         console.log(`  - Current turn: ${game.currentTurn}`);
@@ -538,7 +545,7 @@ export class GameManagerService {
             };
         }
 
-        return { reason: GameEndReason.Ongoing};
+        return { reason: GameEndReason.Ongoing };
     }
 
     /**
@@ -568,7 +575,7 @@ export class GameManagerService {
             };
         }
 
-        return { reason: GameEndReason.Ongoing } ;
+        return { reason: GameEndReason.Ongoing };
     }
 
     /**
@@ -592,7 +599,7 @@ export class GameManagerService {
      * Handle game end based on the end result
      * Emits appropriate events and cleans up resources
      * Note: Caller (gateways) should also delete countdown and cleanup combat resources
-     * 
+     *
      * IMPORTANT: This method marks the game for deletion. Any timers or callbacks
      * that reference this game should check if the game still exists before proceeding.
      */
@@ -606,14 +613,16 @@ export class GameManagerService {
         // Termination (no winner)
         if (endResult.reason === GameEndReason.NoWinner_Termination) {
             server.to(gameId).emit(GameCreationEvents.GameEndedNoActivePlayers);
-            await this.gameCreationService.deleteRoom(gameId);
+            await this.gameCreationService.endGameAndDistributeRewards(gameId, [], []);
             return;
         }
 
         server.to(gameId).emit(CombatEvents.GameFinished, { updatedGame: game });
         server.to(gameId).emit(CombatEvents.GameFinishedPlayerWon, endResult.winner);
-        
-        // Delete room to prevent further game operations
-        this.gameCreationService.deleteRoom(gameId);
+
+        const { winners, activePlayers } = this.gameCreationService.getPlayerUserIdsForRewards(gameId, (socketId) =>
+            this.userSocketService.getUserIdBySocket(socketId),
+        );
+        await this.gameCreationService.endGameAndDistributeRewards(gameId, winners, activePlayers);
     }
 }

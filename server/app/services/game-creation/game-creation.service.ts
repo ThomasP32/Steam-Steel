@@ -4,12 +4,14 @@ import { Coordinate, ItemCategory, TileCategory } from '@common/map.types';
 import { Inject, Injectable } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { ChallengeService } from '../challenge/challenge.service';
+import { ShopService } from '../shop/shop.service';
 
 @Injectable()
 export class GameCreationService {
     @Inject(ChallengeService) private readonly challengeService: ChallengeService;
-    
+    @Inject(ShopService) private readonly shopService: ShopService;
     private gameRooms: Record<string, Game> = {};
+    private gamePrizePools: Record<string, { totalPool: number; playerEntries: Map<string, number> }> = {};
 
     getGameById(gameId: string): Game {
         const game = this.gameRooms[gameId];
@@ -33,14 +35,44 @@ export class GameCreationService {
             return;
         }
         this.gameRooms[game.id] = game;
+        if (!this.gamePrizePools[game.id]) {
+            this.gamePrizePools[game.id] = {
+                totalPool: 0,
+                playerEntries: new Map<string, number>(),
+            };
+        }
     }
 
     doesGameExist(gameId: string): boolean {
         return gameId in this.gameRooms;
     }
 
-    addPlayerToGame(socketId: string, player: Player, gameId: string): Game {
+    async addPlayerToGame(socketId: string, player: Player, gameId: string, userId?: string): Promise<{ success: boolean; game?: Game; message?: string }> {
         const game = this.getGameById(gameId);
+
+        const entryFee = game.settings?.entryFee || 0;
+        if (!game.hasStarted && entryFee > 0 && userId) {
+            const canAfford = await this.shopService.canAfford(userId, entryFee);
+            if (!canAfford) {
+                return { success: false, message: `Vous n'avez pas assez de monnaie virtuelle. Frais d'entrée: ${entryFee}` };
+            }
+
+            const paymentSuccess = await this.shopService.deductMoney(userId, entryFee);
+            if (!paymentSuccess) {
+                return { success: false, message: "Erreur lors du paiement des frais d'entrée" };
+            }
+
+            if (!this.gamePrizePools[gameId]) {
+                this.gamePrizePools[gameId] = {
+                    totalPool: 0,
+                    playerEntries: new Map<string, number>(),
+                };
+            }
+
+            this.gamePrizePools[gameId].totalPool += entryFee;
+            this.gamePrizePools[gameId].playerEntries.set(userId, entryFee);
+            console.log(`[addPlayerToGame] Player ${userId} paid ${entryFee}, total pool: ${this.gamePrizePools[gameId].totalPool}`);
+        }
         if (player.isObservationMode === undefined) {
             player.isObservationMode = false;
         }
@@ -60,16 +92,16 @@ export class GameCreationService {
             player.turn = game.participants.length - 1;
             game.participants.push(player);
             this.gameRooms[gameId].players.push(player);
-            
+
             // Assign challenge to new player
-            if(!player.socketId.includes('virtual')) {
+            if (!player.socketId.includes('virtual')) {
                 console.log(`[GameCreationService] Assigning challenge to new player ${player.name}`);
                 this.challengeService.assignForPlayer(game, player);
             }
-            
-            return game;
+
+            return { success: true, game };
         }
-        return game;
+        return { success: true, game };
     }
 
     addRandomItemsToGame(gameId: string): void {
@@ -95,8 +127,41 @@ export class GameCreationService {
         return this.getGameById(gameId).hostSocketId === socketId;
     }
 
-    handlePlayerLeaving(client: Socket, gameId: string): Game {
+    private async handlePlayerRefund(gameId: string, userId: string): Promise<number> {
         const game = this.getGameById(gameId);
+
+        if (game.hasStarted) {
+            return 0;
+        }
+
+        if (!this.gamePrizePools[gameId]?.playerEntries.has(userId)) {
+            return 0;
+        }
+
+        const entryFee = this.gamePrizePools[gameId].playerEntries.get(userId);
+        console.log(`[handlePlayerRefund] Refunding ${entryFee} to user ${userId}`);
+
+        if (entryFee > 0) {
+            await this.shopService.refundPlayer(userId, entryFee);
+            this.gamePrizePools[gameId].totalPool -= entryFee;
+            this.gamePrizePools[gameId].playerEntries.delete(userId);
+            console.log(`[handlePlayerRefund] Refund successful: ${entryFee}`);
+            return entryFee;
+        }
+
+        return 0;
+    }
+
+    async handlePlayerLeaving(client: Socket, gameId: string, userId?: string): Promise<{ game: Game; refundAmount: number }> {
+        const game = this.getGameById(gameId);
+        let refundAmount = 0;
+
+        console.log(`[handlePlayerLeaving] Game ${gameId}, userId: ${userId}, hasStarted: ${game.hasStarted}`);
+
+        if (userId) {
+            refundAmount = await this.handlePlayerRefund(gameId, userId);
+        }
+
         if (game.hasStarted) {
             game.players = game.players.map((player) => {
                 return player.socketId === client.id ? { ...player, isActive: false } : player;
@@ -107,8 +172,61 @@ export class GameCreationService {
                 game.isLocked = false;
             }
         }
-        
-        return this.getGameById(gameId);
+
+        return { game: this.getGameById(gameId), refundAmount };
+    }
+
+    async handleHostLeaving(gameId: string, hostUserId: string): Promise<number> {
+        console.log(`[handleHostLeaving] Game ${gameId}, hostUserId: ${hostUserId}`);
+        return await this.handlePlayerRefund(gameId, hostUserId);
+    }
+
+    async refundAllPlayersInGame(gameId: string): Promise<{ totalRefunded: number; refundedUsers: string[] }> {
+        const prizePool = this.gamePrizePools[gameId];
+        if (!prizePool || prizePool.playerEntries.size === 0) {
+            return { totalRefunded: 0, refundedUsers: [] };
+        }
+
+        const game = this.getGameById(gameId);
+        if (game.hasStarted) {
+            console.log(`[refundAllPlayersInGame] Game ${gameId} has already started, no refunds`);
+            return { totalRefunded: 0, refundedUsers: [] };
+        }
+
+        let totalRefunded = 0;
+        const refundedUsers: string[] = [];
+
+        for (const [userId, entryFee] of prizePool.playerEntries.entries()) {
+            if (entryFee > 0) {
+                await this.shopService.refundPlayer(userId, entryFee);
+                totalRefunded += entryFee;
+                refundedUsers.push(userId);
+                console.log(`[refundAllPlayersInGame] Refunded ${entryFee} to user ${userId}`);
+            }
+        }
+
+        prizePool.totalPool = 0;
+        prizePool.playerEntries.clear();
+
+        console.log(`[refundAllPlayersInGame] Total refunded: ${totalRefunded} to ${refundedUsers.length} players`);
+        return { totalRefunded, refundedUsers };
+    }
+
+    async handlePlayerKicked(gameId: string, playerId: string, userId?: string): Promise<{ updatedGame: Game; refundAmount: number }> {
+        const game = this.getGameById(gameId);
+        let refundAmount = 0;
+
+        console.log(`[handlePlayerKicked] Game ${gameId}, playerId: ${playerId}, userId: ${userId}`);
+
+        if (userId) {
+            refundAmount = await this.handlePlayerRefund(gameId, userId);
+        }
+
+        game.players = game.players.filter((player) => player.socketId !== playerId);
+        game.participants = [...game.players];
+
+        console.log(`Player with socket ID ${playerId} has been kicked from game ${gameId}, refund: ${refundAmount}`);
+        return { updatedGame: game, refundAmount };
     }
 
     initializeGame(gameId: string): void {
@@ -186,7 +304,96 @@ export class GameCreationService {
     }
 
     async deleteRoom(gameId: string): Promise<void> {
-        // Cleanup all challenge data for this game
         delete this.gameRooms[gameId];
+        delete this.gamePrizePools[gameId];
+    }
+
+    async endGameAndDistributeRewards(gameId: string, winners: string[] = [], activePlayers: string[] = []): Promise<void> {
+        console.log(`[endGameAndDistributeRewards] Game ${gameId} ending. Winners: ${winners.length}, Active players: ${activePlayers.length}`);
+
+        if (winners.length > 0 || activePlayers.length > 0) {
+            await this.distributeGameRewards(gameId, winners, activePlayers);
+        }
+
+        this.deleteRoom(gameId);
+    }
+
+    getPlayerUserIdsForRewards(
+        gameId: string,
+        // eslint-disable-next-line no-unused-vars
+        getUserIdBySocket: (socketId: string) => string | undefined,
+    ): { winners: string[]; activePlayers: string[] } {
+        const game = this.getGameById(gameId);
+        if (!game) {
+            return { winners: [], activePlayers: [] };
+        }
+
+        const winners: string[] = [];
+        const activePlayers: string[] = [];
+
+        for (const player of game.players) {
+            if (player.socketId.includes('virtualPlayer')) {
+                continue;
+            }
+
+            const userId = getUserIdBySocket(player.socketId);
+            if (!userId) {
+                continue;
+            }
+
+            if (player.isActive) {
+                activePlayers.push(userId);
+            }
+
+            if (player.isGameWinner) {
+                winners.push(userId);
+            }
+        }
+
+        return { winners, activePlayers };
+    }
+
+    async distributeGameRewards(gameId: string, winners: string[], activePlayers: string[]): Promise<boolean> {
+        const prizePool = this.gamePrizePools[gameId];
+        if (!prizePool || prizePool.totalPool <= 0) {
+            return true;
+        }
+
+        if (activePlayers.length === 1) {
+            return await this.shopService.distributeLastPlayerWinnings(prizePool.totalPool, activePlayers[0]);
+        }
+
+        return await this.shopService.distributeGameWinnings(prizePool.totalPool, winners, activePlayers);
+    }
+
+    getGamePrizePool(gameId: string): number {
+        return this.gamePrizePools[gameId]?.totalPool || 0;
+    }
+
+    async chargeHostForGameCreation(userId: string, gameId: string, entryFee: number): Promise<boolean> {
+        const canAfford = await this.shopService.canAfford(userId, entryFee);
+        if (!canAfford) {
+            console.log(`[chargeHostForGameCreation] Host ${userId} cannot afford entry fee of ${entryFee}`);
+            return false;
+        }
+
+        const paymentSuccess = await this.shopService.deductMoney(userId, entryFee);
+        if (!paymentSuccess) {
+            console.log(`[chargeHostForGameCreation] Payment failed for host ${userId}`);
+            return false;
+        }
+
+        if (!this.gamePrizePools[gameId]) {
+            this.gamePrizePools[gameId] = {
+                totalPool: 0,
+                playerEntries: new Map<string, number>(),
+            };
+        }
+
+        this.gamePrizePools[gameId].totalPool += entryFee;
+        this.gamePrizePools[gameId].playerEntries.set(userId, entryFee);
+        console.log(`[chargeHostForGameCreation] Host ${userId} paid ${entryFee}, total pool: ${this.gamePrizePools[gameId].totalPool}`);
+
+        return true;
     }
 }

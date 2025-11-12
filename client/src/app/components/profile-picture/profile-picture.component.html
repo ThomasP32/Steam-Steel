@@ -4,7 +4,8 @@
             *ngFor="let avatar of avatars"
             [src]="avatar.preview"
             [alt]="'Avatar ' + avatar.id"
-            [class.selected]="selectedAvatar === avatar.id && !customAvatarPreview"
+            [class.selected]="isSelected(avatar.id)"
+            [class.shop-avatar]="avatar.isShopAvatar"
             (click)="selectPredefinedAvatar(avatar.id)"
             class="avatar-img"
         />

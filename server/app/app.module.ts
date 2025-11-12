@@ -18,6 +18,7 @@ import { Logger, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { FriendsController } from './http/controllers/friends/friends.controller';
+import { ShopController } from './http/controllers/shop/shop.controller';
 import { FriendsService } from './http/services/friends/friends.service';
 import { ChallengeService } from './services/challenge/challenge.service';
 import { ChatroomService } from './services/chatroom/chatroom.service';
@@ -26,6 +27,7 @@ import { CombatCountdownService } from './services/countdown/combat/combat-count
 import { GameCountdownService } from './services/countdown/game/game-countdown.service';
 import { GameManagerService } from './services/game-manager/game-manager.service';
 import { ItemsManagerService } from './services/items-manager/items-manager.service';
+import { ShopService } from './services/shop/shop.service';
 import { UserSocketService } from './services/user-socket/user-socket.service';
 import { VirtualGameManagerService } from './services/virtual-game-manager/virtual-game-manager.service';
 import { AccountGateway } from './socket/game/gateways/account/account.gateway';
@@ -33,6 +35,7 @@ import { AdminGateway } from './socket/game/gateways/admin/admin.gateway';
 import { CombatGateway } from './socket/game/gateways/combat/combat.gateway';
 import { FriendsGateway } from './socket/game/gateways/friends/friends.gateway';
 import { GameManagerGateway } from './socket/game/gateways/game-manager/game-manager.gateway';
+import { ShopGateway } from './socket/game/gateways/shop/shop.gateway';
 @Module({
     // decorateur qui permet d'indique que la classe regroupe controleur, service, etc.
     imports: [
@@ -52,7 +55,7 @@ import { GameManagerGateway } from './socket/game/gateways/game-manager/game-man
             { name: Channel.name, schema: ChannelSchema },
         ]),
     ],
-    controllers: [MapController, AdminController, AuthController, ChannelController, FriendsController],
+    controllers: [MapController, AdminController, AuthController, ChannelController, FriendsController, ShopController],
     providers: [
         MapService,
         AdminService,
@@ -78,6 +81,8 @@ import { GameManagerGateway } from './socket/game/gateways/game-manager/game-man
         FriendsService,
         FriendsGateway,
         ChallengeService,
+        ShopGateway,
+        ShopService,
     ],
 })
 export class AppModule {}

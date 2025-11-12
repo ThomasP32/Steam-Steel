@@ -1,7 +1,13 @@
 import { CombatService } from '@app/services/combat/combat.service';
 import { Combat } from '@common/combat';
 import { EVASION_SUCCESS_RATE, TIME_LIMIT_DELAY } from '@common/constants';
-import { CombatEvents, CombatFinishedByEvasionData, CombatFinishedData, PlayerEnteredObservationModeData, StartCombatData } from '@common/events/combat.events';
+import {
+    CombatEvents,
+    CombatFinishedByEvasionData,
+    CombatFinishedData,
+    PlayerEnteredObservationModeData,
+    StartCombatData,
+} from '@common/events/combat.events';
 import { CountdownEvents } from '@common/events/countdown.events';
 import { GameCreationEvents } from '@common/events/game-creation.events';
 import { ItemDroppedData, ItemsEvents } from '@common/events/items.events';
@@ -57,13 +63,13 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             }
 
             const { game, player } = validation;
-    
+
             const combat = this.combatService.createCombat(data.gameId, player, data.opponent);
             this.itemsManagerService.checkForAmulet(player, data.opponent);
             await client.join(combat.id);
-            
+
             const opponentSocketSetup = await this.setupOpponentSocket(data, combat.id);
-            
+
             if (opponentSocketSetup) {
                 await this.addObserversToCombat(game, combat.id);
                 this.initializeCombat(data, combat, player, client.id);
@@ -89,11 +95,11 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
 
         const evadingPlayer: Player = combat.challenger.socketId === client.id ? combat.challenger : combat.opponent;
         const otherPlayer: Player = combat.challenger.socketId === evadingPlayer.socketId ? combat.opponent : combat.challenger;
-        
+
         if (evadingPlayer.specs.evasions === 0) {
             return;
         }
-        
+
         evadingPlayer.specs.nEvasions++;
         evadingPlayer.specs.evasions--;
         const evasionSuccess = Math.random() < EVASION_SUCCESS_RATE;
@@ -142,13 +148,13 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
 
             this.combatService.combatWinStatsUpdate(attackingPlayer, gameId);
             this.itemsManagerService.dropInventory(defendingPlayer, gameId);
-                    
+
             if (game.settings.isFastElimination) {
                 this.setPlayerToObservationMode(defendingPlayer, game);
-                
+
                 // Check if this elimination ends the game BEFORE notifying
                 const endResult = this.gameManagerService.checkAfterCombat(gameId, attackingPlayer, game.settings.isFastElimination);
-                
+
                 // Only notify about observation mode if game continues
                 // If game ends, the eliminated player will receive GameFinished event and be redirected to stats
                 if (endResult.reason === GameEndReason.Ongoing) {
@@ -174,10 +180,10 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                     console.warn(`[CombatGateway] handleCombatLost setTimeout: Game ${gameId} not found (likely already ended)`);
                     return;
                 }
-                
+
                 // Check if combat resulted in game end
                 const endResult = this.gameManagerService.checkAfterCombat(gameId, attackingPlayer, game.settings.isFastElimination);
-                
+
                 if (endResult.reason !== GameEndReason.Ongoing) {
                     this.gameManagerService.handleGameEnd(gameId, endResult, this.server);
                     this.combatService.deleteCombat(gameId);
@@ -185,7 +191,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                     this.gameCountdownService.deleteCountdown(gameId);
                     return;
                 }
-                
+
                 // Game continues
                 this.handlePostCombatGameFlow(game, attackingPlayer, combatId);
             }, TIME_LIMIT_DELAY);
@@ -199,7 +205,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     prepareNextTurn(gameId: string) {
         const combat = this.combatService.getCombatByGameId(gameId);
         const game = this.gameCreationService.getGameById(gameId);
-        
+
         // Failsafe: Check if game or combat still exists before preparing next turn
         if (!game) {
             console.warn(`[CombatGateway] prepareNextTurn: Game ${gameId} not found (likely already ended)`);
@@ -208,7 +214,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             }
             return;
         }
-        
+
         if (combat) {
             this.combatService.updateTurn(gameId);
             this.combatCountdownService.resetTimerSubscription(gameId);
@@ -219,7 +225,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     startCombatTurns(gameId: string): void {
         const combat = this.combatService.getCombatByGameId(gameId);
         const result = this.combatService.startCombatTurns(gameId, this.combatCountdownService, this.gameCreationService);
-        
+
         if (result && combat && combat.currentTurnSocketId.includes('virtual')) {
             this.handleVirtualPlayerTurn(result.currentPlayer, result.otherPlayer, gameId, combat);
         }
@@ -246,7 +252,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
      */
     private setPlayerToObservationMode(player: Player, game: Game): void {
         player.isObservationMode = true;
-        const playerInGame = game.players.find(p => p.socketId === player.socketId);
+        const playerInGame = game.players.find((p) => p.socketId === player.socketId);
         if (playerInGame) {
             playerInGame.isObservationMode = true;
         }
@@ -259,11 +265,10 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     private notifyPlayerEnteredObservationMode(player: Player, message: string): void {
         const observationModeData: PlayerEnteredObservationModeData = {
             player,
-            message
+            message,
         };
         this.server.to(player.socketId).emit(CombatEvents.PlayerEnteredObservationMode, observationModeData);
     }
-
 
     /**
      * Validates combat start conditions
@@ -365,7 +370,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             this.combatService.handleAttackSuccess(attackingPlayer, defendingPlayer, combatId, gameId, attackResult);
         } else {
             this.server.to(combatId).emit(CombatEvents.AttackFailure, defendingPlayer);
-            
+
             // Track dodged attack for challenge
             const game = this.gameCreationService.getGameById(gameId);
             if (game) {
@@ -394,7 +399,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         this.server.to(combat.id).emit(CombatEvents.EvasionSuccess, evadingPlayer);
         // this.journalService.logMessage(gameId, `Fin de combat. ${evadingPlayer.name} s'est évadé.`, [evadingPlayer.name]);
         this.combatCountdownService.deleteCountdown(gameId);
-        
+
         setTimeout(async () => {
             const game = this.gameCreationService.getGameById(gameId);
             if (!game) {
@@ -422,7 +427,6 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         // this.journalService.logMessage(combatId, `Tentative d'évasion par ${evadingPlayer.name}: non réussie.`, [evadingPlayer.name]);
     }
 
-
     /**
      * Handles post-combat game flow (resume turn or timeout)
      */
@@ -448,7 +452,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     private handleVirtualPlayerTurn(currentPlayer: Player, otherPlayer: Player, gameId: string, combat: Combat): void {
         setTimeout(() => {
             const isCombatFinishedByEvasion = this.virtualGameManager.handleVirtualPlayerCombat(currentPlayer, otherPlayer, gameId, combat);
-            if (otherPlayer.specs.life === 0) {
+            if (otherPlayer.specs.life <= 0) {
                 this.handleCombatLost(otherPlayer, currentPlayer, gameId, combat.id);
                 // Don't execute virtual player behavior here - it will be handled in handleCombatLost after checking for game winner
             } else if (isCombatFinishedByEvasion) {
@@ -481,10 +485,10 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         }, TIME_LIMIT_DELAY);
     }
 
-    handleDisconnect(client: Socket): void {
+    async handleDisconnect(client: Socket): Promise<void> {
         const games = this.gameCreationService.getGames();
 
-        games.forEach((game) => {
+        for (const game of games) {
             if (!game.hasStarted) {
                 if (this.handleHostDisconnection(client, game)) {
                     return;
@@ -493,9 +497,9 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
 
             const player = game.players.find((player) => player.socketId === client.id);
             if (player) {
-                this.handlePlayerDisconnection(client, game, player);
+                await this.handlePlayerDisconnection(client, game, player);
             }
-        });
+        }
     }
 
     private handleHostDisconnection(client: Socket, game: Game): boolean {
@@ -510,8 +514,8 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         return false;
     }
 
-    private handlePlayerDisconnection(client: Socket, game: Game, player: Player): void {
-        const updatedGame = this.gameCreationService.handlePlayerLeaving(client, game.id);
+    private async handlePlayerDisconnection(client: Socket, game: Game, player: Player): Promise<void> {
+        const { game: updatedGame } = await this.gameCreationService.handlePlayerLeaving(client, game.id);
         // Emit only to other players in the room, not to the disconnecting player
         client.to(updatedGame.id).emit(GameCreationEvents.PlayerLeft, updatedGame.players);
 
@@ -525,7 +529,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
 
             // Check if disconnect caused game termination
             const endResult = this.gameManagerService.checkAfterDisconnect(updatedGame.id);
-            
+
             if (endResult.reason === GameEndReason.NoWinner_Termination) {
                 this.gameManagerService.handleGameEnd(updatedGame.id, endResult, this.server);
                 this.gameCountdownService.deleteCountdown(updatedGame.id);
@@ -547,17 +551,20 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         const disconnectedPlayer = client.id === combat.challenger.socketId ? combat.challenger : combat.opponent;
         const winner = client.id === combat.challenger.socketId ? combat.opponent : combat.challenger;
         disconnectedPlayer.isActive = false;
-        
+
         if (updatedGame.settings.isFastElimination) {
             this.setPlayerToObservationMode(disconnectedPlayer, updatedGame);
-            
+
             // Check if this elimination ends the game BEFORE notifying
             const endResult = this.gameManagerService.checkAfterCombat(updatedGame.id, winner, updatedGame.settings.isFastElimination);
-            
+
             // Only notify about observation mode if game continues
             // If game ends, the eliminated player will receive GameFinished event and be redirected to stats
             if (endResult.reason === GameEndReason.Ongoing) {
-                this.notifyPlayerEnteredObservationMode(disconnectedPlayer, 'Vous avez perdu le combat par déconnexion et êtes maintenant en mode observation.');
+                this.notifyPlayerEnteredObservationMode(
+                    disconnectedPlayer,
+                    'Vous avez perdu le combat par déconnexion et êtes maintenant en mode observation.',
+                );
             }
         }
 
@@ -578,7 +585,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
 
             // Check if combat resulted in game end
             const endResult = this.gameManagerService.checkAfterCombat(game.id, winner, game.settings.isFastElimination);
-            
+
             if (endResult.reason !== GameEndReason.Ongoing) {
                 this.gameManagerService.handleGameEnd(game.id, endResult, this.server);
                 this.combatService.deleteCombat(game.id);
@@ -594,16 +601,16 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
 
     private cleanupFailedCombat(gameId: string, combatId: string | undefined): void {
         console.log(`[CombatGateway] Cleaning up failed combat for game ${gameId}`);
-        
+
         try {
             // Delete combat countdown
             this.combatCountdownService.deleteCountdown(gameId);
-            
+
             // Delete combat
             if (this.combatService.getCombatByGameId(gameId)) {
                 this.combatService.deleteCombat(gameId);
             }
-            
+
             // Cleanup combat room
             if (combatId) {
                 this.cleanupCombatRoom(combatId);
@@ -612,7 +619,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             if (!game) {
                 return;
             }
-            
+
             // Check if game should be terminated or continue
             if (this.gameManagerService.shouldTerminateGame(gameId)) {
                 console.log(`[CombatGateway] Terminating game ${gameId} after combat failure - no active or observing players`);

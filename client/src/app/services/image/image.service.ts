@@ -125,6 +125,16 @@ export class ImageService {
                 return './assets/characters/11.png';
             case Avatar.Avatar12:
                 return './assets/characters/12.png';
+            case Avatar.Avatar13:
+                return './assets/characters/13.png';
+            case Avatar.Avatar14:
+                return './assets/characters/14.png';
+            case Avatar.Avatar15:
+                return './assets/characters/15.png';
+            case Avatar.Avatar16:
+                return './assets/characters/16.png';
+            case Avatar.Avatar17:
+                return './assets/characters/17.png';
             default:
                 return '';
         }
@@ -156,6 +166,16 @@ export class ImageService {
                 return './assets/pixelcharacters/11_pixelated.png';
             case Avatar.Avatar12:
                 return './assets/pixelcharacters/12_pixelated.png';
+            case Avatar.Avatar13:
+                return './assets/pixelcharacters/13_pixelated.png';
+            case Avatar.Avatar14:
+                return './assets/pixelcharacters/14_pixelated.png';
+            case Avatar.Avatar15:
+                return './assets/pixelcharacters/15_pixelated.png';
+            case Avatar.Avatar16:
+                return './assets/pixelcharacters/16_pixelated.png';
+            case Avatar.Avatar17:
+                return './assets/pixelcharacters/17_pixelated.png';
             default:
                 return '';
         }

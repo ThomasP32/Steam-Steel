@@ -102,6 +102,7 @@ export class AuthService {
 
     async updateAccount(email: string, username: string, avatar?: Avatar, avatarCustom?: string): Promise<any> {
         const token = localStorage.getItem('authToken');
+
         const response = await firstValueFrom(
             this.communicationService.basicPatch<any>(`${this.apiUrl}/update?token=${token}`, {
                 email,
