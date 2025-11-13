@@ -885,94 +885,92 @@ class _GameScreenState extends State<GameScreen> {
               ],
             ),
           ),
-          if (!isObserving) ...[
-            Positioned(
-              left: 16,
-              bottom: 16,
-              child: ValueListenableBuilder<bool>(
-                valueListenable: _gameTurnService.yourTurnNotifier,
-                builder: (context, isYourTurn, _) {
-                  return ValueListenableBuilder<List<dynamic>>(
-                    valueListenable: _gameTurnService.possibleOpponentsNotifier,
-                    builder: (context, opponents, _) {
-                      final hasCombat = opponents.isNotEmpty && isYourTurn;
-                      DebugLogger.log(
-                        'Combat button: opponents=${opponents.length}, isYourTurn=$isYourTurn, enabled=$hasCombat',
-                        tag: 'GameScreen',
-                      );
-                      return ActionButton(
-                        iconPath: 'lib/assets/icons/fighting.png',
-                        onPressed: _handleCombatAction,
-                        isEnabled: hasCombat,
-                      );
-                    },
-                  );
-                },
-              ),
+          Positioned(
+            left: 16,
+            bottom: 16,
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _gameTurnService.yourTurnNotifier,
+              builder: (context, isYourTurn, _) {
+                return ValueListenableBuilder<List<dynamic>>(
+                  valueListenable: _gameTurnService.possibleOpponentsNotifier,
+                  builder: (context, opponents, _) {
+                    final hasCombat = opponents.isNotEmpty && isYourTurn;
+                    DebugLogger.log(
+                      'Combat button: opponents=${opponents.length}, isYourTurn=$isYourTurn, enabled=$hasCombat',
+                      tag: 'GameScreen',
+                    );
+                    return ActionButton(
+                      iconPath: 'lib/assets/icons/fighting.png',
+                      onPressed: _handleCombatAction,
+                      isEnabled: hasCombat,
+                    );
+                  },
+                );
+              },
             ),
-            if (PlayerService().player.inventory.contains(
-              ItemCategory.wallBreaker,
-            ))
-              Positioned(
-                left: 86,
-                bottom: 16,
-                child: ActionButton(
-                  iconPath: 'lib/assets/items/wallbreaker.png',
-                  onPressed: _handleWallAction,
-                  isEnabled:
-                      _gameTurnService.isYourTurn &&
-                      _gameTurnService.possibleWallsNotifier.value.isNotEmpty &&
-                      (_gameTurnService.possibleActions['wall'] ?? false) &&
-                      PlayerService().player.specs.actions > 0,
-                ),
-              ),
+          ),
+          if (PlayerService().player.inventory.contains(
+            ItemCategory.wallBreaker,
+          ))
             Positioned(
-              left:
-                  PlayerService().player.inventory.contains(
-                        ItemCategory.wallBreaker,
-                      )
-                      ? 156
-                      : 86,
+              left: 86,
               bottom: 16,
               child: ActionButton(
-                iconPath: 'lib/assets/icons/door.png',
-                onPressed: _handleDoorAction,
+                iconPath: 'lib/assets/items/wallbreaker.png',
+                onPressed: _handleWallAction,
                 isEnabled:
                     _gameTurnService.isYourTurn &&
-                    _gameTurnService.possibleDoorsNotifier.value.isNotEmpty &&
-                    (_gameTurnService.possibleActions['door'] ?? false) &&
+                    _gameTurnService.possibleWallsNotifier.value.isNotEmpty &&
+                    (_gameTurnService.possibleActions['wall'] ?? false) &&
                     PlayerService().player.specs.actions > 0,
               ),
             ),
-            Positioned(
-              left:
-                  PlayerService().player.inventory.contains(
-                        ItemCategory.wallBreaker,
-                      )
-                      ? 226
-                      : 156,
-              bottom: 16,
-              child: ActionButton(
-                iconPath: 'lib/assets/icons/endturn_icon.png',
-                onPressed: () => _gameTurnService.endTurn(widget.gameId),
-                isEnabled: _gameTurnService.isYourTurn,
-              ),
+          Positioned(
+            left:
+                PlayerService().player.inventory.contains(
+                      ItemCategory.wallBreaker,
+                    )
+                    ? 156
+                    : 86,
+            bottom: 16,
+            child: ActionButton(
+              iconPath: 'lib/assets/icons/door.png',
+              onPressed: _handleDoorAction,
+              isEnabled:
+                  _gameTurnService.isYourTurn &&
+                  _gameTurnService.possibleDoorsNotifier.value.isNotEmpty &&
+                  (_gameTurnService.possibleActions['door'] ?? false) &&
+                  PlayerService().player.specs.actions > 0,
             ),
-            Positioned(
-              left:
-                  PlayerService().player.inventory.contains(
-                        ItemCategory.wallBreaker,
-                      )
-                      ? 296
-                      : 226,
-              bottom: 16,
-              child: ActionButton(
-                iconPath: 'lib/assets/icons/quit_icon.png',
-                onPressed: quitGame,
-                isEnabled: true,
-              ),
+          ),
+          Positioned(
+            left:
+                PlayerService().player.inventory.contains(
+                      ItemCategory.wallBreaker,
+                    )
+                    ? 226
+                    : 156,
+            bottom: 16,
+            child: ActionButton(
+              iconPath: 'lib/assets/icons/endturn_icon.png',
+              onPressed: () => _gameTurnService.endTurn(widget.gameId),
+              isEnabled: _gameTurnService.isYourTurn,
             ),
-          ],
+          ),
+          Positioned(
+            left:
+                PlayerService().player.inventory.contains(
+                      ItemCategory.wallBreaker,
+                    )
+                    ? 296
+                    : 226,
+            bottom: 16,
+            child: ActionButton(
+              iconPath: 'lib/assets/icons/quit_icon.png',
+              onPressed: quitGame,
+              isEnabled: true,
+            ),
+          ),
           if (!_delayFinished)
             ColoredBox(
               color: Colors.black.withValues(alpha: 0.7),
