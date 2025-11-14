@@ -114,7 +114,6 @@ class _ChallengesWidgetState extends State<ChallengesWidget> {
                             style: const TextStyle(
                               color: Colors.amber,
                               fontSize: 14,
-                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],

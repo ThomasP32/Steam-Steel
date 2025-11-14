@@ -3,6 +3,7 @@ import { CombatService } from '@app/services/combat/combat.service';
 import { CombatCountdownService } from '@app/services/countdown/combat/combat-countdown.service';
 import { GameCountdownService } from '@app/services/countdown/game/game-countdown.service';
 import { GameCreationService } from '@app/services/game-creation/game-creation.service';
+import { ItemsManagerService } from '@app/services/items-manager/items-manager.service';
 import { ChallengeEvent } from '@common/events/challenge.events';
 import { CountdownEvents } from '@common/events/countdown.events';
 import { GameCreationEvents, JoinGameData, KickPlayerData, ToggleGameLockStateData } from '@common/events/game-creation.events';
@@ -32,6 +33,7 @@ export class GameGateway {
     @Inject(FriendsService) private readonly friendsService: FriendsService;
     @Inject(UserService) private readonly userService: UserService;
     @Inject(ChallengeService) private readonly challengeService: ChallengeService;
+    @Inject(ItemsManagerService) private readonly itemsManagerService: ItemsManagerService;
     @Inject(ShopGateway) private readonly shopGateway: ShopGateway;
 
     @SubscribeMessage(GameCreationEvents.CreateGame)
@@ -348,6 +350,11 @@ export class GameGateway {
             }
         } else if (game.players.some((player) => player.socketId === client.id)) {
             const leavingPlayer = game.players.find((player) => player.socketId === client.id);
+
+            if (leavingPlayer?.inventory?.length > 0) {
+                this.itemsManagerService.dropInventory(leavingPlayer, gameId);
+            }
+
             game.players = game.players.map((player) => {
                 return player.socketId === client.id ? { ...player, isActive: false } : player;
             });

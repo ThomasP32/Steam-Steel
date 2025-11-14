@@ -38,16 +38,25 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
   @override
   void initState() {
     super.initState();
-    _currentChallenger = Map<String, dynamic>.from(widget.challenger);
-    _currentOpponent = Map<String, dynamic>.from(widget.opponent);
+
+    final currentPlayer = PlayerService().player;
+    final challengerSocketId = widget.challenger['socketId'] as String?;
+    final isCurrentPlayerChallenger =
+        currentPlayer.socketId == challengerSocketId;
+
+    if (isCurrentPlayerChallenger) {
+      _currentChallenger = Map<String, dynamic>.from(widget.challenger);
+      _currentOpponent = Map<String, dynamic>.from(widget.opponent);
+    } else {
+      _currentChallenger = Map<String, dynamic>.from(widget.opponent);
+      _currentOpponent = Map<String, dynamic>.from(widget.challenger);
+    }
 
     if (widget.isObserver) {
       _combatMessage = 'Combat en cours...';
       _isYourTurn = false;
     } else {
-      final currentPlayer = PlayerService().player;
-      final challengerSocketId = _currentChallenger?['socketId'] as String?;
-      _isYourTurn = currentPlayer.socketId == challengerSocketId;
+      _isYourTurn = isCurrentPlayerChallenger;
 
       if (_isYourTurn) {
         _combatMessage = "C'est à votre tour de jouer!";
@@ -173,6 +182,28 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
             });
           }
         }),
+      )
+      ..add(
+        SocketService().listen<dynamic>('evasionSuccess').listen((data) {
+          if (!mounted) return;
+          if (data is Map<String, dynamic>) {
+            final currentPlayer = PlayerService().player;
+            if (currentPlayer.socketId == data['socketId']) {
+              PlayerService().setPlayerFromJson(data);
+            }
+          }
+        }),
+      )
+      ..add(
+        SocketService().listen<dynamic>('evasionFailed').listen((data) {
+          if (!mounted) return;
+          if (data is Map<String, dynamic>) {
+            final currentPlayer = PlayerService().player;
+            if (currentPlayer.socketId == data['socketId']) {
+              PlayerService().setPlayerFromJson(data);
+            }
+          }
+        }),
       );
   }
 
@@ -203,49 +234,60 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
         final evasionsLeft = currentPlayer.specs.evasions;
         final isObserver = widget.isObserver;
 
-        return ColoredBox(
+        return Container(
+          width: double.infinity,
+          height: double.infinity,
           color: Colors.black.withValues(alpha: 0.85),
           child: Center(
             child: Container(
-              width: 600,
+              width: 900,
+              height: 500,
               padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(color: Color(0xFF2C3E50)),
+              decoration: BoxDecoration(
+                image: const DecorationImage(
+                  image: AssetImage(
+                    'lib/assets/backgrounds/backgroundcombat.png',
+                  ),
+                  fit: BoxFit.cover,
+                ),
+                border: Border.all(
+                  color: const Color.fromARGB(255, 19, 19, 19),
+                  width: 5,
+                ),
+              ),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    'VS',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  Text(
-                    '$_countdown',
-                    style: const TextStyle(
-                      color: Colors.orange,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildCombatPlayer(_currentChallenger!, true),
                       Column(
                         children: [
+                          const Text(
+                            'VS',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 50,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '$_countdown',
+                            style: const TextStyle(
+                              color: Colors.orange,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           if (_attackDice != null || _defenseDice != null) ...[
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 40),
                             Row(
                               children: [
                                 if (_attackDice != null)
                                   _buildDice(_attackDice!, _attacking),
-                                const SizedBox(width: 20),
+                                const SizedBox(width: 40),
                                 if (_defenseDice != null)
                                   _buildDice(_defenseDice!, !_attacking),
                               ],
@@ -277,7 +319,7 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 18),
 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -287,13 +329,13 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
                         style: ElevatedButton.styleFrom(
                           disabledBackgroundColor: Colors.grey,
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 16,
+                            horizontal: 30,
+                            vertical: 14,
                           ),
                         ),
                         child: const Text(
                           'Attaquer',
-                          style: TextStyle(fontSize: 18, color: Colors.white),
+                          style: TextStyle(fontSize: 16, color: Colors.white),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -305,14 +347,14 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
                         style: ElevatedButton.styleFrom(
                           disabledBackgroundColor: Colors.grey,
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 16,
+                            horizontal: 30,
+                            vertical: 14,
                           ),
                         ),
                         child: Text(
                           'Évasion ($evasionsLeft)',
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             color: Colors.white,
                           ),
                         ),
@@ -331,10 +373,6 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
   Widget _buildDice(int value, bool isAttack) {
     return Container(
       padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white, width: 2),
-      ),
       child: Text(
         value.toString(),
         style: const TextStyle(
@@ -354,18 +392,31 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
         avatar is Map ? (avatar['value'] ?? '1') : (avatar ?? '1');
 
     final specs = player['specs'] as Map<String, dynamic>?;
-    final life = specs?['life'] ?? 0;
+    final life = (specs?['life'] as int?) ?? 0;
+    final displayLife = life < 0 ? 0 : life;
     final attack = specs?['attack'] ?? 0;
     final defense = specs?['defense'] ?? 0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 100,
-          height: 100,
-          decoration: const BoxDecoration(color: Color(0xFF3A4F5F)),
-          clipBehavior: Clip.antiAlias,
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$displayLife PV',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: 200,
+          height: 200,
           child: Image.asset(
             'lib/assets/characters/$avatarValue.png',
             fit: BoxFit.cover,
@@ -383,15 +434,11 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
         ),
         const SizedBox(height: 8),
         Text(
-          '❤️ $life',
+          'Attaque : $attack',
           style: const TextStyle(color: Colors.white, fontSize: 14),
         ),
         Text(
-          '⚔️ $attack',
-          style: const TextStyle(color: Colors.white, fontSize: 14),
-        ),
-        Text(
-          '🛡️ $defense',
+          'Défense : $defense',
           style: const TextStyle(color: Colors.white, fontSize: 14),
         ),
       ],

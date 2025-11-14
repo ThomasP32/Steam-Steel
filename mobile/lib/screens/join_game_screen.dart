@@ -63,7 +63,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
             .listen(_onYouJoined),
       )
       ..add(
-        _socketService.listen<String>('gameNotFound').listen(_onGameNotFound),
+        _socketService.listen<String?>('gameNotFound').listen(_onGameNotFound),
       )
       ..add(_socketService.listen<String>('gameLocked').listen(_onGameLocked));
   }
@@ -114,7 +114,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     }
   }
 
-  void _onGameNotFound(String reason) {
+  void _onGameNotFound(String? reason) {
     _cancelTimeout();
     if (!mounted) return;
 

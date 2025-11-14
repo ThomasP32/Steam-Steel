@@ -48,6 +48,7 @@ export class CombatCountdownService extends EventEmitter {
             const value = countdown.remaining;
             if (countdown.remaining-- === 0) {
                 this.emit(CountdownEvents.Timeout, game.id);
+                this.resetTimerSubscription(game.id);
             } else {
                 game.duration++;
                 this.server.to(game.id).emit(CountdownEvents.CombatSecondPassed, value);

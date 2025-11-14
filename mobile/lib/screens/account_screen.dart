@@ -313,7 +313,6 @@ class _AuthScreenState extends State<AuthScreen> {
 
     Widget pageContent;
     if (user == null) {
-      // Login/Register forms - centered without scroll
       pageContent = LayoutBuilder(
         builder: (context, constraints) {
           return Center(
@@ -479,42 +478,69 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
           const SizedBox(height: 16),
           _buildStatCard(
-            'Mode Classique',
+            'Classique',
             user.stats.classique.gamesPlayed,
             user.stats.classique.gamesWon,
           ),
           const SizedBox(height: 12),
           _buildStatCard(
-            'Mode CTF',
+            'CTF',
             user.stats.ctf.gamesPlayed,
             user.stats.ctf.gamesWon,
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Temps moyen par partie',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Temps moyen par partie',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const SizedBox(),
+                      Text(
+                        _formatTime(user.stats.avgTime),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${user.stats.avgTime.toStringAsFixed(0)}s',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Défis complétés',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const SizedBox(),
+                      Text(
+                        '${user.stats.challengesCompleted}',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -818,5 +844,12 @@ class _AuthScreenState extends State<AuthScreen> {
       default:
         return Colors.grey;
     }
+  }
+
+  String _formatTime(double seconds) {
+    final totalSeconds = seconds.round();
+    final minutes = totalSeconds ~/ 60;
+    final remainingSeconds = totalSeconds % 60;
+    return '${minutes}m ${remainingSeconds}s';
   }
 }

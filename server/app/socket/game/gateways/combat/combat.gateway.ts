@@ -149,19 +149,30 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             this.combatService.combatWinStatsUpdate(attackingPlayer, gameId);
             this.itemsManagerService.dropInventory(defendingPlayer, gameId);
 
+            if (defendingPlayer.position?.x === undefined || defendingPlayer.position.y === undefined) {
+                console.warn(`[CombatGateway] Defending player ${defendingPlayer.name} has invalid position, recovering...`);
+                if (defendingPlayer.initialPosition) {
+                    defendingPlayer.position = { x: defendingPlayer.initialPosition.x, y: defendingPlayer.initialPosition.y };
+                    console.log(
+                        `[CombatGateway] ✓ Recovered position for ${defendingPlayer.name} at (${defendingPlayer.position.x}, ${defendingPlayer.position.y})`,
+                    );
+                }
+            }
+
             if (game.settings.isFastElimination) {
                 this.setPlayerToObservationMode(defendingPlayer, game);
 
-                // Check if this elimination ends the game BEFORE notifying
                 const endResult = this.gameManagerService.checkAfterCombat(gameId, attackingPlayer, game.settings.isFastElimination);
 
-                // Only notify about observation mode if game continues
-                // If game ends, the eliminated player will receive GameFinished event and be redirected to stats
                 if (endResult.reason === GameEndReason.Ongoing) {
                     this.notifyPlayerEnteredObservationMode(defendingPlayer, 'Vous avez perdu le combat et êtes maintenant en mode observation.');
                 }
             } else {
+                const winnerPosition = attackingPlayer.position ? { x: attackingPlayer.position.x, y: attackingPlayer.position.y } : null;
                 this.combatService.sendBackToInitPos(defendingPlayer, game);
+                if (winnerPosition) {
+                    attackingPlayer.position = winnerPosition;
+                }
             }
 
             this.combatService.updatePlayersInGame(game);
@@ -414,6 +425,11 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
 
             if (otherPlayer.socketId.includes('virtual') && game.currentTurn === otherPlayer.turn) {
                 await this.virtualGameManager.executeVirtualPlayerBehavior(otherPlayer, game);
+            } else if (game.currentTurn === otherPlayer.turn) {
+                this.server.to(otherPlayer.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
+                if (this.gameManagerService.isPlayerStuck(game.id, otherPlayer.socketId)) {
+                    this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
+                }
             }
         }, TIME_LIMIT_DELAY);
     }
@@ -438,6 +454,11 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                 this.virtualGameManager.executeVirtualPlayerBehavior(winner, game);
             } else {
                 this.server.to(winner.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
+                // Check if winner is stuck after combat
+                if (this.gameManagerService.isPlayerStuck(game.id, winner.socketId)) {
+                    console.log(`[CombatGateway] Player ${winner.name} is stuck after combat. Auto-ending turn.`);
+                    this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
+                }
             }
         } else {
             this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
@@ -506,6 +527,9 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         if (this.gameCreationService.isPlayerHost(client.id, game.id)) {
             this.server.to(game.id).emit(GameCreationEvents.GameClosed);
             this.gameCreationService.deleteRoom(game.id);
+            this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
+            this.gameCountdownService.deleteCountdown(game.id); // Clean up game timer
+            this.combatCountdownService.deleteCountdown(game.id); // Clean up combat timer if exists
             this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
             this.gameCountdownService.deleteCountdown(game.id); // Clean up game timer
             this.combatCountdownService.deleteCountdown(game.id); // Clean up combat timer if exists

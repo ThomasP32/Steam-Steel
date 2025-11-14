@@ -40,11 +40,24 @@ export class ItemsManagerService {
         const itemIndex = game.items.findIndex((item) => item.coordinate.x === pos.x && item.coordinate.y === pos.y);
         if (itemIndex !== -1) {
             const item = game.items[itemIndex].category;
+
+            // Ensure inventory is initialized
+            if (!player.inventory) {
+                console.warn(`[ItemsManagerService] Player ${player.name} had undefined inventory, initializing`);
+                player.inventory = [];
+            }
+
             player.inventory.push(item);
             player.specs.nItemsUsed++;
             if (item === ItemCategory.Flag) {
                 if (game && game.mode === Mode.Ctf) {
-                    (game as GameCtf).nPlayersCtf.push(player);
+                    const ctfGame = game as GameCtf;
+                    // Ensure nPlayersCtf is initialized
+                    if (!ctfGame.nPlayersCtf) {
+                        console.warn(`[ItemsManagerService] Game ${gameId} had undefined nPlayersCtf, initializing`);
+                        ctfGame.nPlayersCtf = [];
+                    }
+                    ctfGame.nPlayersCtf.push(player);
                 }
             }
             game.items.splice(itemIndex, 1);

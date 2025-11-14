@@ -90,6 +90,30 @@ export class GameManagerService {
         return mapAsArray;
     }
 
+    isPlayerStuck(gameId: string, playerSocket: string): boolean {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) {
+            return false;
+        }
+        const player = game.players.find((p) => p.socketId === playerSocket);
+        if (!player?.isActive || !player.position) {
+            return false;
+        }
+
+        // Player is stuck if they have:
+        // 1. No actions left (actions <= 0)
+        // 2. Movement points remaining (movePoints > 0)
+        // 3. No valid moves available
+        if (player.specs.actions > 0 || player.specs.movePoints <= 0) {
+            return false;
+        }
+
+        const moves = this.runDijkstra(player.position, game, player.specs.movePoints);
+        // Check if there are any moves beyond the current position
+        // runDijkstra always includes current position, so check if size > 1
+        return moves.size <= 1;
+    }
+
     getMove(gameId: string, playerSocket: string, destination: Coordinate): Coordinate[] {
         const game = this.gameCreationService.getGameById(gameId);
         if (!game) {

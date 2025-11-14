@@ -463,7 +463,7 @@ class _ChatWidgetState extends State<ChatWidget>
   }
 
   void _showOverlay() {
-    if (_overlayEntry != null) return;
+    if (_overlayEntry != null || !mounted) return;
 
     _overlayEntry = OverlayEntry(builder: (context) => _buildOverlayContent());
 
@@ -497,9 +497,11 @@ class _ChatWidgetState extends State<ChatWidget>
     _overlayEntry?.remove();
     _overlayEntry = null;
 
-    setState(() {
-      _visible = false;
-    });
+    if (mounted) {
+      setState(() {
+        _visible = false;
+      });
+    }
 
     _inputFocusNode.unfocus();
     widget.onClose?.call();
