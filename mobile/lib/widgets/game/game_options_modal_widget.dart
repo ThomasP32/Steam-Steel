@@ -79,7 +79,7 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
               ),
               const SizedBox(height: 24),
               _buildOption(
-                label: "Mode d'élimination rapide",
+                label: 'Elimination rapide',
                 description:
                     'Les joueurs éliminés en combat passent en mode observation',
                 value: _isFastElimination,
@@ -87,7 +87,7 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
               ),
               const SizedBox(height: 16),
               _buildOption(
-                label: 'Partie amis seulement',
+                label: 'Amis seulement',
                 description: 'Seuls vos amis peuvent rejoindre cette partie',
                 value: _isFriendsOnly,
                 onTap: _toggleFriendsOnly,

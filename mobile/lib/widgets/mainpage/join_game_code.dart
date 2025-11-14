@@ -70,7 +70,7 @@ class _JoinGameCodeState extends State<JoinGameCode> {
 
   void _listenToGameNotFound() {
     _subs.add(
-      _socketService!.listen<String>('gameNotFound').listen((reason) {
+      _socketService!.listen<String?>('gameNotFound').listen((reason) {
         _accessTimeout?.cancel();
         setState(() {
           _isLoading = false;

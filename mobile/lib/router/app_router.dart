@@ -37,7 +37,10 @@ class AppRouter {
             settings = extra['settings'] as GameSettings?;
           }
 
-          return WaitingRoomScreen(gameId: gameId, gameSettings: settings);
+          return WaitingRoomScreen(
+            gameId: gameId,
+            gameSettings: settings,
+          );
         },
       ),
       GoRoute(
@@ -54,7 +57,10 @@ class AppRouter {
             settings = extra['settings'] as GameSettings?;
           }
 
-          return WaitingRoomScreen(mapName: mapName, gameSettings: settings);
+          return WaitingRoomScreen(
+            mapName: mapName,
+            gameSettings: settings,
+          );
         },
       ),
       GoRoute(

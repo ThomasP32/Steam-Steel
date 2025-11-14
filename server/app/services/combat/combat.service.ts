@@ -18,7 +18,6 @@ import { JournalService } from '../journal/journal.service';
 export class CombatService {
     @Inject(ChallengeService) private readonly challengeService: ChallengeService;
 
-
     private combatRooms: Record<string, Combat> = {};
     server: Server;
 
@@ -34,7 +33,13 @@ export class CombatService {
         this.server = server;
     }
 
-    createCombat(gameId: string, challenger: Player, opponent: Player): Combat {
+    createCombat(gameId: string, challenger: Player, opponent: Player): Combat | null {
+        // Check if combat already exists for this game
+        if (this.doesCombatExist(gameId)) {
+            console.log(`[CombatService] Cannot create combat - combat already exists for game ${gameId}`);
+            return null;
+        }
+
         let currentTurnSocketId: string = challenger.socketId;
         if (challenger.specs.speed < opponent.specs.speed) {
             currentTurnSocketId = opponent.socketId;
@@ -136,6 +141,7 @@ export class CombatService {
 
         const isPositionOccupied = game.players.some(
             (otherPlayer) =>
+                otherPlayer.position &&
                 otherPlayer.position.x === currentPlayer.initialPosition.x &&
                 otherPlayer.position.y === currentPlayer.initialPosition.y &&
                 otherPlayer.socketId !== currentPlayer.socketId,
@@ -241,6 +247,10 @@ export class CombatService {
     ): void {
         const involvedPlayers = [combat.challenger.name];
         journalService.logMessage(game.id, `${combat.challenger.name} a commencé un combat contre ${combat.opponent.name}.`, involvedPlayers);
+
+        combat.challenger.specs.evasions = DEFAULT_EVASIONS;
+        combat.opponent.specs.evasions = DEFAULT_EVASIONS;
+
         const combatStartedData: CombatStartedData = {
             challenger: combat.challenger,
             opponent: combat.opponent,
@@ -270,12 +280,12 @@ export class CombatService {
     ): { currentPlayer: Player; otherPlayer: Player } | undefined {
         const combat = this.getCombatByGameId(gameId);
         const game = gameCreationService.getGameById(gameId);
-        
+
         if (!combat) {
             console.warn(`[CombatService] startCombatTurns: Combat not found for game ${gameId}`);
             return undefined;
         }
-        
+
         if (!game) {
             console.warn(`[CombatService] startCombatTurns: Game ${gameId} not found (likely already ended)`);
             combatCountdownService.deleteCountdown(gameId);
@@ -287,9 +297,7 @@ export class CombatService {
         const otherPlayer = combat.currentTurnSocketId === combat.challenger.socketId ? combat.opponent : combat.challenger;
         this.server.to(otherPlayer.socketId).emit(CombatEvents.PlayerTurnCombat);
         combatCountdownService.startTurnCounter(game, currentPlayer.specs.evasions !== 0);
-        
+
         return { currentPlayer, otherPlayer };
     }
-
-
 }

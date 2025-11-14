@@ -1,6 +1,6 @@
 import { ALL_ITEMS, BONUS_REDUCTION, HALF, MapConfig, MapSize } from '@common/constants';
-import { Game, Player } from '@common/game';
-import { Coordinate, ItemCategory, TileCategory } from '@common/map.types';
+import { Game, GameCtf, Player } from '@common/game';
+import { Coordinate, ItemCategory, Mode, TileCategory } from '@common/map.types';
 import { Inject, Injectable } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { ChallengeService } from '../challenge/challenge.service';
@@ -33,6 +33,13 @@ export class GameCreationService {
     addGame(game: Game): void {
         if (this.doesGameExist(game.id)) {
             return;
+        }
+        // Initialize nPlayersCtf for CTF games
+        if (game.mode === Mode.Ctf) {
+            const ctfGame = game as GameCtf;
+            if (!ctfGame.nPlayersCtf) {
+                ctfGame.nPlayersCtf = [];
+            }
         }
         this.gameRooms[game.id] = game;
         if (!this.gamePrizePools[game.id]) {
@@ -89,6 +96,10 @@ export class GameCreationService {
             }
             existingPlayer.socketId = socketId;
         } else {
+            // Ensure inventory is initialized for new players
+            if (!player.inventory) {
+                player.inventory = [];
+            }
             player.turn = game.participants.length - 1;
             game.participants.push(player);
             this.gameRooms[gameId].players.push(player);

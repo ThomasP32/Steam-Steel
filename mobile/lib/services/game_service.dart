@@ -306,4 +306,39 @@ class GameService {
         return Mode.classic;
     }
   }
+
+  bool isPlayerOnIce(Player player) {
+    final game = currentGame;
+    if (game == null || player.position.isEmpty) return false;
+
+    final playerPos = player.position.first;
+    return game.tiles.any(
+      (tile) =>
+          tile.coordinate.x == playerPos.x &&
+          tile.coordinate.y == playerPos.y &&
+          tile.category == TileCategory.ice,
+    );
+  }
+
+  int getMaxAttack(Player player) {
+    var maxAttack = player.specs.attack;
+    final hasSkates = player.inventory.contains(ItemCategory.iceSkates);
+
+    if (isPlayerOnIce(player) && !hasSkates) {
+      maxAttack += ICE_ATTACK_PENALTY;
+    }
+
+    return maxAttack;
+  }
+
+  int getMaxDefense(Player player) {
+    var maxDefense = player.specs.defense;
+    final hasSkates = player.inventory.contains(ItemCategory.iceSkates);
+
+    if (isPlayerOnIce(player) && !hasSkates) {
+      maxDefense += ICE_DEFENSE_PENALTY;
+    }
+
+    return maxDefense;
+  }
 }

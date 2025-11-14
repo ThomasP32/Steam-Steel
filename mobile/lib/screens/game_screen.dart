@@ -46,6 +46,7 @@ class _GameScreenState extends State<GameScreen> {
   StreamSubscription<dynamic>? _itemDroppedSub;
   StreamSubscription<dynamic>? _combatStartedSub;
   StreamSubscription<dynamic>? _playerLeftSub;
+  StreamSubscription<dynamic>? _gameUpdatedSub;
   dynamic _countdown = 30;
   static const int _turnDuration = 30;
   String _currentPlayerName = 'Aucun';
@@ -66,6 +67,7 @@ class _GameScreenState extends State<GameScreen> {
   bool _showPlayerLeftModal = false;
   VoidCallback? _observationModeListener;
   bool _showObservationModal = false;
+  OverlayEntry? _combatNotificationOverlay;
 
   @override
   void initState() {
@@ -264,6 +266,12 @@ class _GameScreenState extends State<GameScreen> {
           final opponent = data['opponent'] as Map<String, dynamic>?;
 
           if (challenger != null && opponent != null) {
+            final currentPlayer = PlayerService().player;
+            if (currentPlayer.socketId == challenger['socketId']) {
+              PlayerService().setPlayerFromJson(challenger);
+            } else if (currentPlayer.socketId == opponent['socketId']) {
+              PlayerService().setPlayerFromJson(opponent);
+            }
             setState(() {
               _combatChallenger = challenger;
               _combatOpponent = opponent;
@@ -337,6 +345,89 @@ class _GameScreenState extends State<GameScreen> {
         _combatOpponent = null;
       });
     });
+
+    // Listen for combat started signal (when other players are in combat)
+    SocketService().listen<dynamic>('combatStartedSignal').listen((data) {
+      DebugLogger.log(
+        'combatStartedSignal received: $data, showCombatModal: $_showCombatModal',
+        tag: 'GameScreen',
+      );
+      if (!mounted) return;
+      if (!_showCombatModal) {
+        DebugLogger.log('Showing combat notification', tag: 'GameScreen');
+        _combatNotificationOverlay?.remove();
+
+        final overlay = Overlay.of(context);
+        _combatNotificationOverlay = OverlayEntry(
+          builder:
+              (context) => Positioned(
+                top: 100,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade700,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            '⚔️ Combat en cours !',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+        );
+        overlay.insert(_combatNotificationOverlay!);
+      }
+    });
+
+    // Listen for combat ended signals to remove the notification
+    final combatEndEvents = [
+      'combatFinished',
+      'combatFinishedNormally',
+      'combatFinishedByEvasion',
+      'combatFinishedByDisconnection',
+    ];
+
+    for (final event in combatEndEvents) {
+      SocketService().listen<dynamic>(event).listen((data) {
+        DebugLogger.log('Combat ended event: $event', tag: 'GameScreen');
+        if (!mounted) return;
+        _combatNotificationOverlay?.remove();
+        _combatNotificationOverlay = null;
+      });
+    }
   }
 
   void _listenToDoorUpdates() {
@@ -518,7 +609,9 @@ class _GameScreenState extends State<GameScreen> {
       }
     });
 
-    SocketService().listen<dynamic>('gameUpdated').listen((data) {
+    _gameUpdatedSub = SocketService().listen<dynamic>('GameUpdated').listen((
+      data,
+    ) {
       if (!mounted) return;
       if (data is Map<String, dynamic>) {
         _gameService.updateFromJson(data);
@@ -554,6 +647,8 @@ class _GameScreenState extends State<GameScreen> {
   void dispose() {
     FriendService().updateUserStatus(UserStatus.online);
 
+    _combatNotificationOverlay?.remove();
+    _combatNotificationOverlay = null;
     _deleteSubs();
     if (_playerTurnListener != null) {
       _gameTurnService.playerTurnNotifier.removeListener(_playerTurnListener!);
@@ -594,6 +689,7 @@ class _GameScreenState extends State<GameScreen> {
     _itemDroppedSub?.cancel();
     _combatStartedSub?.cancel();
     _playerLeftSub?.cancel();
+    _gameUpdatedSub?.cancel();
   }
 
   void _toggleGameInfo() {
@@ -767,7 +863,14 @@ class _GameScreenState extends State<GameScreen> {
               fit: BoxFit.cover,
             ),
           ),
-          Positioned(top: -40, left: 320, child: _buildMapGrid()),
+          Positioned(
+            top: -40,
+            left: 320,
+            child: ValueListenableBuilder<GameClassic?>(
+              valueListenable: _gameService.notifier,
+              builder: (context, game, _) => _buildMapGrid(),
+            ),
+          ),
           Positioned(
             top: 16,
             left: 880,
@@ -811,53 +914,7 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                   ],
                 ),
-                if (_showGameInfo)
-                  ValueListenableBuilder<GameClassic?>(
-                    valueListenable: _gameService.notifier,
-                    builder: (context, game, _) {
-                      final activePlayerCount =
-                          game?.players.where((p) => p.isActive).length ?? 0;
-                      return Container(
-                        width: 400,
-                        margin: const EdgeInsets.only(top: 8),
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2C3E50),
-                          border: Border.all(color: Colors.orange, width: 2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Center(
-                              child: Text(
-                                'Informations de la partie',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildInfoRow(
-                              'Taille de la carte :',
-                              _gameService.getMapSizeLabel(),
-                            ),
-                            const Divider(color: Colors.grey),
-                            _buildInfoRow(
-                              'Nombre de joueurs :',
-                              '$activePlayerCount',
-                            ),
-                            const Divider(color: Colors.grey),
-                            _buildInfoRow('Joueur Actif :', _currentPlayerName),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 80),
                 ValueListenableBuilder<GameClassic?>(
                   valueListenable: _gameService.notifier,
                   builder: (context, game, _) {
@@ -894,7 +951,11 @@ class _GameScreenState extends State<GameScreen> {
                 return ValueListenableBuilder<List<dynamic>>(
                   valueListenable: _gameTurnService.possibleOpponentsNotifier,
                   builder: (context, opponents, _) {
-                    final hasCombat = opponents.isNotEmpty && isYourTurn;
+                      final player = PlayerService().player;
+                    final hasCombat =
+                          opponents.isNotEmpty &&
+                          isYourTurn &&
+                          player.specs.actions > 0;
                     DebugLogger.log(
                       'Combat button: opponents=${opponents.length}, isYourTurn=$isYourTurn, enabled=$hasCombat',
                       tag: 'GameScreen',
@@ -1011,11 +1072,13 @@ class _GameScreenState extends State<GameScreen> {
           if (_showCombatModal &&
               _combatChallenger != null &&
               _combatOpponent != null)
-            CombatModalWidget(
-              challenger: _combatChallenger!,
-              opponent: _combatOpponent!,
-              gameId: widget.gameId,
-              isObserver: PlayerService().player.isObservationMode,
+            Positioned.fill(
+              child: CombatModalWidget(
+                challenger: _combatChallenger!,
+                opponent: _combatOpponent!,
+                gameId: widget.gameId,
+                isObserver: PlayerService().player.isObservationMode,
+              ),
             ),
           if (_showPlayerLeftModal) const PlayerLeftModalWidget(),
           if (isGameFinished)
@@ -1024,6 +1087,62 @@ class _GameScreenState extends State<GameScreen> {
           if (_showObservationModal)
             ObservationModeModalWidget(
               message: _gameTurnService.observationMessageNotifier.value,
+            ),
+          if (_showGameInfo)
+            Positioned(
+              top: 70,
+              right: 16,
+              child: ValueListenableBuilder<GameClassic?>(
+                valueListenable: _gameService.notifier,
+                builder: (context, game, _) {
+                  final activePlayerCount =
+                      game?.players.where((p) => p.isActive).length ?? 0;
+                  return Container(
+                    width: 400,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2C3E50),
+                      border: Border.all(color: Colors.orange, width: 2),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Center(
+                          child: Text(
+                            'Informations de la partie',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildInfoRow(
+                          'Taille de la carte :',
+                          _gameService.getMapSizeLabel(),
+                        ),
+                        const Divider(color: Colors.grey),
+                        _buildInfoRow(
+                          'Nombre de joueurs :',
+                          '$activePlayerCount',
+                        ),
+                        const Divider(color: Colors.grey),
+                        _buildInfoRow('Joueur Actif :', _currentPlayerName),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
         ],
       ),
@@ -1341,94 +1460,114 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildPlayerPanel() {
-    final player = PlayerService().player;
-    final specs = player.specs;
+    return ValueListenableBuilder<Player>(
+      valueListenable: PlayerService().notifier,
+      builder: (context, player, _) {
+        final specs = player.specs;
 
-    return Container(
-      width: 300,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2C3E50),
-        border: Border.all(color: Colors.orange, width: 2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
+        return Container(
+          width: 300,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2C3E50),
+            border: Border.all(color: Colors.orange, width: 2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.orange, width: 2),
-                  borderRadius: BorderRadius.circular(4),
-                  color: const Color(0xFF3A4F5F),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Image.asset(
-                  'lib/assets/previewcharacters/${player.avatar.value}_preview.png',
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  player.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+              Row(
+                children: [
+                  Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.orange, width: 2),
+                      borderRadius: BorderRadius.circular(4),
+                      color: const Color(0xFF3A4F5F),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Image.asset(
+                      'lib/assets/previewcharacters/${player.avatar.value}_preview.png',
+                      fit: BoxFit.cover,
+                    ),
                   ),
-                  overflow: TextOverflow.ellipsis,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      player.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildStatBar('❤️', 'Vie', specs.life, specs.life),
+              const SizedBox(height: 8),
+              _buildStatBar('⚡', 'Vitesse', specs.speed, specs.speed),
+              const SizedBox(height: 8),
+              _buildStatBar(
+                '⚔️',
+                'Attaque',
+                specs.attack,
+                _gameService.getMaxAttack(player),
+              ),
+              const SizedBox(height: 8),
+              _buildStatBar(
+                '🛡️',
+                'Défense',
+                specs.defense,
+                _gameService.getMaxDefense(player),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildDiceIndicator(
+                      'Attaque',
+                      specs.attackBonus.value,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildDiceIndicator(
+                      'Défense',
+                      specs.defenseBonus.value,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Inventaire',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildStatBar('❤️', 'Vie', specs.life, specs.life),
-          const SizedBox(height: 8),
-          _buildStatBar('⚡', 'Vitesse', specs.speed, specs.speed),
-          const SizedBox(height: 8),
-          _buildStatBar('⚔️', 'Attaque', specs.attack, specs.attack),
-          const SizedBox(height: 8),
-          _buildStatBar('🛡️', 'Défense', specs.defense, specs.defense),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildDiceIndicator('Attaque', specs.attackBonus.value),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(child: _buildInventorySlot(0)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildInventorySlot(1)),
+                ],
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildDiceIndicator('Défense', specs.defenseBonus.value),
-              ),
+              const SizedBox(height: 16),
+              _buildCounter('Actions restantes', specs.actions),
+              const SizedBox(height: 8),
+              _buildCounter('Mouvements restants', specs.movePoints),
             ],
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'Inventaire',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: _buildInventorySlot(0)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildInventorySlot(1)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildCounter('Actions restantes', specs.actions),
-          const SizedBox(height: 8),
-          _buildCounter('Mouvements restants', specs.movePoints),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1707,26 +1846,27 @@ class _GameScreenState extends State<GameScreen> {
                           ),
                           const SizedBox(width: 8),
                         ],
-                        if (isObserving) ...[
-                          const Icon(
-                            Icons.remove_red_eye,
-                            color: Colors.orange,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        if (isVirtualPlayer) ...[
+                        if (isGameCreator) ...[
                           Image.asset(
-                            'lib/assets/icons/robot.png',
+                            'lib/assets/icons/crown.png',
                             width: 24,
                             height: 24,
                             fit: BoxFit.contain,
                           ),
                           const SizedBox(width: 8),
                         ],
-                        if (isGameCreator) ...[
+                        if (isObserving) ...[
                           Image.asset(
-                            'lib/assets/icons/crown.png',
+                            'lib/assets/icons/observer.png',
+                            width: 30,
+                            height: 30,
+                            fit: BoxFit.contain,
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        if (isVirtualPlayer) ...[
+                          Image.asset(
+                            'lib/assets/icons/robot.png',
                             width: 24,
                             height: 24,
                             fit: BoxFit.contain,

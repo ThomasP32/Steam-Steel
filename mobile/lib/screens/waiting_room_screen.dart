@@ -443,7 +443,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                               return ValueListenableBuilder(
                                 valueListenable:
                                     _service.selectedPlayerSocketId,
-                                builder: (context, _, __) {
+                                builder: (context, _, _) {
                                   return _buildPlayerRow(players[i]);
                                 },
                               );

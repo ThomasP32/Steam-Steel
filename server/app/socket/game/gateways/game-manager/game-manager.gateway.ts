@@ -1,5 +1,6 @@
 import { DoorTile } from '@app/http/model/schemas/map/tiles.schema';
 import { ChallengeService } from '@app/services/challenge/challenge.service';
+import { CombatService } from '@app/services/combat/combat.service';
 import { CombatCountdownService } from '@app/services/countdown/combat/combat-countdown.service';
 import { GameCountdownService } from '@app/services/countdown/game/game-countdown.service';
 import { GameCreationService } from '@app/services/game-creation/game-creation.service';
@@ -34,6 +35,7 @@ export class GameManagerGateway implements OnGatewayInit {
     @Inject(GameManagerService) private readonly gameManagerService: GameManagerService;
     @Inject(GameCountdownService) private readonly gameCountdownService: GameCountdownService;
     @Inject(CombatCountdownService) private readonly combatCountdownService: CombatCountdownService;
+    @Inject(CombatService) private readonly combatService: CombatService;
     @Inject(JournalService) private readonly journalService: JournalService;
     @Inject(VirtualGameManagerService) private virtualGameManagerService: VirtualGameManagerService;
     @Inject(ItemsManagerService) private readonly itemsManagerService: ItemsManagerService;
@@ -46,6 +48,11 @@ export class GameManagerGateway implements OnGatewayInit {
         });
         this.virtualGameManagerService.setServer(this.server);
         this.virtualGameManagerService.on('virtualPlayerFinishedMoving', (gameId: string) => {
+            const activeCombat = this.combatService.getCombatByGameId(gameId);
+            if (activeCombat) {
+                console.log(`[GameManagerGateway] Combat active in game ${gameId}, turn will not advance until combat ends`);
+                return;
+            }
             this.prepareNextTurn(gameId);
         });
         this.virtualGameManagerService.on('virtualPlayerCanResumeTurn', (gameId: string) => {
@@ -112,6 +119,8 @@ export class GameManagerGateway implements OnGatewayInit {
         const involvedPlayers = game.players.map((player) => player.name);
         this.journalService.logMessage(data.gameId, `Une porte a été ${action} par ${player.name}.`, involvedPlayers);
         this.server.to(data.gameId).emit(ItemsEvents.DoorToggled, { game: game, player: player });
+
+        this.checkAndAutoEndTurn(game.id, player.socketId);
     }
 
     @SubscribeMessage('breakWall')
@@ -131,6 +140,9 @@ export class GameManagerGateway implements OnGatewayInit {
         const involvedPlayers = game.players.map((player) => player.name);
         this.journalService.logMessage(data.gameId, `${player.name}. a brisé un mur !`, involvedPlayers);
         this.server.to(data.gameId).emit(ItemsEvents.WallBroken, { game: game, player: player });
+
+        // Check if player is stuck and auto-end turn
+        this.checkAndAutoEndTurn(game.id, player.socketId);
     }
 
     @SubscribeMessage('getCombats')
@@ -190,8 +202,7 @@ export class GameManagerGateway implements OnGatewayInit {
         if (player.socketId !== client.id) {
             return;
         }
-        player.specs.movePoints = player.specs.speed;
-        player.specs.actions = DEFAULT_ACTIONS;
+        // Move to next turn - stats will be reset in startTurn for the next player
         this.prepareNextTurn(gameId);
     }
 
@@ -205,6 +216,13 @@ export class GameManagerGateway implements OnGatewayInit {
         this.gameManagerService.updateTurnCounter(gameId);
 
         this.startTurn(gameId);
+    }
+
+    private checkAndAutoEndTurn(gameId: string, playerSocketId: string): void {
+        if (this.gameManagerService.isPlayerStuck(gameId, playerSocketId)) {
+            console.log(`[GameManagerGateway] Player is stuck (no actions, has movement points but cannot move). Auto-ending turn.`);
+            this.prepareNextTurn(gameId);
+        }
     }
 
     private handleGameTermination(gameId: string, reason: string): void {
@@ -260,6 +278,25 @@ export class GameManagerGateway implements OnGatewayInit {
             const delay = Math.floor(Math.random() * VIRTUAL_PLAYER_DELAY) + VIRTUAL_DELAY_CONSTANT;
             setTimeout(async () => {
                 try {
+                    const currentGame = this.gameCreationService.getGameById(gameId);
+                    if (!currentGame) {
+                        console.warn(`[GameManagerGateway] Virtual player timeout: Game ${gameId} not found`);
+                        return;
+                    }
+
+                    const currentPlayer = currentGame.players.find((p) => p.socketId === activePlayer.socketId);
+                    if (!currentPlayer) {
+                        console.warn(`[GameManagerGateway] Virtual player timeout: Player ${activePlayer.socketId} not found`);
+                        return;
+                    }
+
+                    if (currentPlayer.turn !== currentGame.currentTurn) {
+                        console.log(
+                            `[GameManagerGateway] Virtual player ${currentPlayer.name} timeout expired but turn has already advanced (was ${currentPlayer.turn}, now ${currentGame.currentTurn}). Skipping.`,
+                        );
+                        return;
+                    }
+
                     // Validate game state before executing
                     const validation = this.gameManagerService.validateGameState(gameId, activePlayer.socketId);
 
@@ -275,13 +312,12 @@ export class GameManagerGateway implements OnGatewayInit {
                         return;
                     }
 
-                    // Get fresh game and player references
-                    const currentGame = this.gameCreationService.getGameById(gameId);
-                    const currentPlayer = currentGame.players.find((p) => p.socketId === activePlayer.socketId);
-
                     console.log(`[GameManagerGateway] Virtual player ${currentPlayer.name} executing turn...`);
                     await this.virtualGameManagerService.executeVirtualPlayerBehavior(currentPlayer, currentGame);
                     this.server.to(currentGame.id).emit(GameManagerEvents.PositionToUpdate, { game: currentGame, player: currentPlayer });
+
+                    // prepareNextTurn is now handled by the virtualPlayerFinishedMoving event
+                    // which is emitted by executeVirtualPlayerBehavior
                 } catch (error) {
                     console.error(`[GameManagerGateway] Error during virtual player turn:`, error);
                     console.error(`[GameManagerGateway] Error stack:`, error.stack);
