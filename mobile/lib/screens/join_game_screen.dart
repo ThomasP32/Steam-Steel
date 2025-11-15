@@ -55,8 +55,18 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
             .listen<void>('gameListUpdated')
             .listen(_onGameListUpdated),
       )
+      ..add(
+        _socketService
+            .listen<void>('gameListUpdated')
+            .listen(_onGameListUpdated),
+      )
       ..add(_socketService.listen<dynamic>('getGames').listen(_onGetGames))
       ..add(_socketService.listen<void>('gameAccessed').listen(_onGameAccessed))
+      ..add(
+        _socketService
+            .listen<Map<String, dynamic>>('gameResumed')
+            .listen(_onGameResumed),
+      )
       ..add(
         _socketService
             .listen<Map<String, dynamic>>('youJoined')
@@ -174,10 +184,17 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     Map<String, dynamic> game,
     String gameId,
   ) {
+    DebugLogger.log(
+      'No existing player, creating character',
+      tag: 'JoinGameScreen',
+    );
+
     final mapName = _joinService.extractMapName(game);
+    final settings = _joinService.extractGameSettings(game);
+
     context.go(
       '/$gameId/choose-character',
-      extra: {'isObserver': true, 'mapName': mapName},
+      extra: {'isObserver': true, 'mapName': mapName, 'settings': settings},
     );
   }
 
@@ -191,10 +208,50 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     _startTimeout();
   }
 
+  void _onJoinGame(Map<String, dynamic> game) {
+    final gameId = game['id'] as String?;
+    if (gameId == null) return;
+    final existingPlayer = _joinService.getExistingPlayer(game);
+    final existingParticipant = _joinService.getExistingParticipant(game);
+
+    if (existingParticipant != null || existingPlayer != null) {
+      setState(() {
+        _isLoading = true;
+        _pendingGameCode = gameId;
+      });
+      _joinService.resumeGame(gameId);
+      _startTimeout();
+      return;
+    }
+
+    final mapName = _joinService.extractMapName(game);
+    final settings = _joinService.extractGameSettings(game);
+
+    context.go(
+      '/$gameId/choose-character',
+      extra: {'isObserver': false, 'mapName': mapName, 'settings': settings},
+    );
+  }
+
   void _navigateToCharacterCreation(String code) {
     _pendingGameCode = null;
     try {
-      context.go('/$code/choose-character');
+      final game = _games.firstWhere(
+        (g) => g['id'] == code,
+        orElse: () => <String, dynamic>{},
+      );
+
+      if (game.isNotEmpty) {
+        final settings = _joinService.extractGameSettings(game);
+        final mapName = _joinService.extractMapName(game);
+        context.go(
+          '/$code/choose-character',
+          extra: {'mapName': mapName, 'settings': settings},
+        );
+      } else {
+        // Fallback: navigate without settings, will be fetched via socket
+        context.go('/$code/choose-character');
+      }
     } on Exception catch (e) {
       DebugLogger.log('Navigation failed: $e', tag: 'JoinGameScreen');
     }
@@ -439,7 +496,12 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
       itemCount: _games.length,
       itemBuilder: (context, index) {
         final game = _games[index];
-        return GamePreviewWidget(game: game, onTap: () => _onGameTap(game));
+        return GamePreviewWidget(
+          game: game,
+          onTap: () => _onGameTap(game),
+          onJoinGame: () => _onJoinGame(game),
+          currentUsername: _joinService.currentUsername,
+        );
       },
     );
   }
@@ -451,5 +513,45 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
         child: Center(child: CircularProgressIndicator()),
       ),
     );
+  }
+
+  void _onGameResumed(Map<String, dynamic> game) {
+    _cancelTimeout();
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    try {
+      final existingPlayer = _joinService.getExistingPlayer(game);
+      final existingParticipant = _joinService.getExistingParticipant(game);
+
+      if (existingPlayer != null) {
+        _joinService.joinGame(
+          gameId: game['id'] as String,
+          player: existingPlayer,
+        );
+      } else if (existingParticipant != null) {
+        _joinService.joinGame(
+          gameId: game['id'] as String,
+          player: existingParticipant,
+        );
+      } else {
+        final mapName = _joinService.extractMapName(game);
+        final settings = _joinService.extractGameSettings(game);
+
+        context.go(
+          '/${game['id']}/choose-character',
+          extra: {
+            'isObserver': false,
+            'mapName': mapName,
+            'settings': settings,
+          },
+        );
+      }
+    } on Exception catch (e) {
+      DebugLogger.log(
+        'Failed to handle gameResumed: $e',
+        tag: 'JoinGameScreen',
+      );
+    }
   }
 }

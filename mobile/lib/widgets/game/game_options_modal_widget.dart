@@ -12,6 +12,7 @@ class GameOptionsModalWidget extends StatefulWidget {
   final VoidCallback onClose;
   final void Function({
     required bool isFastElimination,
+    required bool isDropInOut,
     required bool isFriendsOnly,
   })
   onNext;
@@ -22,6 +23,7 @@ class GameOptionsModalWidget extends StatefulWidget {
 
 class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
   bool _isFastElimination = false;
+  bool _isDropInOut = false;
   bool _isFriendsOnly = false;
 
   void _toggleFastElimination() {
@@ -36,9 +38,16 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
     });
   }
 
+  void _toggleDropInDropOut() {
+    setState(() {
+      _isDropInOut = !_isDropInOut;
+    });
+  }
+
   void _handleNext() {
     widget.onNext(
       isFastElimination: _isFastElimination,
+      isDropInOut: _isDropInOut,
       isFriendsOnly: _isFriendsOnly,
     );
   }
@@ -84,6 +93,14 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
                     'Les joueurs éliminés en combat passent en mode observation',
                 value: _isFastElimination,
                 onTap: _toggleFastElimination,
+              ),
+              const SizedBox(height: 16),
+              _buildOption(
+                label: 'Drop In/Drop Out',
+                description:
+                    'Les joueurs peuvent rejoindre ou quitter la partie à tout moment',
+                value: _isDropInOut,
+                onTap: _toggleDropInDropOut,
               ),
               const SizedBox(height: 16),
               _buildOption(

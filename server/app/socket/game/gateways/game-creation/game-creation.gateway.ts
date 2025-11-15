@@ -111,7 +111,7 @@ export class GameGateway {
 
             const user = await this.userService.findByUsername(newPlayer.name);
             newPlayer.level = user.stats.level ?? 1;
-        
+
             newPlayer.isObservationMode = false;
             if (game.hasStarted) {
                 const activePlayers = game.players.filter((plyr) => plyr.isActive);

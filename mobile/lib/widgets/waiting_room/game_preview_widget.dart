@@ -5,16 +5,22 @@ import 'package:flutter/material.dart';
 import 'package:mobile/utils/debug_logger.dart';
 
 class GamePreviewWidget extends StatelessWidget {
-  const GamePreviewWidget({required this.game, required this.onTap, super.key});
+  const GamePreviewWidget({
+    required this.game,
+    required this.onTap,
+    this.onJoinGame,
+    this.currentUsername,
+    super.key,
+  });
 
   final Map<String, dynamic> game;
   final VoidCallback onTap;
+  final VoidCallback? onJoinGame;
+  final String? currentUsername;
 
   String get _gameName => game['name'] as String? ?? 'Sans nom';
 
   String get _gameCode => game['id'] as String? ?? '????';
-
-  int get _playerCount => (game['players'] as List?)?.length ?? 0;
 
   int get _maxPlayers {
     final size = game['mapSize'] as Map<String, dynamic>?;
@@ -27,9 +33,60 @@ class GamePreviewWidget extends StatelessWidget {
     return 0;
   }
 
+  int get _activePlayerCount {
+    final players = game['players'] as List<dynamic>?;
+    if (players == null) return 0;
+    return players
+        .where(
+          (p) => p is Map<String, dynamic> && (p['isActive'] as bool? ?? false),
+        )
+        .length;
+  }
+
+  int get _participantsCount => (game['participants'] as List?)?.length ?? 0;
+
   bool get _isLocked => game['isLocked'] as bool? ?? false;
 
   bool get _hasStarted => game['hasStarted'] as bool? ?? false;
+
+  bool get _isFastElimination =>
+      (game['settings'] as Map<String, dynamic>?)?['isFastElimination']
+          as bool? ??
+      false;
+
+  bool get _isFull {
+    if (_maxPlayers <= 0) return false;
+    if (_isFastElimination) {
+      return _participantsCount >= _maxPlayers;
+    }
+    return _activePlayerCount >= _maxPlayers;
+  }
+
+  bool get _existingParticipant {
+    if (currentUsername == null || currentUsername!.isEmpty) return false;
+
+    final players = game['players'] as List<dynamic>?;
+    if (players != null) {
+      for (final p in players) {
+        if (p is Map<String, dynamic>) {
+          final name = p['name'] as String? ?? p['username'] as String? ?? '';
+          if (name == currentUsername) return true;
+        }
+      }
+    }
+
+    final participants = game['participants'] as List<dynamic>?;
+    if (participants != null) {
+      for (final p in participants) {
+        if (p is Map<String, dynamic>) {
+          final name = p['name'] as String? ?? p['username'] as String? ?? '';
+          if (name == currentUsername) return true;
+        }
+      }
+    }
+
+    return false;
+  }
 
   String get _mapSize {
     final size = game['mapSize'] as Map<String, dynamic>?;
@@ -45,6 +102,10 @@ class GamePreviewWidget extends StatelessWidget {
   String? get _imagePreview => game['imagePreview'] as String?;
 
   String get _status => _hasStarted ? 'En cours' : 'En attente';
+
+  bool get _isDropInOut =>
+      (game['settings'] as Map<String, dynamic>?)?['isDropInOut'] as bool? ??
+      false;
 
   Widget _buildImage() {
     if (_imagePreview == null || _imagePreview!.isEmpty) {
@@ -72,8 +133,14 @@ class GamePreviewWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final canObserve = _hasStarted;
+    DebugLogger.log(
+      'GamePreviewWidget: canObserve=$canObserve, isDropInOut=$_isDropInOut, hasStarted=$_hasStarted, isLocked=$_isLocked',
+      tag: 'PREVIEW',
+    );
+    DebugLogger.log('${game['settings']}', tag: 'PREVIEW');
+    final canJoin = _hasStarted && _isDropInOut;
     final isJoinable = !_hasStarted && !_isLocked;
-    final isDisabled = !canObserve && !isJoinable;
+    final isDisabled = !canObserve && !isJoinable && !canJoin;
 
     return Card(
       elevation: 4,
@@ -162,7 +229,7 @@ class GamePreviewWidget extends StatelessWidget {
                     const Icon(Icons.people, size: 10, color: Colors.grey),
                     const SizedBox(width: 2),
                     Text(
-                      '$_playerCount/$_maxPlayers',
+                      '$_activePlayerCount/$_maxPlayers',
                       style: const TextStyle(fontSize: 9),
                     ),
                     const SizedBox(width: 14),
@@ -187,42 +254,107 @@ class GamePreviewWidget extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 6),
-                SizedBox(
-                  width: double.infinity,
-                  height: 26,
-                  child: ElevatedButton(
-                    onPressed: isDisabled ? null : onTap,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          canObserve
-                              ? Colors.orange
-                              : isJoinable
-                              ? Colors.blue
-                              : Colors.grey,
-                      disabledBackgroundColor: Colors.grey.shade300,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                    ),
-                    child: Text(
-                      canObserve
-                          ? 'Observer'
-                          : isJoinable
-                          ? 'Rejoindre'
-                          : 'Verrouillée',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isDisabled ? Colors.grey.shade600 : Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
+                if (canJoin) _buildDualButtons() else _buildSingleButton(),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSingleButton() {
+    final canObserve = _hasStarted;
+    final isJoinable = !_hasStarted && !_isLocked;
+    final isDisabled = !canObserve && !isJoinable;
+
+    return SizedBox(
+      width: double.infinity,
+      height: 26,
+      child: ElevatedButton(
+        onPressed: isDisabled ? null : onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor:
+              canObserve
+                  ? const Color(0xFF1c5276)
+                  : isJoinable
+                  ? const Color(0xFF125719)
+                  : Colors.grey,
+          disabledBackgroundColor: Colors.grey.shade300,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          padding: const EdgeInsets.symmetric(vertical: 2),
+        ),
+        child: Text(
+          canObserve
+              ? 'Observer'
+              : isJoinable
+              ? 'Rejoindre'
+              : 'Verrouillée',
+          style: TextStyle(
+            fontSize: 10,
+            color: isDisabled ? Colors.grey.shade600 : Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDualButtons() {
+    final rightLabel =
+        _existingParticipant
+            ? 'Reprendre'
+            : _isFull
+            ? 'Verrouillée'
+            : 'Jouer';
+    final rightEnabled = !_isFull || _existingParticipant;
+    final rightOnPressed = rightEnabled ? (onJoinGame ?? onTap) : null;
+
+    return Row(
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 26,
+            child: ElevatedButton(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1c5276),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 2),
+              ),
+              child: const Text(
+                'Observer',
+                style: TextStyle(fontSize: 10, color: Colors.white),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: SizedBox(
+            height: 26,
+            child: ElevatedButton(
+              onPressed: rightOnPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    rightEnabled ? const Color(0xFF125719) : Colors.grey,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 2),
+              ),
+              child: Text(
+                rightLabel,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: rightEnabled ? Colors.white : Colors.grey.shade600,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

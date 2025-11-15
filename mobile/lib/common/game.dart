@@ -95,13 +95,19 @@ class Specs {
 }
 
 class GameSettings {
-  GameSettings({this.isFastElimination = false, this.isFriendsOnly = false});
+  GameSettings({
+    this.isFastElimination = false,
+    this.isDropInOut = false,
+    this.isFriendsOnly = false,
+  });
 
   final bool isFastElimination;
+  final bool isDropInOut;
   final bool isFriendsOnly;
 
   Map<String, dynamic> toJson() => {
     'isFastElimination': isFastElimination,
+    'isDropInOut': isDropInOut,
     'isFriendsOnly': isFriendsOnly,
   };
 }
@@ -128,6 +134,7 @@ class GameClassic {
     this.imagePreview = '',
     this.mode,
     this.settings,
+    this.participants = const [],
   });
   final String id;
   final String hostSocketId;
@@ -149,6 +156,7 @@ class GameClassic {
   final String imagePreview;
   final Mode? mode;
   final GameSettings? settings;
+  final List<Player> participants;
 }
 
 class GameCtf extends GameClassic {

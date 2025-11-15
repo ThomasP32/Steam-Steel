@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:mobile/common/game.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/game_service.dart';
 import 'package:mobile/services/player_service.dart';
@@ -12,7 +13,8 @@ class JoinGameService {
   static final JoinGameService _instance = JoinGameService._();
 
   final SocketService _socketService = SocketService();
-  final _gamesController = StreamController<List<Map<String, dynamic>>>.broadcast();
+  final _gamesController =
+      StreamController<List<Map<String, dynamic>>>.broadcast();
   final _loadingController = StreamController<bool>.broadcast();
 
   Stream<List<Map<String, dynamic>>> get gamesStream => _gamesController.stream;
@@ -33,10 +35,8 @@ class JoinGameService {
 
   void handleGamesResponse(dynamic gameRooms) {
     if (gameRooms is List) {
-      final games = gameRooms
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      
+      final games = gameRooms.whereType<Map<String, dynamic>>().toList();
+
       DebugLogger.log('Received ${games.length} games', tag: 'JoinGameService');
       _gamesController.add(games);
     } else {
@@ -59,7 +59,7 @@ class JoinGameService {
     required Map<String, dynamic> player,
   }) async {
     await _ensureSocketConnected();
-    
+
     DebugLogger.log(
       'Sending observeGame for player: ${player['name']}',
       tag: 'JoinGameService',
@@ -79,15 +79,23 @@ class JoinGameService {
 
   Map<String, dynamic>? getExistingPlayer(Map<String, dynamic> game) {
     final players = game['players'] as List<dynamic>? ?? [];
-    final player = players.firstWhere(
-      (p) {
-        if (p is! Map<String, dynamic>) return false;
-        return p['name'] == currentUsername;
-      },
-      orElse: () => null,
-    );
+    final player = players.firstWhere((p) {
+      if (p is! Map<String, dynamic>) return false;
+      return p['name'] == currentUsername;
+    }, orElse: () => null);
 
     return player is Map<String, dynamic> ? player : null;
+  }
+
+  Map<String, dynamic>? getExistingParticipant(Map<String, dynamic> game) {
+    final participants = game['participants'] as List<dynamic>? ?? [];
+    final participant = participants.firstWhere((p) {
+      if (p is! Map<String, dynamic>) return false;
+      return (p['name'] as String? ?? p['username'] as String? ?? '') ==
+          (currentUsername ?? '');
+    }, orElse: () => null);
+
+    return participant is Map<String, dynamic> ? participant : null;
   }
 
   String extractMapName(Map<String, dynamic> game) {
@@ -142,6 +150,39 @@ class JoinGameService {
     DebugLogger.log(
       'Socket reconnected: ${_socketService.socketId}',
       tag: 'JoinGameService',
+    );
+  }
+
+  Future<void> resumeGame(String gameId) async {
+    await _ensureSocketConnected();
+    DebugLogger.log(
+      'Requesting resumeGame for $gameId',
+      tag: 'JoinGameService',
+    );
+    _socketService.send('resumeGame', gameId);
+  }
+
+  Future<void> joinGame({
+    required String gameId,
+    required Map<String, dynamic> player,
+  }) async {
+    await _ensureSocketConnected();
+    DebugLogger.log(
+      'Sending joinGame for player: ${player['name']}',
+      tag: 'JoinGameService',
+    );
+    final payload = {'gameId': gameId, 'player': player};
+    _socketService.send('joinGame', payload);
+  }
+
+  GameSettings? extractGameSettings(Map<String, dynamic> game) {
+    final settingsMap = game['settings'] as Map<String, dynamic>?;
+    if (settingsMap == null) return null;
+
+    return GameSettings(
+      isFastElimination: settingsMap['isFastElimination'] as bool? ?? false,
+      isDropInOut: settingsMap['isDropInOut'] as bool? ?? false,
+      isFriendsOnly: settingsMap['isFriendsOnly'] as bool? ?? false,
     );
   }
 
