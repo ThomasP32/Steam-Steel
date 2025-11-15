@@ -60,16 +60,18 @@ export class AccountComponent implements OnInit {
         if (this.userInfo?.user) {
             this.editEmail = this.userInfo.user.email;
             this.editUsername = this.userInfo.user.username;
+            this.editAvatar = this.userInfo.user.avatar;
             this.editCustomAvatarPreview = this.userInfo.user.avatarCustom;
-            
+
             try {
                 const equippedShopAvatar = await this.characterService.getEquippedShopAvatarId();
-                
+
                 if (equippedShopAvatar) {
                     this.editAvatar = equippedShopAvatar;
                     const allAvatars = await this.characterService.getAllAvatars();
-                    const shopAvatar = allAvatars.find(avatar => avatar.id === equippedShopAvatar);
+                    const shopAvatar = allAvatars.find((avatar) => avatar.id === equippedShopAvatar);
                     this.equippedShopAvatarPreview = shopAvatar?.preview;
+                    await this.characterService.clearCustomAvatar();
                 } else {
                     this.editAvatar = this.userInfo.user.avatar;
                     this.equippedShopAvatarPreview = undefined;
@@ -95,13 +97,17 @@ export class AccountComponent implements OnInit {
     async saveEdit() {
         try {
             const allAvatars = await this.characterService.getAllAvatars();
-            const selectedAvatar = allAvatars.find(avatar => avatar.id === this.editAvatar);
-            
-            if (selectedAvatar?.isShopAvatar && selectedAvatar.shopItemId && this.userInfo?.user?._id) {
+            const selectedAvatar = allAvatars.find((avatar) => avatar.id === this.editAvatar);
+
+            if (selectedAvatar?.isShopAvatar && selectedAvatar.shopItemId && this.userInfo?.user?._id && !this.editCustomAvatarPreview) {
                 await this.shopHttpService.equipItem(this.userInfo.user._id, selectedAvatar.shopItemId).toPromise();
+                await this.characterService.clearCustomAvatar();
                 await this.characterService.refreshAvatars();
+                this.editCustomAvatarPreview = undefined;
+            } else {
+                await this.characterService.unequipShopAvatars();
             }
-            
+
             const result = await this.authService.updateAccount(this.editEmail, this.editUsername, this.editAvatar, this.editCustomAvatarPreview);
             if (result?.success === false) {
                 this.editMessage = result?.message || 'Erreur lors de la modification.';
@@ -109,13 +115,14 @@ export class AccountComponent implements OnInit {
             }
             this.editMode = false;
             this.userInfo = await this.authService.getUserInfo();
-            await this.resetEditFields();
+            this.resetEditFields();
             this.editMessage = 'Modifications enregistrées !';
         } catch (e: any) {
             this.editMode = true;
             this.editMessage = 'Erreur lors de la modification.';
         }
     }
+
 
     async cancelEdit() {
         this.editMode = false;

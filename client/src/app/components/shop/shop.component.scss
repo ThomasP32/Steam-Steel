@@ -265,8 +265,8 @@
 
 .items-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 30px;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 25px;
     padding-bottom: 20px;
 }
 
@@ -274,12 +274,12 @@
     background: linear-gradient(145deg, rgba(59, 63, 70, 0.4), rgba(28, 36, 44, 0.6));
     border: 2px solid rgba(59, 63, 70, 0.6);
     border-radius: 15px;
-    padding: 25px;
+    padding: 20px;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
     position: relative;
     overflow: hidden;
-    min-height: 320px;
+    min-height: 250px;
 
     &::before {
         content: '';
@@ -321,7 +321,8 @@
         }
     }
     .equipped-badge,
-    .owned-badge {
+    .owned-badge,
+    .level-required-badge {
         position: absolute;
         top: 5px;
         right: calc(50% - 60px);
@@ -338,13 +339,23 @@
     .equipped-badge {
         background: #f39c12;
     }
+
+    .level-required-badge {
+        background: #e74c3c;
+        right: calc(50% - 80px);
+
+        .fas {
+            margin-right: 4px;
+        }
+    }
 }
 
 .item-image-container {
     position: relative;
     text-align: center;
-    margin-bottom: 20px;
-    padding: 10px;
+    margin-bottom: 15px;
+    margin-top: 15px;
+    padding: 5px;
 
     .item-image {
         width: 150px;
@@ -361,7 +372,28 @@
             border-color: #f39c12;
             box-shadow: 0 8px 25px rgba(243, 156, 18, 0.4);
         }
+
+        // Spécial pour les bannières (format 1350x256 ~ 5.3:1)
+        &.banner-image {
+            width: 350px;
+            height: 66px;
+            border-radius: 10px;
+            object-fit: cover;
+        }
     }
+}
+
+// Ciblage par attribut data pour les bannières
+.item-card[data-category='banner'] {
+    .item-image {
+        width: 350px;
+        height: 66px;
+        border-radius: 10px;
+        object-fit: cover;
+    }
+
+    // Réduire la hauteur minimale pour les bannières
+    min-height: 200px;
 }
 
 .item-info {
@@ -370,7 +402,7 @@
     .item-name {
         font-size: 1.2rem;
         color: #f39c12;
-        margin: 15px 0 20px 0;
+        margin: 10px 0 15px 0;
         font-weight: bold;
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     }
@@ -379,7 +411,7 @@
 .item-footer {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
     align-items: center;
 }
 
@@ -420,6 +452,14 @@
             opacity: 0.5;
             cursor: not-allowed;
             transform: none !important;
+
+            &.buy-btn {
+                background: linear-gradient(45deg, #5d6d7e, #85929e);
+
+                &:hover {
+                    background: linear-gradient(45deg, #5d6d7e, #85929e);
+                }
+            }
         }
 
         &:not(:disabled):hover {

@@ -9,6 +9,12 @@
     gap: 8px;
     align-items: center;
 }
+
+.avatar-container {
+    position: relative;
+    display: inline-block;
+}
+
 .avatar-img {
     width: 48px;
     height: 48px;
@@ -16,13 +22,14 @@
     border: 2px solid transparent;
     cursor: pointer;
     object-fit: cover;
-    transition: border 0.2s;
+    transition: border 0.2s, opacity 0.2s;
 }
+
 .avatar-img.selected {
     border: 2px solid #007bff;
 }
 
-// Style pour les avatars de boutique
+// Style pour les avatars de boutique possédés
 .avatar-img.shop-avatar {
     border: 2px solid #ffd700; // Bordure dorée
     box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
@@ -31,6 +38,38 @@
 .avatar-img.shop-avatar.selected {
     border: 2px solid #007bff;
     box-shadow: 0 0 12px rgba(0, 123, 255, 0.5);
+}
+
+// Style pour les avatars de boutique non possédés
+.avatar-img.shop-avatar-locked {
+    border: 2px solid #666;
+    opacity: 0.4;
+    filter: brightness(0.3);
+    cursor: not-allowed;
+}
+
+.avatar-img.disabled {
+    cursor: not-allowed;
+}
+
+.lock-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    pointer-events: none;
+}
+
+.lock-icon {
+    font-size: 16px;
+    color: #fff;
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
 }
 
 .avatar-upload-label {

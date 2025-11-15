@@ -58,6 +58,9 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     ngOnInit(): void {
         this.getPlayerName();
 
+        this.friendsService.loadFriends();
+        this.friendsService.initializeFriendsSocket();
+
         this.authService.authState$.subscribe((isAuthenticated) => {
             if (isAuthenticated) {
                 this.getPlayerName();

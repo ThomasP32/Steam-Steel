@@ -251,6 +251,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+    z-index: 1;
 
     &:hover {
         background-color: #c0392b;
@@ -496,6 +498,11 @@
     border: 1px solid #34495e;
     border-radius: 8px;
     transition: all 0.2s ease;
+    position: relative;
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 80px;
 
     &:hover {
         background-color: #34495e;
@@ -509,18 +516,54 @@
     &.other-user {
         border-left: 4px solid #7f8c8d;
     }
+
+    &.has-banner {
+        position: relative;
+    }
+
+    &.has-banner::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.25);
+        pointer-events: none;
+        z-index: 0;
+        border-radius: 8px;
+    }
 }
 
 .user-info {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     flex: 1;
+    position: relative;
+    z-index: 1;
+}
+
+.user-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+    margin-left: 20px;
+    margin-right: 20px;
 }
 
 .user-avatar {
     width: 40px;
     height: 40px;
-    margin-right: 12px;
     display: flex;
     align-items: center;
     justify-content: center;

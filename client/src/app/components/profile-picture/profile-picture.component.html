@@ -1,14 +1,23 @@
 <div class="profile-picture-container">
     <div class="avatar-list">
-        <img
+        <div
             *ngFor="let avatar of avatars"
-            [src]="avatar.preview"
-            [alt]="'Avatar ' + avatar.id"
-            [class.selected]="isSelected(avatar.id)"
-            [class.shop-avatar]="avatar.isShopAvatar"
+            class="avatar-container"
             (click)="selectPredefinedAvatar(avatar.id)"
-            class="avatar-img"
-        />
+        >
+            <img
+                [src]="avatar.preview"
+                [alt]="'Avatar ' + avatar.id"
+                [class.selected]="isSelected(avatar.id)"
+                [class.shop-avatar]="avatar.isShopAvatar && isShopAvatarOwned(avatar)"
+                [class.shop-avatar-locked]="avatar.isShopAvatar && !isShopAvatarOwned(avatar)"
+                [class.disabled]="!canSelectAvatar(avatar)"
+                class="avatar-img"
+            />
+            <div *ngIf="avatar.isShopAvatar && !isShopAvatarOwned(avatar)" class="lock-overlay">
+                <span class="lock-icon">🔒</span>
+            </div>
+        </div>
         <label class="avatar-upload-label">
             <input type="file" accept="image/*" (change)="onAvatarFileSelected($event)" hidden />
             <span class="avatar-upload-btn">+</span>

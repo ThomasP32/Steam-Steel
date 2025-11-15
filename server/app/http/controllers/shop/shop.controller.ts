@@ -37,6 +37,11 @@ export class ShopController {
         return this.shopService.getUserItems(userId);
     }
 
+    @Get('user-items-by-username/:username')
+    async getUserItemsByUsername(@Param('username') username: string) {
+        return this.shopService.getUserItemsByUsername(username);
+    }
+
     @Post('purchase')
     async purchaseItem(@Body() body: { userId: string; itemId: string }) {
         return this.shopService.purchaseItem(body.userId, body.itemId);

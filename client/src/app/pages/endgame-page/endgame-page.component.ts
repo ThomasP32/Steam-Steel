@@ -1,4 +1,4 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { ChannelService } from '@app/services/channel/channel.service';
@@ -7,6 +7,7 @@ import { SocketService } from '@app/services/communication-socket/communication-
 import { EndgameService } from '@app/services/endgame/endgame.service';
 import { GameService } from '@app/services/game/game.service';
 import { PlayerService } from '@app/services/player-service/player.service';
+import { ShopHttpService } from '@app/services/shop-http/shop-http.service';
 import { FriendsEvents } from '@common/events/friends.events';
 import { GameManagerEvents } from '@common/events/game-manager.events';
 import { Avatar, Game, GameCtf, Player } from '@common/game';
@@ -21,9 +22,10 @@ import { Subscription } from 'rxjs';
     templateUrl: './endgame-page.component.html',
     styleUrl: './endgame-page.component.scss',
 })
-export class EndgamePageComponent implements OnDestroy {
+export class EndgamePageComponent implements OnInit, OnDestroy {
     socketSubscription: Subscription = new Subscription();
     isChatVisible: boolean = false;
+    private readonly playerBanners: Map<string, string> = new Map();
     showLevelModal: boolean = false;
     newLevel: number = 0;
     bannerUnlocked: boolean = false;
@@ -36,6 +38,7 @@ export class EndgamePageComponent implements OnDestroy {
         private readonly router: Router,
         protected endgameService: EndgameService,
         private readonly channelService: ChannelService,
+        private readonly shopHttpService: ShopHttpService,
     ) {
         this.socketService = socketService;
         this.gameService = gameService;
@@ -44,6 +47,11 @@ export class EndgamePageComponent implements OnDestroy {
         this.router = router;
         this.endgameService = endgameService;
         this.channelService = channelService;
+        this.shopHttpService = shopHttpService;
+    }
+
+    async ngOnInit(): Promise<void> {
+        await this.loadPlayerBanners();
         this.listenToPlayerLeveledUp();
     }
 
@@ -96,5 +104,36 @@ export class EndgamePageComponent implements OnDestroy {
             this.socketSubscription.unsubscribe();
         }
         this.socketService.disconnect();
+    }
+
+    private async loadPlayerBanners(): Promise<void> {
+        if (!this.players || this.players.length === 0) {
+            return;
+        }
+
+        for (const player of this.players) {
+            try {
+                const userItems = await this.shopHttpService.getUserItemsByUsername(player.name).toPromise();
+
+                if (userItems && userItems.length > 0) {
+                    const equippedBanner = userItems.find(
+                        (item: { itemId: string; equipped: boolean; purchaseDate: Date }) => item.equipped && item.itemId.startsWith('banner_'),
+                    );
+                    if (equippedBanner) {
+                        const catalog = await this.shopHttpService.getCatalog().toPromise();
+                        const bannerItem = catalog?.find((item) => item.id === equippedBanner.itemId);
+                        if (bannerItem && bannerItem.imagePath) {
+                            this.playerBanners.set(player.name, bannerItem.imagePath);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(`❌ Error loading banner for ${player.name}:`, error);
+            }
+        }
+    }
+
+    getPlayerBanner(playerName: string): string | null {
+        return this.playerBanners.get(playerName) || null;
     }
 }
