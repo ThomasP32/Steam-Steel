@@ -8,6 +8,7 @@ import { EndgameService } from '@app/services/endgame/endgame.service';
 import { GameService } from '@app/services/game/game.service';
 import { PlayerService } from '@app/services/player-service/player.service';
 import { FriendsEvents } from '@common/events/friends.events';
+import { GameManagerEvents } from '@common/events/game-manager.events';
 import { Avatar, Game, GameCtf, Player } from '@common/game';
 import { Mode } from '@common/map.types';
 import { UserStatus } from '@common/user-friends';
@@ -23,6 +24,9 @@ import { Subscription } from 'rxjs';
 export class EndgamePageComponent implements OnDestroy {
     socketSubscription: Subscription = new Subscription();
     isChatVisible: boolean = false;
+    showLevelModal: boolean = false;
+    newLevel: number = 0;
+    bannerUnlocked: boolean = false;
 
     constructor(
         private readonly socketService: SocketService,
@@ -40,6 +44,7 @@ export class EndgamePageComponent implements OnDestroy {
         this.router = router;
         this.endgameService = endgameService;
         this.channelService = channelService;
+        this.listenToPlayerLeveledUp();
     }
 
     get player(): Player {
@@ -60,6 +65,18 @@ export class EndgamePageComponent implements OnDestroy {
 
     getAvatarPreview(avatar: Avatar): string {
         return this.characterService.getAvatarPreview(avatar);
+    }
+
+    listenToPlayerLeveledUp(): void {
+        this.socketSubscription.add(
+            this.socketService.listen<{ newLevel: number; bannerUnlocked: boolean} >(GameManagerEvents.PlayerLeveledUp).subscribe((data) => {
+                {
+                    this.showLevelModal = true;
+                    this.newLevel = data.newLevel;
+                    this.bannerUnlocked = data.bannerUnlocked;
+                }
+            }),
+        );
     }
 
     navigateToMain(): void {

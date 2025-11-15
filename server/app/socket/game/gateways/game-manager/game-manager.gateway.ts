@@ -25,6 +25,7 @@ import { Inject } from '@nestjs/common';
 import { OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ItemsManagerService } from '../../../../services/items-manager/items-manager.service';
+import { UserService } from '@app/http/services/user/user.service';
 
 @WebSocketGateway({ namespace: '/game', cors: { origin: '*' } })
 export class GameManagerGateway implements OnGatewayInit {
@@ -40,6 +41,7 @@ export class GameManagerGateway implements OnGatewayInit {
     @Inject(VirtualGameManagerService) private virtualGameManagerService: VirtualGameManagerService;
     @Inject(ItemsManagerService) private readonly itemsManagerService: ItemsManagerService;
     @Inject(ChallengeService) private readonly challengeService: ChallengeService;
+    @Inject(UserService) private readonly userService: UserService;
 
     afterInit(server: Server) {
         this.gameCountdownService.setServer(this.server);
@@ -60,6 +62,7 @@ export class GameManagerGateway implements OnGatewayInit {
         });
         this.journalService.initializeServer(server);
         this.challengeService.setServer(this.server);
+        this.userService.setServer(this.server);
     }
 
     @SubscribeMessage('getMovements')

@@ -57,7 +57,10 @@
                 </div>
 
                 <div class="user-details">
-                    <div class="user-name">{{ user.username }}</div>
+                    <div class="user-header">
+                        <div class="user-name">{{ user.username }}</div>
+                        <img class="user-level" [src]="'assets/level-badges/level-' + getFriendLevel(user.username) + '.png'" alt="Niveau"/>
+                    </div>
                     <div class="user-status" [class]="getStatusClass(user.status)">
                         <span class="status-dot"></span>
                         {{ getStatusText(user.status) }}
@@ -77,8 +80,11 @@
         <div class="user-item other-user">
             <div class="user-info">
                 <div class="user-details">
-                    <div class="user-name">{{ user.username }}</div>
-                    @if (getPendingRequestStatus(user.username)) {
+                    <div class="user-header">
+                        <div class="user-name">{{ user.username }}</div>
+                        <img class="user-level" [src]="'assets/level-badges/level-' + getFriendLevel(user.username) + '.png'" alt="Niveau"/>
+                    </div>
+                        @if (getPendingRequestStatus(user.username)) {
                     <div class="pending-status">{{ getPendingRequestStatus(user.username) }}</div>
                     }
                 </div>

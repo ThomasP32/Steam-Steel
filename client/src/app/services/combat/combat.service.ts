@@ -14,6 +14,7 @@ export class CombatService {
         socketId: '',
         name: '',
         avatar: 1,
+        level: 1,
         isActive: false,
         isObservationMode: false,
         specs: {

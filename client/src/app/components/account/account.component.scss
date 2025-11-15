@@ -16,17 +16,32 @@
     color: #c0c0c0;
 }
 
-.account-title {
-    margin: 0 0 1.5rem 0;
-    color: #c0c0c0;
-    font-size: 1.3rem;
-    font-weight: bold;
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+.title-section {
+    position: relative;
+    margin-bottom: 1.5rem;
     border-bottom: 2px solid #7d7f7d;
     padding-bottom: 1rem;
 }
+  
+.account-title {
+    margin: 0;
+    color: #c0c0c0;
+    font-size: 1.3rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+}
+  
+.user-level {
+    width: 45px;
+    height: 45px;
+    object-fit: contain;
+    position: absolute;
+    right: 0;
+    top: 25%; 
+    transform: translateY(-50%);
+  }
 
 .account-main-row {
     display: flex;

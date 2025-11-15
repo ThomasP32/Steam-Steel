@@ -71,4 +71,22 @@
     <div class="exit-button-container">
         <button (click)="navigateToMain()">Menu principal</button>
     </div>
+    @if(showLevelModal){
+    <div class="levelup-backdrop" >
+        <div class="levelup-modal">
+          <h2>Félicitations ! 🎉</h2>
+          <p>Tu viens de passer au <strong>niveau {{ newLevel }}</strong> !</p>
+      
+          @if (bannerUnlocked) {
+            <p>Tu as débloqué une nouvelle bannière. Va voir la boutique pour la découvrir !</p>
+          } @else {
+            <p>Continue de jouer, une nouvelle bannière t’attend tous les 5 niveaux.</p>
+          }
+      
+          <div class="levelup-action">
+            <button (click)="showLevelModal = false">OK</button>
+          </div>
+        </div>
+      </div>
+    }
 </div>

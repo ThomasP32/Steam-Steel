@@ -24,7 +24,7 @@ export class FriendsListComponent implements OnInit, OnDestroy {
     activeTab: 'friends' | 'requests' = 'friends';
     currentUsername: string = '';
 
-    allUsers: { username: string }[] = [];
+    allUsers: { username: string, level: number }[] = [];
     searchQuery: string = '';
     isLoadingUsers: boolean = false;
     selectedUserForAdd: string = '';
@@ -214,6 +214,11 @@ export class FriendsListComponent implements OnInit, OnDestroy {
         }
 
         return '';
+    }
+
+    getFriendLevel(username: string): number {
+        const user = this.allUsers.find((user) => user.username === username);
+        return user?.level ?? 1;
     }
 
     getPendingRequestStatus(username: string): string {

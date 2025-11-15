@@ -36,6 +36,7 @@ export class PlayerService {
         const player: Player = {
             name: this.player.name,
             socketId: this.socketService.socket.id || '',
+            level: this.player.level,
             isActive: true,
             isObservationMode: false,
             avatar: this.player.avatar,
@@ -60,6 +61,10 @@ export class PlayerService {
 
     setPlayerAvatar(avatar: Avatar): void {
         this.player.avatar = avatar;
+    }
+
+    setPlayerLevel(level: number): void {
+        this.player.level = level;
     }
 
     assignBonus(type: 'life' | 'speed'): void {
@@ -104,6 +109,7 @@ export class PlayerService {
         const player: Player = {
             name: '',
             socketId: '',
+            level: 1,
             isActive: true,
             isObservationMode: false,
             avatar: Avatar.Avatar1,

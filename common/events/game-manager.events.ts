@@ -13,4 +13,5 @@ export enum GameManagerEvents {
     GetAdjacentWalls = 'getAdjacentWalls',
     GetMovements = 'getMovements',
     MoveToPosition = 'moveToPosition',
+    PlayerLeveledUp = 'playerLeveledUp',
 }

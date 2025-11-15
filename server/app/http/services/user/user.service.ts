@@ -1,17 +1,24 @@
-import { JWT_SECRET } from '@common/constants';
+import { JWT_SECRET, N_WINS_PER_LEVEL, MAX_LEVEL, N_LEVEL_BANNER } from '@common/constants';
 import { Avatar } from '@common/game';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as jwt from 'jsonwebtoken';
 import { Model } from 'mongoose';
 import { User } from '../../model/schemas/user/user.schema';
+import { Server } from 'socket.io';
+import { GameManagerEvents } from '@common/events/game-manager.events';
 
 @Injectable()
 export class UserService {
     private readonly activeSessions: Map<string, string> = new Map();
+    server: Server;
 
     constructor(@InjectModel(User.name) private readonly userModel: Model<User>) {
         this.userModel = userModel;
+    }
+
+    setServer(server: Server): void {
+        this.server = server;
     }
 
     async create(email: string, password: string, username: string, avatar?: Avatar, avatarCustom?: string): Promise<User> {
@@ -60,6 +67,18 @@ export class UserService {
         user.stats[mode].gamesPlayed += 1;
         if (isWin) {
             user.stats[mode].gamesWon += 1;
+            const totalGamesWon = user.stats.classique.gamesWon + user.stats.ctf.gamesWon;
+            if(totalGamesWon % N_WINS_PER_LEVEL === 0) {
+                if (!user.stats.level) {
+                    user.stats.level = 1;
+                }
+                user.stats.level = Math.min(user.stats.level + 1, MAX_LEVEL);
+                const bannerUnlocked = user.stats.level % N_LEVEL_BANNER === 0;
+                this.server.to(id).emit(GameManagerEvents.PlayerLeveledUp, {
+                    newLevel: user.stats.level,
+                    bannerUnlocked,
+                  });
+            }
         }
         const totalGames = (user.stats.classique?.gamesPlayed || 0) + (user.stats.ctf?.gamesPlayed || 0);
         if (!user.stats.avgTime || user.stats.avgTime === 0) {
@@ -284,7 +303,7 @@ export class UserService {
         return this.userModel.find({ friends: friendUser._id.toString() }).exec();
     }
 
-    async searchUsersByUsername(query: string): Promise<{ username: string }[]> {
+    async searchUsersByUsername(query: string): Promise<{ username: string, level: number }[]> {
         let searchQuery: any = {};
 
         if (query && query.length > 0) {
@@ -293,13 +312,14 @@ export class UserService {
 
         const users = await this.userModel
             .find(searchQuery)
-            .select('username')
+            .select('username stats.level')
             .limit(query ? 10 : 100)
             .sort({ username: 1 })
             .exec();
 
         return users.map((user) => ({
             username: user.username,
+            level: user.stats.level ?? 1 ,
         }));
     }
 

@@ -82,7 +82,13 @@ export const ALL_ITEMS: ItemCategory[] = [
     ItemCategory.Amulet,
 ];
 
-export const N_WIN_VICTORIES = 3;
+export const N_WIN_VICTORIES: number = 3;
+
+export const N_WINS_PER_LEVEL: number = 5;
+
+export const N_LEVEL_BANNER: number = 5;
+
+export const MAX_LEVEL: number = 25;
 
 export const DEFAULT_HP: number = 4;
 
