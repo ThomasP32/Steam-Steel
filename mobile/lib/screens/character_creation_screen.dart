@@ -46,6 +46,9 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   String? attackOrDefenseBonus;
   bool _isSubmitting = false;
   StreamSubscription<dynamic>? _gameLockedSub;
+  StreamSubscription<dynamic>? _youJoinedSub;
+  StreamSubscription<dynamic>? _currentGameSub;
+  GameSettings? _fetchedSettings;
 
   String _diceAsset(Bonus bonus) => 'lib/assets/icons/d${bonus.value}.png';
   final CharacterCreationService _creationService = CharacterCreationService();
@@ -55,6 +58,14 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     super.initState();
     _loadUserName();
     _listenToGameLocked();
+    _listenToYouJoined();
+
+    if ((widget.gameSettings == null || widget.gameId?.isNotEmpty == true) &&
+        widget.gameId != null &&
+        widget.gameId!.isNotEmpty) {
+      _listenToCurrentGame();
+      _fetchGameData();
+    }
 
     if (widget.gameId != null && widget.gameId!.isNotEmpty) {
       _creationService.startListening(widget.gameId!);
@@ -96,6 +107,104 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     });
   }
 
+  void _listenToCurrentGame() {
+    _currentGameSub = SocketService()
+        .listen<Map<String, dynamic>>('currentGame')
+        .listen((gameData) {
+          if (!mounted) return;
+
+          try {
+            final settingsMap = gameData['settings'] as Map<String, dynamic>?;
+            if (settingsMap != null) {
+              setState(() {
+                _fetchedSettings = GameSettings(
+                  isFastElimination:
+                      settingsMap['isFastElimination'] as bool? ?? false,
+                  isDropInOut: settingsMap['isDropInOut'] as bool? ?? false,
+                  isFriendsOnly: settingsMap['isFriendsOnly'] as bool? ?? false,
+                );
+              });
+            }
+          } catch (e) {
+            DebugLogger.log(
+              'Failed to parse game settings: $e',
+              tag: 'CharacterCreation',
+            );
+          }
+        });
+  }
+
+  void _fetchGameData() {
+    SocketService().send('getGameData', widget.gameId);
+  }
+
+  void _listenToYouJoined() {
+    _youJoinedSub = SocketService()
+        .listen<Map<String, dynamic>>('youJoined')
+        .listen((data) {
+          if (!mounted) return;
+
+          final updatedPlayer = data['updatedPlayer'] as Map<String, dynamic>?;
+          final updatedGame = data['updatedGame'] as Map<String, dynamic>?;
+
+          if (updatedPlayer == null || updatedGame == null) {
+            DebugLogger.log('youJoined missing data', tag: 'CharacterCreation');
+            setState(() => _isSubmitting = false);
+            return;
+          }
+
+          try {
+            PlayerService().setPlayerFromJson(updatedPlayer);
+          } catch (e) {
+            DebugLogger.log(
+              'Failed to set player: $e',
+              tag: 'CharacterCreation',
+            );
+          }
+
+          final effectiveSettings = widget.gameSettings ?? _fetchedSettings;
+
+          final isDropInDropOut = effectiveSettings?.isDropInOut ?? false;
+          final isObservationMode =
+              updatedPlayer['isObservationMode'] as bool? ?? false;
+
+          if (isObservationMode || isDropInDropOut) {
+            final gameId = updatedGame['id'] as String?;
+            final mapData = updatedGame['map'] as Map<String, dynamic>?;
+            final mapName = mapData?['name'] as String? ?? widget.mapName ?? '';
+
+            try {
+              GoRouter.of(context).go('/game/$gameId/$mapName');
+            } catch (e) {
+              DebugLogger.log(
+                'Navigation to game failed: $e',
+                tag: 'CharacterCreation',
+              );
+            }
+          } else {
+            DebugLogger.log(
+              'Navigating to waiting room',
+              tag: 'CharacterCreation',
+            );
+            try {
+              GoRouter.of(context).go(
+                '/${widget.gameId}/waiting-room/player',
+                extra: effectiveSettings,
+              );
+            } catch (e) {
+              DebugLogger.log(
+                'Navigation to waiting room failed: $e',
+                tag: 'CharacterCreation',
+              );
+            }
+          }
+
+          if (mounted) {
+            setState(() => _isSubmitting = false);
+          }
+        });
+  }
+
   void _addBonus(String type) {
     setState(() {
       _specs = _creationService.assignBonus(_specs, type);
@@ -129,7 +238,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
 
     if (widget.mapName != null &&
         widget.mapName!.isNotEmpty &&
-        !widget.isObserver) {
+        (widget.gameId == null || widget.gameId!.isEmpty)) {
       final player = Player(
         socketId: SocketService().socketId ?? '',
         name: name.isNotEmpty ? name : 'Hôte',
@@ -229,24 +338,6 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
             try {
               PlayerService().setPlayer(player);
             } catch (_) {}
-
-            try {
-              GoRouter.of(context).go(
-                '/${widget.gameId}/waiting-room/player',
-                extra: widget.gameSettings,
-              );
-            } on Exception catch (e) {
-              DebugLogger.log(
-                'Navigation to waiting-room player failed: $e',
-                tag: 'CharacterCreation',
-              );
-            } finally {
-              if (mounted) {
-                setState(() {
-                  _isSubmitting = false;
-                });
-              }
-            }
           },
           onTimeout: () {
             if (!mounted) return;
@@ -281,6 +372,8 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   @override
   void dispose() {
     _gameLockedSub?.cancel();
+    _youJoinedSub?.cancel();
+    _currentGameSub?.cancel();
     _creationService.reset();
     super.dispose();
   }

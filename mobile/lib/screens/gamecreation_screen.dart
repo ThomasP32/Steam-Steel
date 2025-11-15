@@ -28,6 +28,7 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
   bool showGameOptionsModal = false;
   Map<String, bool> gameSettings = {
     'isFastElimination': false,
+    'isDropInOut': false,
     'isFriendsOnly': false,
   };
 
@@ -85,10 +86,12 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
 
   void onGameOptionsNext({
     required bool isFastElimination,
+    required bool isDropInOut,
     required bool isFriendsOnly,
   }) {
     final settings = GameSettings(
       isFastElimination: isFastElimination,
+      isDropInOut: isDropInOut,
       isFriendsOnly: isFriendsOnly,
     );
 

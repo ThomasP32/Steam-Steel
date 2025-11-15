@@ -160,10 +160,10 @@ class _GameScreenState extends State<GameScreen> {
         }
 
         if (playerData != null) {
-          final currentPlayer = PlayerService().player;
+          final currentSocketId = SocketService().socketId;
           final updatedSocketId = playerData['socketId']?.toString() ?? '';
 
-          if (updatedSocketId == currentPlayer.socketId) {
+          if (currentSocketId != null && updatedSocketId == currentSocketId) {
             PlayerService().setPlayerFromJson(playerData);
 
             if (_pendingInventoryFull &&
@@ -615,6 +615,21 @@ class _GameScreenState extends State<GameScreen> {
       if (!mounted) return;
       if (data is Map<String, dynamic>) {
         _gameService.updateFromJson(data);
+
+        final currentSocketId = SocketService().socketId;
+        if (currentSocketId != null) {
+          final updatedPlayer = _gameService.findPlayerBySocketId(
+            currentSocketId,
+          );
+          if (updatedPlayer != null) {
+            PlayerService().setPlayer(updatedPlayer);
+            DebugLogger.log(
+              'Updated local player from gameUpdated event',
+              tag: 'GameScreen',
+            );
+          }
+        }
+
         setState(() {});
       }
     });
@@ -951,11 +966,11 @@ class _GameScreenState extends State<GameScreen> {
                 return ValueListenableBuilder<List<dynamic>>(
                   valueListenable: _gameTurnService.possibleOpponentsNotifier,
                   builder: (context, opponents, _) {
-                      final player = PlayerService().player;
+                    final player = PlayerService().player;
                     final hasCombat =
-                          opponents.isNotEmpty &&
-                          isYourTurn &&
-                          player.specs.actions > 0;
+                        opponents.isNotEmpty &&
+                        isYourTurn &&
+                        player.specs.actions > 0;
                     DebugLogger.log(
                       'Combat button: opponents=${opponents.length}, isYourTurn=$isYourTurn, enabled=$hasCombat',
                       tag: 'GameScreen',

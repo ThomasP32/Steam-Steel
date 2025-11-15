@@ -31,6 +31,18 @@ class GameService {
       );
     }
   }
+    Player? findPlayerBySocketId(String socketId) {
+    final game = currentGame;
+    if (game == null || socketId.isEmpty) return null;
+
+    try {
+      return game.players.firstWhere(
+        (p) => p.socketId == socketId,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
 
   void clearGame() {
     DebugLogger.log('GameService: clearing game', tag: 'GameService');
