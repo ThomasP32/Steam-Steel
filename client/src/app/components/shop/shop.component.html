@@ -42,8 +42,8 @@
                         <div class="custom-tooltip">
                             <div class="tooltip-header">✨ Bannières</div>
                             <div class="tooltip-content">
-                                Affiche ton style ! Cette bannière décorative encadrera élégamment ton pseudo dans l'application. Tous les autres
-                                joueurs pourront admirer ton choix esthétique !
+                                Affiche ton style ! Cette bannière décorative encadrera élégamment tes infos dans la salle d'attente, fin de partie et
+                                dans la liste d'amis. Tous les autres joueurs pourront admirer ton choix esthétique !
                             </div>
                         </div>
                     </div>
@@ -51,19 +51,27 @@
                 </div>
 
                 <div class="items-grid">
-                    <div *ngFor="let item of getCurrentCategoryItems()" class="item-card" [class.owned]="item.owned" [class.equipped]="item.equipped">
+                    <div
+                        *ngFor="let item of getCurrentCategoryItems()"
+                        class="item-card"
+                        [class.owned]="item.owned"
+                        [class.equipped]="item.equipped"
+                        [attr.data-category]="item.category"
+                    >
                         <div class="item-image-container">
                             <img
                                 [src]="item.imagePath"
                                 [alt]="item.name"
                                 [title]="item.description"
                                 class="item-image"
+                                [class.banner-image]="item.category === 'banner'"
                                 (error)="onImageError($event)"
                             />
                         </div>
                         <div *ngIf="item.equipped" class="equipped-badge">✓ Équipé</div>
 
                         <div *ngIf="item.owned && !item.equipped" class="owned-badge">✓ Possédé</div>
+
                         <div class="item-info">
                             <h3 class="item-name">{{ item.name }}</h3>
 
@@ -74,9 +82,19 @@
                                 </div>
 
                                 <div class="item-actions">
-                                    <button *ngIf="!item.owned" class="action-btn buy-btn" [disabled]="!canAfford(item)" (click)="buyItem(item)">
-                                        <span *ngIf="canAfford(item)">Acheter</span>
-                                        <span *ngIf="!canAfford(item)">Fonds insuffisants</span>
+                                    <button
+                                        *ngIf="!item.owned"
+                                        class="action-btn buy-btn"
+                                        [disabled]="!canAfford(item) || (item.levelRequired && item.canPurchase === false)"
+                                        (click)="buyItem(item)"
+                                    >
+                                        <span *ngIf="item.levelRequired && item.canPurchase === false">
+                                            <i class="fas fa-lock"></i> Niveau {{ item.levelRequired }} requis
+                                        </span>
+                                        <span *ngIf="(!item.levelRequired || item.canPurchase !== false) && canAfford(item)">Acheter</span>
+                                        <span *ngIf="(!item.levelRequired || item.canPurchase !== false) && !canAfford(item)"
+                                            >Fonds insuffisants</span
+                                        >
                                     </button>
 
                                     <button *ngIf="item.owned && !item.equipped" class="action-btn equip-btn" (click)="equipItem(item)">

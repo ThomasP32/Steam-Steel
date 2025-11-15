@@ -46,31 +46,39 @@
             <h4>Mes Amis ({{ getFilteredFriends().length }})</h4>
         </div>
         @for (user of getFilteredFriends(); track user.username) {
-        <div class="user-item friend-user">
-            <div class="user-info">
-                <div class="user-avatar">
-                    @if (getUserAvatarUrl(user)) {
-                    <img [src]="getUserAvatarUrl(user)" [alt]="user.username + ' avatar'" class="avatar-image" />
-                    } @else {
-                    <i class="fas fa-user"></i>
-                    }
-                </div>
+        <div
+            class="user-item friend-user"
+            [style.background-image]="getFriendBanner(user.username) ? 'url(' + getFriendBanner(user.username) + ')' : 'none'"
+            [class.has-banner]="getFriendBanner(user.username)"
+        >
+            <div class="user-content">
+                <div class="user-info">
+                    <div class="user-left">
+                        <div class="user-avatar">
+                            @if (getUserAvatarUrl(user)) {
+                            <img [src]="getUserAvatarUrl(user)" [alt]="user.username + ' avatar'" class="avatar-image" />
+                            } @else {
+                            <i class="fas fa-user"></i>
+                            }
+                        </div>
 
-                <div class="user-details">
-                    <div class="user-header">
-                        <div class="user-name">{{ user.username }}</div>
-                        <img class="user-level" [src]="'assets/level-badges/level-' + getFriendLevel(user.username) + '.png'" alt="Niveau"/>
+                        <div class="user-details">
+                            <div class="user-header">
+                                <div class="user-name">{{ user.username }}</div>
+                                <img class="user-level" [src]="'assets/level-badges/level-' + getFriendLevel(user.username) + '.png'" alt="Niveau" />
+                            </div>
+                            <div class="user-status" [class]="getStatusClass(user.status)">
+                                <span class="status-dot"></span>
+                                {{ getStatusText(user.status) }}
+                            </div>
+                        </div>
                     </div>
-                    <div class="user-status" [class]="getStatusClass(user.status)">
-                        <span class="status-dot"></span>
-                        {{ getStatusText(user.status) }}
-                    </div>
+
+                    <button (click)="removeFriend(user.username)" class="remove-friend-btn" title="Supprimer ami">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
             </div>
-
-            <button (click)="removeFriend(user.username)" class="remove-friend-btn" title="Supprimer ami">
-                <i class="fas fa-times"></i>
-            </button>
         </div>
         } } @if (getFilteredOtherUsers().length > 0) {
         <div class="section-header">
@@ -82,9 +90,9 @@
                 <div class="user-details">
                     <div class="user-header">
                         <div class="user-name">{{ user.username }}</div>
-                        <img class="user-level" [src]="'assets/level-badges/level-' + getFriendLevel(user.username) + '.png'" alt="Niveau"/>
+                        <img class="user-level" [src]="'assets/level-badges/level-' + getFriendLevel(user.username) + '.png'" alt="Niveau" />
                     </div>
-                        @if (getPendingRequestStatus(user.username)) {
+                    @if (getPendingRequestStatus(user.username)) {
                     <div class="pending-status">{{ getPendingRequestStatus(user.username) }}</div>
                     }
                 </div>
@@ -102,7 +110,7 @@
         </div>
         } } }
     </div>
-    } @if (activeTab === 'requests') {
+    } @else if (activeTab === 'requests') {
     <div class="friend-requests-list">
         @if (friendRequests.length === 0) {
         <div class="no-requests">

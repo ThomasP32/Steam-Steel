@@ -26,6 +26,10 @@ export class ShopHttpService {
         return this.http.get<{ itemId: string; equipped: boolean; purchaseDate: Date }[]>(`${this.baseUrl}/user-items/${userId}`);
     }
 
+    getUserItemsByUsername(username: string): Observable<{ itemId: string; equipped: boolean; purchaseDate: Date }[]> {
+        return this.http.get<{ itemId: string; equipped: boolean; purchaseDate: Date }[]>(`${this.baseUrl}/user-items-by-username/${username}`);
+    }
+
     purchaseItem(userId: string, itemId: string): Observable<{ success: boolean; newBalance?: number; error?: string }> {
         return this.http.post<{ success: boolean; newBalance?: number; error?: string }>(`${this.baseUrl}/purchase`, {
             userId,

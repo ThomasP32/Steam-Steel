@@ -174,6 +174,26 @@ export class CharacterService {
         return this._availableAvatars;
     }
 
+    getAllCharacters(): Character[] {
+        return this.characters;
+    }
+
+    async getUserOwnedItems(): Promise<{ itemId: string; equipped: boolean; purchaseDate: Date }[]> {
+        try {
+            const userInfo = await this.authService.getUserInfo();
+            const user = userInfo?.user || userInfo?.body?.user || userInfo;
+            const userId = user?._id || user?.id;
+
+            if (userId) {
+                return await this.shopHttpService.getUserItems(userId).toPromise() || [];
+            }
+            return [];
+        } catch (error) {
+            console.error('Erreur lors du chargement des items utilisateur:', error);
+            return [];
+        }
+    }
+
     async refreshAvatars(): Promise<void> {
         this._isInitialized = false;
         await this.initializeAvatars();
@@ -248,6 +268,44 @@ export class CharacterService {
                 this.customAvatarPreview = e.target.result;
             };
             reader.readAsDataURL(file);
+        }
+    }
+
+    async unequipShopAvatars(): Promise<void> {
+        try {
+            const userInfo = await this.authService.getUserInfo();
+            const user = userInfo?.user || userInfo?.body?.user || userInfo;
+            const userId = user?._id || user?.id;
+
+            if (!userId) return;
+
+            const userItems = await this.shopHttpService.getUserItems(userId).toPromise();
+            if (!userItems) return;
+
+            const equippedAvatarItem = userItems.find((item) => item.equipped);
+            if (equippedAvatarItem) {
+                const shopAvatar = this.characters.find((char) => char.shopItemId === equippedAvatarItem.itemId && char.isShopAvatar);
+                if (shopAvatar) {
+                    await this.shopHttpService.unequipItem(userId, equippedAvatarItem.itemId).toPromise();
+                }
+            }
+        } catch (error) {
+            console.error("Erreur lors du déséquipement de l'avatar de shop:", error);
+        }
+    }
+
+    async clearCustomAvatar(): Promise<void> {
+        try {
+            const userInfo = await this.authService.getUserInfo();
+            const user = userInfo?.user || userInfo?.body?.user || userInfo;
+
+            if (user) {
+                await this.authService.updateAccount(user.email, user.username, user.avatar, undefined);
+                this.customAvatarFile = null;
+                this.customAvatarPreview = undefined;
+            }
+        } catch (error) {
+            console.error("Erreur lors du vidage de l'avatar personnalisé:", error);
         }
     }
 

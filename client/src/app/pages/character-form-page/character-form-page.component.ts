@@ -40,6 +40,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     selectedCharacter: Character;
     currentIndex: number;
     allCharacters: Character[] = [];
+    userOwnedItems: { itemId: string; equipped: boolean; purchaseDate: Date }[] = [];
     isLoadingCharacters: boolean = true;
 
     game: Game | undefined;
@@ -89,14 +90,30 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         this.playerService.setPlayerLevel(this.level);
 
         try {
-            this.allCharacters = await this.characterService.getAllAvatars();
+            // Charger tous les avatars (y compris ceux du shop)
+            this.allCharacters = this.characterService.getAllCharacters();
+            
+            // Charger les items possédés par l'utilisateur
+            this.userOwnedItems = await this.characterService.getUserOwnedItems();
+            
             if (this.allCharacters.length > 0) {
-                this.selectedCharacter = this.allCharacters[0];
-                this.currentIndex = 0;
+                // Trouver le premier avatar disponible et possédé
+                const firstAvailableCharacter = this.allCharacters.find(char => 
+                    this.isCharacterSelectable(char)
+                );
+                
+                if (firstAvailableCharacter) {
+                    this.selectedCharacter = firstAvailableCharacter;
+                    this.currentIndex = this.allCharacters.indexOf(firstAvailableCharacter);
 
-                const extendedCharacter = this.selectedCharacter as Character & { isShopAvatar?: boolean; shopId?: string };
-                if (!extendedCharacter.isShopAvatar && typeof this.selectedCharacter.id === 'number') {
-                    this.playerService.setPlayerAvatar(this.selectedCharacter.id);
+                    const extendedCharacter = this.selectedCharacter as Character & { isShopAvatar?: boolean; shopId?: string };
+                    if (!extendedCharacter.isShopAvatar && typeof this.selectedCharacter.id === 'number') {
+                        this.playerService.setPlayerAvatar(this.selectedCharacter.id);
+                    }
+                } else {
+                    // Fallback au premier personnage si aucun n'est sélectionnable
+                    this.selectedCharacter = this.allCharacters[0];
+                    this.currentIndex = 0;
                 }
             }
         } catch (error) {
@@ -154,6 +171,18 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
 
     get characters(): Array<Character & { isShopAvatar?: boolean; shopId?: string }> {
         return this.allCharacters;
+    }
+
+    isShopAvatarOwned(character: Character): boolean {
+        const extendedCharacter = character as Character & { isShopAvatar?: boolean; shopItemId?: string };
+        if (!extendedCharacter.isShopAvatar || !extendedCharacter.shopItemId) {
+            return true; // Les avatars non-shop sont toujours "possédés"
+        }
+        return this.userOwnedItems.some(item => item.itemId === extendedCharacter.shopItemId);
+    }
+
+    isCharacterSelectable(character: Character): boolean {
+        return character.isAvailable && this.isShopAvatarOwned(character);
     }
 
     listenToGameStatus(): void {
@@ -216,15 +245,15 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
 
         this.socketSubscription.add(
             this.socketService.listen<Player[]>(GameCreationEvents.CurrentPlayers).subscribe((players: Player[]) => {
-                this.allCharacters.forEach((character) => {
+                this.characters.forEach((character) => {
                     character.isAvailable = true;
                     if (players.some((player) => player.avatar === character.id)) {
                         character.isAvailable = false;
                     }
                 });
-                if (this.selectedCharacter && !this.selectedCharacter.isAvailable) {
+                if (this.selectedCharacter && !this.isCharacterSelectable(this.selectedCharacter)) {
                     for (let i = 0; i < this.allCharacters.length; i++) {
-                        if (this.allCharacters[i].isAvailable) {
+                        if (this.isCharacterSelectable(this.allCharacters[i])) {
                             this.selectedCharacter = this.allCharacters[i];
 
                             const extendedCharacter = this.selectedCharacter as Character & { isShopAvatar?: boolean; shopId?: string };
@@ -249,18 +278,16 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     }
 
     selectCharacter(character: Character) {
-        if (character.isAvailable) {
+        if (this.isCharacterSelectable(character)) {
             this.selectedCharacter = character;
             this.playerService.setPlayerAvatar(character.id);
         }
     }
 
     previousCharacter() {
-        if (this.allCharacters.length === 0 || this.isLoadingCharacters) return;
-
         do {
             this.currentIndex = this.currentIndex === 0 ? this.allCharacters.length - 1 : this.currentIndex - 1;
-        } while (!this.allCharacters[this.currentIndex].isAvailable && this.allCharacters[this.currentIndex] !== this.selectedCharacter);
+        } while (!this.isCharacterSelectable(this.allCharacters[this.currentIndex]) && this.allCharacters[this.currentIndex] !== this.selectedCharacter);
 
         this.selectedCharacter = this.allCharacters[this.currentIndex];
 
@@ -271,11 +298,9 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     }
 
     nextCharacter() {
-        if (this.allCharacters.length === 0 || this.isLoadingCharacters) return;
-
         do {
             this.currentIndex = this.currentIndex === this.allCharacters.length - 1 ? 0 : this.currentIndex + 1;
-        } while (!this.allCharacters[this.currentIndex].isAvailable && this.allCharacters[this.currentIndex] !== this.selectedCharacter);
+        } while (!this.isCharacterSelectable(this.allCharacters[this.currentIndex]) && this.allCharacters[this.currentIndex] !== this.selectedCharacter);
 
         this.selectedCharacter = this.allCharacters[this.currentIndex];
 
@@ -300,10 +325,6 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
             this.gameLockedModal = false;
         }
         if (this.verifyErrors()) {
-            const extendedCharacter = this.selectedCharacter as Character & { isShopAvatar?: boolean; shopId?: string };
-            if (!extendedCharacter.isShopAvatar && typeof this.selectedCharacter.id === 'number') {
-                this.playerService.setPlayerAvatar(this.selectedCharacter.id);
-            }
             this.playerService.createPlayer();
 
             if (this.router.url.includes('create-game')) {
@@ -351,11 +372,6 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         this.showCharacterNameError = false;
         this.showBonusError = false;
         this.showDiceError = false;
-
-        if (!this.selectedCharacter) {
-            this.showSelectionError = true;
-            return false;
-        }
 
         if (this.name === 'Choisis un nom' || this.playerService.player.name === '') {
             this.showCharacterNameError = true;

@@ -8,21 +8,13 @@
         <div class="account-main-row">
             <div class="avatar-square">
                 <img
-                    *ngIf="userInfo.user.avatarCustom; else avatarChoice"
+                    *ngIf="userInfo.user.avatarCustom; else defaultAvatar"
                     [src]="userInfo.user.avatarCustom"
                     alt="Avatar personnalisé"
                     class="avatar-img-square"
                 />
-                <ng-template #avatarChoice>
-                    <img 
-                        *ngIf="equippedShopAvatarPreview; else defaultAvatar"
-                        [src]="equippedShopAvatarPreview" 
-                        alt="Avatar de boutique équipé" 
-                        class="avatar-img-square" 
-                    />
-                    <ng-template #defaultAvatar>
-                        <img [src]="getAvatarPreview(userInfo.user.avatar)" alt="Avatar de base" class="avatar-img-square" />
-                    </ng-template>
+                <ng-template #defaultAvatar>
+                    <img [src]="getAvatarPreview(userInfo.user.avatar)" alt="Avatar" class="avatar-img-square" />
                 </ng-template>
             </div>
             <div class="info-side">

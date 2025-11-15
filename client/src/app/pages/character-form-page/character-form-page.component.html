@@ -8,13 +8,13 @@
             }
         </div>
         <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
-            <i class="fas fa-comments" aria-hidden="true"></i>
-        </button>
-        @if (isChatVisible) {
-        <div class="global-chat-wrapper">
-            <app-chatroom [isInGame]="false" (closed)="isChatVisible = false"></app-chatroom>
-        </div>
-        }
+        <i class="fas fa-comments" aria-hidden="true"></i>
+    </button>
+    @if (isChatVisible) {
+    <div class="global-chat-wrapper">
+        <app-chatroom [isInGame]="false" (closed)="isChatVisible = false"></app-chatroom>
+    </div>
+    }
         <div class="left-side">
             <div class="player-stats">
                 <div class="stats">
@@ -70,7 +70,7 @@
 
                         <div class="dice-icon">
                             @if (attackOrDefenseBonus) { @if(attackBonus === Bonus.D4) {
-                            <i class="fas fa-dice-four"></i>} @else if(attackBonus === Bonus.D6) { <i class="fas fa-dice-six"></i>} }
+                            <img src="./assets/icons/d4.png" alt="D4" class="dice-image" />} @else if(attackBonus === Bonus.D6) { <img src="./assets/icons/d6.png" alt="D6" class="dice-image" />} }
                         </div>
                     </div>
                     <div class="dice-and-buttons-wrapper">
@@ -79,9 +79,9 @@
                         </button>
                         <div class="dice-icon">
                             @if(attackOrDefenseBonus) { @if(defenseBonus === Bonus.D4) {
-                            <i class="fas fa-dice-four"></i>
+                            <img src="./assets/icons/d4.png" alt="D4" class="dice-image" />
                             } @else if(defenseBonus === Bonus.D6) {
-                            <i class="fas fa-dice-six"></i>}}
+                            <img src="./assets/icons/d6.png" alt="D6" class="dice-image" />}}
                         </div>
                     </div>
                 </div>
@@ -92,13 +92,22 @@
         </div>
 
         <div class="character-display">
-            <button class="arrow-button left-arrow" (click)="previousCharacter()" [disabled]="isLoadingCharacters">&#9664;</button>
+            <button class="arrow-button left-arrow" (click)="previousCharacter()">&#9664;</button>
             <div class="selected-character">
                 <h1>CHOISIS TON AVATAR</h1>
                 @if (isLoadingCharacters) {
                 <div class="loading-characters">Chargement des avatars...</div>
                 } @else if (selectedCharacter && selectedCharacter.image) {
-                <img [src]="selectedCharacter.image" alt="Selected Character" />
+                <div class="character-image-container">
+                    <img [src]="selectedCharacter.image" alt="Selected Character" 
+                         [class.locked-main-character]="selectedCharacter.isShopAvatar && !isShopAvatarOwned(selectedCharacter)" />
+                    @if(selectedCharacter.isShopAvatar && !isShopAvatarOwned(selectedCharacter)) {
+                    <div class="main-lock-overlay">
+                        <span class="main-lock-icon">🔒</span>
+                        <div class="lock-message">Avatar non possédé</div>
+                    </div>
+                    }
+                </div>
                 } @else {
                 <div class="no-character">Aucun avatar disponible</div>
                 }
@@ -119,22 +128,31 @@
                 <div class="error-message">Le joueur selectionné n'est plus disponible.</div>
                 }
             </div>
-            <button class="arrow-button right-arrow" (click)="nextCharacter()" [disabled]="isLoadingCharacters">&#9654;</button>
+            <button class="arrow-button right-arrow" (click)="nextCharacter()">&#9654;</button>
         </div>
 
-        <div class="character-list">
-            @for(character of characters; track character) {
-            <div
-                class="character-box"
-                (click)="selectCharacter(character)"
-                [ngClass]="{
-                    'disabled-character': !character.isAvailable,
-                    'selected-character': character === selectedCharacter
-                }"
-            >
-                <img [src]="character.preview" alt="{{ character.id }}" />
+        <div class="character-list-section">
+            <div class="character-list">
+                @for(character of characters; track character) {
+                <div
+                    class="character-box"
+                    (click)="selectCharacter(character)"
+                    [ngClass]="{
+                        'disabled-character': !character.isAvailable,
+                        'selected-character': character === selectedCharacter,
+                        'shop-character': character.isShopAvatar && isShopAvatarOwned(character),
+                        'locked-character': character.isShopAvatar && !isShopAvatarOwned(character)
+                    }"
+                >
+                    <img [src]="character.preview" alt="{{ character.id }}" />
+                    @if(character.isShopAvatar && !isShopAvatarOwned(character)) {
+                    <div class="lock-overlay">
+                        <span class="lock-icon">🔒</span>
+                    </div>
+                    }
+                </div>
+                }
             </div>
-            }
         </div>
     </div>
     @if(showGameStartedModal) {

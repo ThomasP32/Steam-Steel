@@ -5,6 +5,7 @@ import { AuthService } from '@app/services/auth/auth.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { FriendsService } from '@app/services/friends/friends.service';
+import { ShopHttpService } from '@app/services/shop-http/shop-http.service';
 import { Avatar } from '@common/game';
 import { Friend, FriendRequest, UserStatus } from '@common/user-friends';
 import { Subject, takeUntil } from 'rxjs';
@@ -30,6 +31,7 @@ export class FriendsListComponent implements OnInit, OnDestroy {
     selectedUserForAdd: string = '';
     filteredUsers: { username: string }[] = [];
 
+    private readonly friendBanners: Map<string, string> = new Map();
     private readonly unsubscribe$ = new Subject<void>();
 
     constructor(
@@ -37,11 +39,13 @@ export class FriendsListComponent implements OnInit, OnDestroy {
         private readonly characterService: CharacterService,
         private readonly communicationMapService: CommunicationMapService,
         private readonly authService: AuthService,
+        private readonly shopHttpService: ShopHttpService,
     ) {
         this.friendsService = friendsService;
         this.characterService = characterService;
         this.communicationMapService = communicationMapService;
         this.authService = authService;
+        this.shopHttpService = shopHttpService;
     }
 
     async ngOnInit(): Promise<void> {
@@ -59,6 +63,7 @@ export class FriendsListComponent implements OnInit, OnDestroy {
         this.friendsService.friends$.pipe(takeUntil(this.unsubscribe$)).subscribe((friends) => {
             this.friends = friends;
             this.updateFilteredUsers();
+            this.loadFriendsBanners();
         });
 
         this.friendsService.friendRequests$.pipe(takeUntil(this.unsubscribe$)).subscribe((friendRequests) => {
@@ -254,5 +259,36 @@ export class FriendsListComponent implements OnInit, OnDestroy {
             default:
                 return 'status-unknown';
         }
+    }
+
+    private async loadFriendsBanners(): Promise<void> {
+        if (!this.friends || this.friends.length === 0) {
+            return;
+        }
+
+        for (const friend of this.friends) {
+            try {
+                const userItems = await this.shopHttpService.getUserItemsByUsername(friend.username).toPromise();
+
+                if (userItems && userItems.length > 0) {
+                    const equippedBanner = userItems.find(
+                        (item: { itemId: string; equipped: boolean; purchaseDate: Date }) => item.equipped && item.itemId.startsWith('banner_'),
+                    );
+                    if (equippedBanner) {
+                        const catalog = await this.shopHttpService.getCatalog().toPromise();
+                        const bannerItem = catalog?.find((item) => item.id === equippedBanner.itemId);
+                        if (bannerItem && bannerItem.imagePath) {
+                            this.friendBanners.set(friend.username, bannerItem.imagePath);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(`❌ Error loading banner for ${friend.username}:`, error);
+            }
+        }
+    }
+
+    getFriendBanner(username: string): string | null {
+        return this.friendBanners.get(username) || null;
     }
 }

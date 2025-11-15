@@ -58,30 +58,67 @@ export class ShopService {
             description: 'Une licorne magique avec une crinière étincelante',
         },
 
-        // Bannières pour le futur
+        // Bannières
         {
             id: 'banner_1',
             name: 'Bannière Royale',
-            price: 400,
+            price: 500,
             category: 'banner',
-            imagePath: 'assets/icons/crown.png',
+            imagePath: 'assets/banner/1.png',
             description: 'Une bannière digne des rois',
         },
         {
             id: 'banner_2',
-            name: 'Bannière Mystique',
+            name: 'Bannière Amour',
             price: 600,
             category: 'banner',
-            imagePath: 'assets/icons/trophy_icon.png',
-            description: 'Une bannière aux pouvoirs mystérieux',
+            imagePath: 'assets/banner/2.png',
+            description: "Une bannière aux pouvoirs d'amour",
         },
         {
             id: 'banner_3',
-            name: 'Bannière de Guerre',
+            name: 'Bannière Futuriste',
+            price: 500,
+            category: 'banner',
+            imagePath: 'assets/banner/3.png',
+            description: "Une bannière futuriste qui symbolise l'avenir",
+            levelRequired: 5,
+        },
+        {
+            id: 'banner_4',
+            name: 'Bannière Ténébreuse',
+            price: 400,
+            category: 'banner',
+            imagePath: 'assets/banner/4.png',
+            description: 'Une bannière qui symbolise les ténèbres',
+            levelRequired: 10,
+        },
+        {
+            id: 'banner_5',
+            name: 'Bannière Glaciale',
+            price: 500,
+            category: 'banner',
+            imagePath: 'assets/banner/5.png',
+            description: 'Une bannière qui évoque la glace et la résilience',
+            levelRequired: 15,
+        },
+        {
+            id: 'banner_6',
+            name: 'Bannière du Tonnerre',
+            price: 600,
+            category: 'banner',
+            imagePath: 'assets/banner/6.png',
+            description: 'Une bannière qui incarne la puissance du tonnerre',
+            levelRequired: 20,
+        },
+        {
+            id: 'banner_7',
+            name: 'Bannière Supreme',
             price: 700,
             category: 'banner',
-            imagePath: 'assets/icons/sword_icon.png',
-            description: 'Une bannière qui inspire la bravoure au combat',
+            imagePath: 'assets/banner/7.png',
+            description: 'Une bannière suprême qui domine toutes les autres',
+            levelRequired: 25,
         },
 
         // Sons (pour le futur)
@@ -227,6 +264,11 @@ export class ShopService {
             return { success: false, error: 'Vous possédez déjà cet item' };
         }
 
+        // Vérifier le niveau requis
+        if (item.levelRequired && user.stats.level < item.levelRequired) {
+            return { success: false, error: `Niveau ${item.levelRequired} requis` };
+        }
+
         if (user.virtualMoney < item.price) {
             return { success: false, error: 'Fonds insuffisants' };
         }
@@ -362,17 +404,26 @@ export class ShopService {
     async getCatalogWithUserStatus(userId: string): Promise<ShopItem[]> {
         if (!userId || userId === 'undefined') {
             console.error('getCatalogWithUserStatus: userId is invalid:', userId);
-            return this.shopCatalog.map((item) => ({ ...item, owned: false, equipped: false }));
+            return this.shopCatalog.map((item) => ({ ...item, owned: false, equipped: false, canPurchase: true }));
         }
 
-        const userItems = await this.getUserItems(userId);
+        const user = await this.userModel.findById(userId).select('shopItems stats');
+        if (!user) {
+            return this.shopCatalog.map((item) => ({ ...item, owned: false, equipped: false, canPurchase: true }));
+        }
+
+        const userItems = user.shopItems || [];
+        const userLevel = user.stats?.level || 1;
 
         return this.shopCatalog.map((item) => {
             const userItem = userItems.find((ui) => ui.itemId === item.id);
+            const canPurchase = !item.levelRequired || userLevel >= item.levelRequired;
             return {
                 ...item,
                 owned: !!userItem,
                 equipped: userItem?.equipped || false,
+                canPurchase,
+                userLevel,
             };
         });
     }
@@ -404,6 +455,16 @@ export class ShopService {
         }
 
         const user = await this.userModel.findById(userId).select('shopItems');
+        return user?.shopItems || [];
+    }
+
+    async getUserItemsByUsername(username: string): Promise<{ itemId: string; equipped: boolean; purchaseDate: Date }[]> {
+        if (!username) {
+            console.error('getUserItemsByUsername: username is invalid:', username);
+            return [];
+        }
+
+        const user = await this.userModel.findOne({ username }).select('shopItems');
         return user?.shopItems || [];
     }
 }

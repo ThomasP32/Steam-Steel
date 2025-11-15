@@ -5,7 +5,7 @@
             <thead>
                 <tr>
                     <th></th>
-                    <th>Nom</th>
+                    <th>Joueur</th>
                     <th (click)="endgameService.sortCombats()">
                         Combats <span>{{ endgameService.isCombatSortingAsc ? '↓' : '↑' }}</span>
                     </th>
@@ -34,30 +34,53 @@
             </thead>
             <tbody>
                 @for (gamePlayer of players; track gamePlayer.socketId) {
-                <tr>
-                    <td><img [src]="getAvatarPreview(gamePlayer.avatar)" class="player-avatar" alt="avatar" /></td>
-                    <td>{{ gamePlayer.name }}</td>
-                    <td>{{ gamePlayer.specs.nCombats }}</td>
-                    <td>{{ gamePlayer.specs.nEvasions }}</td>
-                    <td>{{ gamePlayer.specs.nVictories }}</td>
-                    <td>{{ gamePlayer.specs.nDefeats }}</td>
-                    <td>{{ gamePlayer.specs.nLifeLost }}</td>
-                    <td>{{ gamePlayer.specs.nLifeTaken }}</td>
-                    <td>{{ gamePlayer.specs.nItemsUsed }}</td>
-                    <td>{{ endgameService.getPlayerTilePercentage(gamePlayer, game) }}%</td>
+                <tr
+                    [style.background-image]="getPlayerBanner(gamePlayer.name) ? 'url(' + getPlayerBanner(gamePlayer.name) + ')' : 'none'"
+                    [class.has-banner]="getPlayerBanner(gamePlayer.name)"
+                >
+                    <td class="player-cell">
+                        <div class="cell-content player-info">
+                            <img [src]="getAvatarPreview(gamePlayer.avatar)" class="player-avatar" alt="avatar" />
+                            <span class="player-name">{{ gamePlayer.name }}</span>
+                        </div>
+                    </td>
+                    <td class="player-cell">
+                        <div class="cell-content">{{ gamePlayer.specs.nCombats }}</div>
+                    </td>
+                    <td class="player-cell">
+                        <div class="cell-content">{{ gamePlayer.specs.nEvasions }}</div>
+                    </td>
+                    <td class="player-cell">
+                        <div class="cell-content">{{ gamePlayer.specs.nVictories }}</div>
+                    </td>
+                    <td class="player-cell">
+                        <div class="cell-content">{{ gamePlayer.specs.nDefeats }}</div>
+                    </td>
+                    <td class="player-cell">
+                        <div class="cell-content">{{ gamePlayer.specs.nLifeLost }}</div>
+                    </td>
+                    <td class="player-cell">
+                        <div class="cell-content">{{ gamePlayer.specs.nLifeTaken }}</div>
+                    </td>
+                    <td class="player-cell">
+                        <div class="cell-content">{{ gamePlayer.specs.nItemsUsed }}</div>
+                    </td>
+                    <td class="player-cell">
+                        <div class="cell-content">{{ endgameService.getPlayerTilePercentage(gamePlayer, game) }}%</div>
+                    </td>
                 </tr>
                 }
             </tbody>
         </table>
     </div>
     <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
-            <i class="fas fa-comments" aria-hidden="true"></i>
-        </button>
-        @if (isChatVisible) {
-        <div class="global-chat-wrapper">
-            <app-chatroom [gameId]="this.game.id" [isInGame]="true" (closed)="isChatVisible = false"></app-chatroom>
-        </div>
-        }
+        <i class="fas fa-comments" aria-hidden="true"></i>
+    </button>
+    @if (isChatVisible) {
+    <div class="global-chat-wrapper">
+        <app-chatroom [gameId]="this.game.id" [isInGame]="true" (closed)="isChatVisible = false"></app-chatroom>
+    </div>
+    }
     <div class="global-stats-container">
         <h1>Statistiques globales de la partie</h1>
         <p>Durée de la partie : {{ endgameService.gameDurationInMinutes(game.duration) }}</p>

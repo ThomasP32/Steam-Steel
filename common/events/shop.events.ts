@@ -13,4 +13,7 @@ export interface ShopItem {
     description: string;
     owned?: boolean;
     equipped?: boolean;
+    levelRequired?: number;
+    canPurchase?: boolean;
+    userLevel?: number;
 }
