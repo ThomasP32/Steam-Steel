@@ -26,6 +26,7 @@ export class User extends Document {
             ctf: { gamesPlayed: 0, gamesWon: 0 },
             avgTime: 0,
             challengesCompleted: 0,
+            level: 1,
         },
         type: Object,
     })

@@ -547,11 +547,24 @@
     gap: 2px;
 }
 
+.user-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .user-name {
     font-size: 13px;
     color: #c0c0c0;
     font-weight: bold;
     margin-bottom: 4px;
+}
+
+.user-level {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    transform: translateY(-3px);
 }
 
 .user-status {

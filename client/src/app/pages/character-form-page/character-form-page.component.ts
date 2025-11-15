@@ -30,6 +30,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     socketSubscription: Subscription = new Subscription();
     Bonus = Bonus;
     name: string = '';
+    level: number = 1;
     isEditing: boolean = false;
     isChatVisible: boolean = false;
 
@@ -83,7 +84,9 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         this.playerService.resetPlayer();
         const userInfo = await this.authService.getUserInfo();
         this.name = userInfo?.user?.username || 'Joueur';
+        this.level = userInfo?.user?.stats?.level || 1;
         this.playerService.setPlayerName(this.name);
+        this.playerService.setPlayerLevel(this.level);
 
         try {
             this.allCharacters = await this.characterService.getAllAvatars();

@@ -1,5 +1,8 @@
 <div *ngIf="userInfo" class="account-card">
-    <h2 class="account-title">Mon Compte</h2>
+    <div class="title-section">
+        <h2 class="account-title">Mon Compte</h2>
+        <img class="user-level" [src]="'assets/level-badges/level-' + (userInfo.user.stats.level ?? 1) + '.png'" alt="Niveau"/>
+    </div>
     
     <ng-container *ngIf="!editMode; else editForm">
         <div class="account-main-row">

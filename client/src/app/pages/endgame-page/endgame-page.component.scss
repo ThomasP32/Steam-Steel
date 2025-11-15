@@ -181,3 +181,43 @@ button:hover {
 .stats-container::-webkit-scrollbar-thumb:hover {
     background: #357abd;
 }
+
+.levelup-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.levelup-modal {
+    background-color: rgba(28, 36, 44, 0.95); 
+    border: 2px solid #f39c12;
+    padding: 28px 40px;             
+    max-width: 650px;              
+    width: 65%;
+    min-width: 520px;             
+    color: #c0c0c0;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.levelup-action {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.levelup-action button {
+    width: auto;
+    height: auto;
+    padding: 12px 48px;
+    font-size: 16px;
+    border-radius: 6px;             
+}
+

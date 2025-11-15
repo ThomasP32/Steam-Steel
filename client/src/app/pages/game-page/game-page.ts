@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { ActionsComponentComponent } from '@app/components/actions-component/actions-component.component';
 import { ChallengeComponent } from '@app/components/challenge/challenge.component';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { CombatModalComponent } from '@app/components/combat-modal/combat-modal.component';
@@ -44,7 +43,6 @@ import { Subscription } from 'rxjs';
         ChatroomComponent,
         GamePlayersListComponent,
         CombatModalComponent,
-        ActionsComponentComponent,
         PlayerInfosComponent,
         InventoryModalComponent,
         ObservationModeModalComponent,
@@ -348,6 +346,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         this.socketSubscription.add(
             this.socketService.listen<Player[]>(GameCreationEvents.PlayerLeft).subscribe((players: Player[]) => {
                 this.gameService.game.players = players;
+                this.game.players = players;
                 this.activePlayers = players.filter((player) => player.isActive);
                 const allVirtual = this.activePlayers.length > 0 && this.activePlayers.every((player) => player.socketId.includes('virtualPlayer'));
                 if (this.activePlayers.length <= 1 || allVirtual) {
@@ -381,6 +380,14 @@ export class GamePageComponent implements OnInit, OnDestroy {
                 if(me) this.playerService.setPlayer(me);
                 this.activePlayers = game.players.filter((p) => p.isActive);
    
+            }),
+        );
+
+        this.socketSubscription.add(
+            this.socketService.listen<Player[]>(GameCreationEvents.CurrentPlayers).subscribe((players: Player[]) => {
+                if (players && players.length > 0) {
+                    this.game.players = players;
+                }
             }),
         );
     }

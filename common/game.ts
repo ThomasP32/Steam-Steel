@@ -62,6 +62,7 @@ export interface Player {
     socketId: string;
     name: string;
     avatar: Avatar;
+    level: number;
     isActive: boolean;
     isObservationMode?: boolean;
     specs: Specs;

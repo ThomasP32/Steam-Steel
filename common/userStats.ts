@@ -3,4 +3,5 @@ export interface StatsUser {
     ctf: { gamesPlayed: number; gamesWon: number };
     avgTime: number;
     challengesCompleted: number;
+    level: number;
 }

@@ -67,7 +67,7 @@ export class GameGateway {
     async handleJoinGame(client: Socket, data: JoinGameData): Promise<void> {
         if (this.gameCreationService.doesGameExist(data.gameId)) {
             let game = this.gameCreationService.getGameById(data.gameId);
-            if ((game.isLocked && !game.settings.isDropInOut) || (game.isLocked && game.settings.isDropInOut && !game.hasStarted)) {
+            if ((game.hasStarted && !game.settings.isDropInOut) || (game.isLocked && !game.hasStarted)) {
                 client.emit(GameCreationEvents.GameLocked, 'La partie est vérrouillée, veuillez réessayer plus tard.');
                 return;
             }
@@ -108,6 +108,10 @@ export class GameGateway {
                 client.emit(GameCreationEvents.GameNotFound, 'Erreur lors de la connexion au jeu.');
                 return;
             }
+
+            const user = await this.userService.findByUsername(newPlayer.name);
+            newPlayer.level = user.stats.level ?? 1;
+        
             newPlayer.isObservationMode = false;
             if (game.hasStarted) {
                 const activePlayers = game.players.filter((plyr) => plyr.isActive);
@@ -225,7 +229,7 @@ export class GameGateway {
                     if (user) {
                         const isAuthorized = await this.checkIfPlayerCanJoinFriendsOnlyGame(game, user.username);
                         if (!isAuthorized) {
-                            client.emit(GameCreationEvents.GameLocked, 'Cette partie est réservée aux amis du créateur.');
+                            client.emit(GameCreationEvents.GameLocked, "Cette partie est réservée aux amis de l'organisateur.");
                             return;
                         }
                     }
@@ -356,7 +360,7 @@ export class GameGateway {
             }
 
             game.players = game.players.map((player) => {
-                return player.socketId === client.id ? { ...player, isActive: false } : player;
+                return player.socketId === client.id ? { ...player, isActive: false, isObservationMode: false } : player;
             });
 
             if (game.hasStarted && leavingPlayer?.initialPosition) {

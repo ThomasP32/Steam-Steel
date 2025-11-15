@@ -55,6 +55,7 @@ export class ProfileModalComponent implements OnInit {
         const virtualPlayer: Player = {
             name: '',
             socketId: '',
+            level: 1,
             isActive: true,
             isObservationMode: false,
             avatar: Avatar.Avatar1,
@@ -158,6 +159,7 @@ export class ProfileModalComponent implements OnInit {
         const virtualPlayer: Player = {
             name: this.virtualPlayer.name,
             socketId: this.virtualPlayer.socketId,
+            level: 1,
             isActive: true,
             isObservationMode: false,
             avatar: this.virtualPlayer.avatar,

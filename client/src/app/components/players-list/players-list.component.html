@@ -7,7 +7,9 @@
         <span class="player-name">{{ player.name }}</span>
         @if (isVirtualPlayerSocketId(player.socketId)) {
         <span class="virtual-player-icon"> <img src="assets/icons/robot.png" alt="Bot" class="icon" /></span>
-        } @if(isHost && player.socketId !== hostPlayerId && hoveredPlayerId === player.socketId){
+        } 
+        <img class="user-level" [src]="'assets/level-badges/level-' + player.level + '.png'" alt="Niveau"/>
+        @if(isHost && player.socketId !== hostPlayerId && hoveredPlayerId === player.socketId){
         <button (click)="kickPlayer(player.socketId)" class="kick-button">exclure</button>
         }
     </div>
