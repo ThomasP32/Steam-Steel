@@ -203,6 +203,18 @@ class _AuthScreenState extends State<AuthScreen> {
     );
     var customPreview = user.avatarCustom;
 
+    final unlockedAvatars = <int>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+
+    for (final item in user.shopItems) {
+      if (item.itemId.startsWith('avatar_')) {
+        final avatarNum = int.tryParse(item.itemId.replaceFirst('avatar_', ''));
+        if (avatarNum != null) {
+          final characterId = avatarNum + 12;
+          unlockedAvatars.add(characterId);
+        }
+      }
+    }
+
     final result = await showDialog<Map<String, dynamic>?>(
       context: context,
       builder:
@@ -248,6 +260,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         AvatarPicker(
                           selected: selectedAvatar,
                           customPreview: customPreview,
+                          unlockedAvatars: unlockedAvatars.toList(),
                           onAvatarChanged: (a) {
                             setModalState(() {
                               selectedAvatar = a;
@@ -367,7 +380,7 @@ class _AuthScreenState extends State<AuthScreen> {
         }
       } else {
         var idx = int.tryParse(user.avatar) ?? 1;
-        if (idx < 1 || idx > 12) idx = 1;
+        if (idx < 1 || idx > 17) idx = 1;
         avatarWidget = Image.asset(
           'lib/assets/characters/$idx.png',
           width: 250,

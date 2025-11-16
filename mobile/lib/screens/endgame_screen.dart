@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/common/game.dart';
+import 'package:mobile/services/challenge_service.dart';
 import 'package:mobile/services/channel_service.dart';
 import 'package:mobile/services/endgame_service.dart';
+import 'package:mobile/services/shop_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/friends/friend_button.dart';
 
 class EndgameScreen extends StatefulWidget {
-  const EndgameScreen({required this.game, required this.gameId, super.key});
+  const EndgameScreen({
+    required this.game,
+    required this.gameId,
+    this.moneyReward = 0,
+    super.key,
+  });
 
   final GameClassic game;
   final String gameId;
+  final int moneyReward;
 
   @override
   State<EndgameScreen> createState() => _EndgameScreenState();
@@ -22,6 +30,9 @@ class _EndgameScreenState extends State<EndgameScreen> {
   String _sortBy = 'victories';
   bool _sortAscending = false;
   final _endgameService = EndgameService();
+  final _challengeService = ChallengeService();
+  final _shopService = ShopService();
+  final Map<String, String> _playerBanners = {};
 
   @override
   void initState() {
@@ -30,6 +41,44 @@ class _EndgameScreenState extends State<EndgameScreen> {
     final currentSocketId = socketService.socketId ?? '';
     if (currentSocketId.isNotEmpty) {
       _endgameService.updateUserStats(widget.game, currentSocketId);
+    }
+    _loadPlayerBanners();
+  }
+
+  Future<void> _loadPlayerBanners() async {
+    final players = widget.game.players;
+    if (players.isEmpty) return;
+
+    for (final player in players) {
+      if (player.socketId.startsWith('virtualPlayer')) continue;
+
+      try {
+        final userItems = await _shopService.getUserItemsByUsername(
+          player.name,
+        );
+        final equippedBanner = userItems.firstWhere(
+          (item) =>
+              item['equipped'] == true &&
+              (item['itemId'] as String).startsWith('banner_'),
+          orElse: () => {},
+        );
+
+        if (equippedBanner.isNotEmpty) {
+          final bannerId = equippedBanner['itemId'] as String;
+          final bannerNumber = bannerId.replaceAll('banner_', '');
+          final bannerPath = 'lib/assets/banner/$bannerNumber.png';
+          if (mounted) {
+            setState(() {
+              _playerBanners[player.name] = bannerPath;
+            });
+          }
+        }
+      } catch (e) {
+        DebugLogger.log(
+          'Error loading banner for ${player.name}: $e',
+          tag: 'EndgameScreen',
+        );
+      }
     }
   }
 
@@ -77,6 +126,8 @@ class _EndgameScreenState extends State<EndgameScreen> {
                         _buildStatsTable(sortedPlayers),
                         const SizedBox(height: 24),
                         _buildGlobalStats(),
+                        const SizedBox(height: 24),
+                        _buildMoneyReward(),
                         const SizedBox(height: 24),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
@@ -222,11 +273,19 @@ class _EndgameScreenState extends State<EndgameScreen> {
               0,
             )
             : '0';
+    final bannerPath = _playerBanners[player.name];
 
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xFF34495E))),
+      decoration: BoxDecoration(
+        border: const Border(top: BorderSide(color: Color(0xFF34495E))),
+        image:
+            bannerPath != null
+                ? DecorationImage(
+                  image: AssetImage(bannerPath),
+                  fit: BoxFit.cover,
+                )
+                : null,
       ),
       child: Row(
         children: [
@@ -274,6 +333,95 @@ class _EndgameScreenState extends State<EndgameScreen> {
         value,
         style: const TextStyle(color: Colors.white70, fontSize: 14),
         textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildMoneyReward() {
+    final challenge = _challengeService.challengeNotifier.value;
+    final challengeReward =
+        (challenge != null && challenge.completed) ? challenge.reward : 0;
+    final totalReward = widget.moneyReward + challengeReward;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFD700), Color(0xFFFFED4E)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFC107), width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFD700).withValues(alpha: 0.5),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(
+            'lib/assets/icons/money.png',
+            width: 40,
+            height: 40,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon(
+                Icons.monetization_on,
+                size: 40,
+                color: Color(0xFF7D4F00),
+              );
+            },
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Récompenses',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              Text(
+                '+$totalReward pièces',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                  shadows: [
+                    Shadow(
+                      color: Colors.white54,
+                      offset: Offset(0, 1),
+                      blurRadius: 2,
+                    ),
+                  ],
+                ),
+              ),
+              if (widget.moneyReward > 0)
+                Text(
+                  'Partie: +${widget.moneyReward}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF7D4F00),
+                  ),
+                ),
+              if (challengeReward > 0)
+                Text(
+                  'Défi: +$challengeReward',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF7D4F00),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }

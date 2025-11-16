@@ -28,6 +28,9 @@ export class GameTurnService {
     private readonly playerWon = new BehaviorSubject<boolean>(false);
     public playerWon$ = this.playerWon.asObservable();
 
+    private readonly moneyReward = new BehaviorSubject<number>(0);
+    public moneyReward$ = this.moneyReward.asObservable();
+
     private readonly possibleOpponents = new BehaviorSubject<Player[]>([]);
     public possibleOpponents$ = this.possibleOpponents.asObservable();
 
@@ -324,16 +327,23 @@ export class GameTurnService {
     listenForEndOfGame() {
         let endGameHandled = false;
         this.socketSubscription.add(
-            this.socketService.listen<{ updatedGame: Game }>(CombatEvents.GameFinished).subscribe((data) => {
-                if (endGameHandled) return;
-                endGameHandled = true;
-                this.gameService.setGame(data.updatedGame);
-                const updatedPlayer = data.updatedGame.players.find((p) => p.socketId === this.playerService.player.socketId);
-                if (updatedPlayer) {
-                    this.playerService.setPlayer(updatedPlayer);
-                }
-                this.playerWon.next(true);
-            }),
+            this.socketService
+                .listen<{ updatedGame: Game; moneyRewards?: { [key: string]: number } }>(CombatEvents.GameFinished)
+                .subscribe((data) => {
+                    if (endGameHandled) return;
+                    endGameHandled = true;
+                    this.gameService.setGame(data.updatedGame);
+                    const updatedPlayer = data.updatedGame.players.find((p) => p.socketId === this.playerService.player.socketId);
+                    if (updatedPlayer) {
+                        this.playerService.setPlayer(updatedPlayer);
+                    }
+
+                    const currentSocketId = this.playerService.player.socketId;
+                    const reward = data.moneyRewards?.[currentSocketId] || 0;
+                    this.moneyReward.next(reward);
+
+                    this.playerWon.next(true);
+                }),
         );
         this.playerWon.next(false);
     }

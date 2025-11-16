@@ -213,6 +213,8 @@ tr {
     grid-area: button;
     display: flex;
     justify-content: center;
+    align-items: center;
+    gap: 30px;
 }
 
 button {
@@ -268,12 +270,12 @@ button:hover {
 }
 
 .levelup-modal {
-    background-color: rgba(28, 36, 44, 0.95); 
+    background-color: rgba(28, 36, 44, 0.95);
     border: 2px solid #f39c12;
-    padding: 28px 40px;             
-    max-width: 650px;              
+    padding: 28px 40px;
+    max-width: 650px;
     width: 65%;
-    min-width: 520px;             
+    min-width: 520px;
     color: #c0c0c0;
     text-align: center;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
@@ -293,6 +295,90 @@ button:hover {
     height: auto;
     padding: 12px 48px;
     font-size: 16px;
-    border-radius: 6px;             
+    border-radius: 6px;
 }
 
+.money-reward-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
+    border: 3px solid #b8860b;
+    border-radius: 12px;
+    padding: 15px 25px;
+    box-shadow:
+        0 4px 12px rgba(255, 215, 0, 0.4),
+        0 8px 24px rgba(0, 0, 0, 0.3);
+    max-width: 450px;
+}
+
+.reward-icon {
+    font-size: 48px;
+    color: #b8860b;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.reward-icon img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
+.reward-content {
+    flex: 1;
+    color: #1a1f24;
+}
+
+.reward-content h2 {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0 0 10px 0;
+    color: #1a1f24;
+}
+
+.total-amount {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #1a1f24;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.total-amount i {
+    font-size: 28px;
+    color: #b8860b;
+}
+
+.coins-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.reward-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.breakdown-item span {
+    color: #1a1f24;
+    font-weight: 500;
+}
+
+.breakdown-item .amount {
+    font-weight: bold;
+    color: #b8860b;
+}

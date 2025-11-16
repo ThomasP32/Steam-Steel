@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/map_types.dart';
+import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/channel_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
@@ -16,15 +17,50 @@ class CharacterCreationService {
 
   final ValueNotifier<Set<int>> unavailableAvatars = ValueNotifier({});
   final ValueNotifier<int> selectedAvatar = ValueNotifier(1);
+  final ValueNotifier<Set<int>> ownedAvatars = ValueNotifier({});
 
   StreamSubscription<dynamic>? _currentPlayersSub;
   StreamSubscription<dynamic>? _playerLeftSub;
   String? _currentGameId;
 
+  int get totalAvatars => 17;
+
+  void initializeOwnedAvatars() {
+    final user = AuthService().notifier.value;
+    if (user == null) {
+      ownedAvatars.value = {};
+      return;
+    }
+
+    final owned = <int>{};
+    for (var i = 1; i <= 12; i++) {
+      owned.add(i);
+    }
+
+    for (final item in user.shopItems) {
+      if (item.itemId.startsWith('avatar_')) {
+        final avatarNumber = int.tryParse(
+          item.itemId.replaceAll('avatar_', ''),
+        );
+        if (avatarNumber != null) {
+          final characterId = 12 + avatarNumber;
+          owned.add(characterId);
+        }
+      }
+    }
+
+    ownedAvatars.value = owned;
+    DebugLogger.log(
+      'Owned avatars initialized: $owned',
+      tag: 'CharacterCreationService',
+    );
+  }
+
   void startListening(String gameId) {
     if (_currentGameId == gameId) return;
     stopListening();
     _currentGameId = gameId;
+    initializeOwnedAvatars();
     _listenToCurrentPlayers();
     _listenToPlayerLeft();
     SocketService().send('getPlayers', gameId);
@@ -45,15 +81,17 @@ class CharacterCreationService {
   bool isAvatarAvailable(int avatarId) =>
       !unavailableAvatars.value.contains(avatarId);
 
+  bool isAvatarOwned(int avatarId) => ownedAvatars.value.contains(avatarId);
+
   int? findFirstAvailable() {
-    for (var i = 1; i <= 12; i++) {
-      if (isAvatarAvailable(i)) return i;
+    for (var i = 1; i <= totalAvatars; i++) {
+      if (isAvatarAvailable(i) && isAvatarOwned(i)) return i;
     }
     return null;
   }
 
   void selectAvatar(int avatarId) {
-    if (isAvatarAvailable(avatarId)) {
+    if (isAvatarAvailable(avatarId) && isAvatarOwned(avatarId)) {
       selectedAvatar.value = avatarId;
     }
   }
@@ -69,7 +107,9 @@ class CharacterCreationService {
           for (final playerData in data) {
             if (playerData is Map<String, dynamic>) {
               final avatarValue = playerData['avatar'];
-              if (avatarValue is int && avatarValue >= 1 && avatarValue <= 12) {
+              if (avatarValue is int &&
+                  avatarValue >= 1 &&
+                  avatarValue <= totalAvatars) {
                 unavailable.add(avatarValue);
               }
             }
@@ -81,7 +121,8 @@ class CharacterCreationService {
   }
 
   void _ensureValidSelection() {
-    if (!isAvatarAvailable(selectedAvatar.value)) {
+    if (!isAvatarAvailable(selectedAvatar.value) ||
+        !isAvatarOwned(selectedAvatar.value)) {
       final firstAvailable = findFirstAvailable();
       if (firstAvailable != null) {
         selectedAvatar.value = firstAvailable;

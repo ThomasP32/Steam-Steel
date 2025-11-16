@@ -182,9 +182,13 @@ export class ShopService {
         return userMoney !== null && userMoney >= amount;
     }
 
-    async distributeGameWinnings(totalPrizePool: number, winners: string[], activePlayers: string[]): Promise<boolean> {
+    async distributeGameWinnings(
+        totalPrizePool: number,
+        winners: string[],
+        activePlayers: string[],
+    ): Promise<{ success: boolean; winnerAmount: number; consolationAmount: number }> {
         if (totalPrizePool <= 0 || winners.length === 0) {
-            return false;
+            return { success: false, winnerAmount: 0, consolationAmount: 0 };
         }
 
         try {
@@ -212,7 +216,7 @@ export class ShopService {
                 }
 
                 await session.commitTransaction();
-                return true;
+                return { success: true, winnerAmount, consolationAmount };
             } catch (error) {
                 await session.abortTransaction();
                 throw error;
@@ -221,21 +225,21 @@ export class ShopService {
             }
         } catch (error) {
             console.error('Error distributing game winnings:', error);
-            return false;
+            return { success: false, winnerAmount: 0, consolationAmount: 0 };
         }
     }
 
-    async distributeLastPlayerWinnings(totalPrizePool: number, lastPlayerId: string): Promise<boolean> {
+    async distributeLastPlayerWinnings(totalPrizePool: number, lastPlayerId: string): Promise<{ success: boolean; amount: number }> {
         if (totalPrizePool <= 0) {
-            return false;
+            return { success: false, amount: 0 };
         }
 
         try {
             await this.userModel.findByIdAndUpdate(lastPlayerId, { $inc: { virtualMoney: totalPrizePool } });
-            return true;
+            return { success: true, amount: totalPrizePool };
         } catch (error) {
             console.error('Error distributing last player winnings:', error);
-            return false;
+            return { success: false, amount: 0 };
         }
     }
 

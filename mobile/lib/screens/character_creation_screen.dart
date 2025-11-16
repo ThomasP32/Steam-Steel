@@ -60,6 +60,8 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     _listenToGameLocked();
     _listenToYouJoined();
 
+    _creationService.initializeOwnedAvatars();
+
     if ((widget.gameSettings == null || widget.gameId?.isNotEmpty == true) &&
         widget.gameId != null &&
         widget.gameId!.isNotEmpty) {
@@ -585,41 +587,80 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
         return ValueListenableBuilder<int>(
           valueListenable: _creationService.selectedAvatar,
           builder: (context, selected, _) {
-            return GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              children: List.generate(12, (index) {
-                final id = index + 1;
-                final isAvailable = !unavailable.contains(id);
-                return GestureDetector(
-                  onTap:
-                      isAvailable
-                          ? () => _creationService.selectAvatar(id)
-                          : null,
-                  child: Opacity(
-                    opacity: isAvailable ? 1.0 : 0.4,
-                    child: Container(
-                      margin: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        color:
-                            id == selected ? Colors.orange : Colors.grey[800],
-                        border: Border.all(color: Colors.orange, width: 3),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(5),
-                        child: Image.asset(
-                          'lib/assets/previewcharacters/${id}_preview.png',
-                          fit: BoxFit.contain,
-                          errorBuilder:
-                              (ctx, err, stack) => Image.asset(
-                                'lib/assets/characters/unlocked.png',
+            return ValueListenableBuilder<Set<int>>(
+              valueListenable: _creationService.ownedAvatars,
+              builder: (context, owned, _) {
+                return GridView.count(
+                  crossAxisCount: 3,
+                  shrinkWrap: true,
+                  children: List.generate(_creationService.totalAvatars, (
+                    index,
+                  ) {
+                    final id = index + 1;
+                    final isAvailable = !unavailable.contains(id);
+                    final isOwned = owned.contains(id);
+                    final canSelect = isAvailable && isOwned;
+
+                    return GestureDetector(
+                      onTap:
+                          canSelect
+                              ? () => _creationService.selectAvatar(id)
+                              : null,
+                      child: Stack(
+                        children: [
+                          Opacity(
+                            opacity: canSelect ? 1.0 : 0.4,
+                            child: Container(
+                              margin: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color:
+                                    id == selected
+                                        ? Colors.orange
+                                        : Colors.grey[800],
+                                border: Border.all(
+                                  color: Colors.orange,
+                                  width: 3,
+                                ),
                               ),
-                        ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(5),
+                                child: Image.asset(
+                                  'lib/assets/previewcharacters/${id}_preview.png',
+                                  fit: BoxFit.contain,
+                                  errorBuilder:
+                                      (ctx, err, stack) => Image.asset(
+                                        'lib/assets/characters/unlocked.png',
+                                      ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (!isOwned)
+                            Positioned.fill(
+                              child: Container(
+                                margin: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.7),
+                                  border: Border.all(
+                                    color: Colors.orange,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.lock,
+                                    color: Colors.orange,
+                                    size: 40,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                    ),
-                  ),
+                    );
+                  }),
                 );
-              }),
+              },
             );
           },
         );

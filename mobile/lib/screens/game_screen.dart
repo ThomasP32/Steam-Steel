@@ -7,6 +7,7 @@ import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/map_types.dart';
 import 'package:mobile/models/user_models.dart';
+import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/channel_service.dart';
 import 'package:mobile/services/countdown_service.dart';
 import 'package:mobile/services/friend_service.dart';
@@ -39,6 +40,7 @@ class _GameScreenState extends State<GameScreen> {
   bool _showGameInfo = false;
   final GameService _gameService = GameService();
   final GameTurnService _gameTurnService = GameTurnService();
+  final AuthService _authService = AuthService();
   final CountdownService _countdownService = CountdownService();
   StreamSubscription<dynamic>? _countdownSub;
   StreamSubscription<int>? _delaySub;
@@ -507,6 +509,7 @@ class _GameScreenState extends State<GameScreen> {
   void _handleGameFinished() {
     final gameData = _gameTurnService.gameFinishedDataNotifier.value;
     final updatedGame = gameData?['updatedGame'] as Map<String, dynamic>?;
+    final moneyRewards = gameData?['moneyRewards'] as Map<String, dynamic>?;
 
     if (updatedGame != null) {
       _gameService.updateFromJson(updatedGame);
@@ -518,7 +521,16 @@ class _GameScreenState extends State<GameScreen> {
       if (mounted) {
         final currentGame = _gameService.notifier.value;
         if (currentGame != null) {
-          context.go('/endgame/${widget.gameId}', extra: currentGame);
+          final userId = _authService.notifier.value?.id ?? '';
+          final moneyReward =
+              (moneyRewards != null && userId.isNotEmpty)
+                  ? (moneyRewards[userId] as num?)?.toInt() ?? 0
+                  : 0;
+
+          context.go(
+            '/endgame/${widget.gameId}',
+            extra: {'game': currentGame, 'moneyReward': moneyReward},
+          );
         } else {
           _navigateToMainMenu();
         }
@@ -1778,7 +1790,7 @@ class _GameScreenState extends State<GameScreen> {
 
     return game.players.map((player) {
       final isActivePlayer = player.name == _currentPlayerName;
-      final avatarIndex = (player.avatar.index + 1).clamp(1, 12);
+      final avatarIndex = (player.avatar.index + 1).clamp(1, 17);
       final hasFlag = player.inventory.contains(ItemCategory.flag);
       final hasLeftGame = !player.isActive;
       final isObserving = player.isObservationMode;

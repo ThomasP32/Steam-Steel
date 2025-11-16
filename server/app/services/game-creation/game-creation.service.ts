@@ -54,7 +54,12 @@ export class GameCreationService {
         return gameId in this.gameRooms;
     }
 
-    async addPlayerToGame(socketId: string, player: Player, gameId: string, userId?: string): Promise<{ success: boolean; game?: Game; message?: string }> {
+    async addPlayerToGame(
+        socketId: string,
+        player: Player,
+        gameId: string,
+        userId?: string,
+    ): Promise<{ success: boolean; game?: Game; message?: string }> {
         const game = this.getGameById(gameId);
 
         const entryFee = game.settings?.entryFee || 0;
@@ -319,14 +324,16 @@ export class GameCreationService {
         delete this.gamePrizePools[gameId];
     }
 
-    async endGameAndDistributeRewards(gameId: string, winners: string[] = [], activePlayers: string[] = []): Promise<void> {
+    async endGameAndDistributeRewards(gameId: string, winners: string[] = [], activePlayers: string[] = []): Promise<Map<string, number>> {
         console.log(`[endGameAndDistributeRewards] Game ${gameId} ending. Winners: ${winners.length}, Active players: ${activePlayers.length}`);
 
+        let rewardsMap = new Map<string, number>();
         if (winners.length > 0 || activePlayers.length > 0) {
-            await this.distributeGameRewards(gameId, winners, activePlayers);
+            rewardsMap = await this.distributeGameRewards(gameId, winners, activePlayers);
         }
 
         this.deleteRoom(gameId);
+        return rewardsMap;
     }
 
     getPlayerUserIdsForRewards(
@@ -364,17 +371,32 @@ export class GameCreationService {
         return { winners, activePlayers };
     }
 
-    async distributeGameRewards(gameId: string, winners: string[], activePlayers: string[]): Promise<boolean> {
+    async distributeGameRewards(gameId: string, winners: string[], activePlayers: string[]): Promise<Map<string, number>> {
+        const rewardsMap = new Map<string, number>();
         const prizePool = this.gamePrizePools[gameId];
         if (!prizePool || prizePool.totalPool <= 0) {
-            return true;
+            return rewardsMap;
         }
 
         if (activePlayers.length === 1) {
-            return await this.shopService.distributeLastPlayerWinnings(prizePool.totalPool, activePlayers[0]);
+            const result = await this.shopService.distributeLastPlayerWinnings(prizePool.totalPool, activePlayers[0]);
+            if (result.success) {
+                rewardsMap.set(activePlayers[0], result.amount);
+            }
+            return rewardsMap;
         }
 
-        return await this.shopService.distributeGameWinnings(prizePool.totalPool, winners, activePlayers);
+        const result = await this.shopService.distributeGameWinnings(prizePool.totalPool, winners, activePlayers);
+        if (result.success) {
+            for (const winnerId of winners) {
+                rewardsMap.set(winnerId, result.winnerAmount);
+            }
+            const otherPlayers = activePlayers.filter((id) => !winners.includes(id));
+            for (const playerId of otherPlayers) {
+                rewardsMap.set(playerId, result.consolationAmount);
+            }
+        }
+        return rewardsMap;
     }
 
     getGamePrizePool(gameId: string): number {

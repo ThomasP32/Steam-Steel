@@ -11,10 +11,20 @@ class User {
     ),
     this.avatar = '',
     this.avatarCustom,
+    this.virtualMoney = 0,
+    this.shopItems = const [],
   });
 
   factory User.fromJson(Map<String, dynamic> j) {
     final stats = UserStatsJson.fromJson(j['stats'] ?? <String, dynamic>{});
+    final shopItemsList =
+        (j['shopItems'] as List<dynamic>?)
+            ?.map(
+              (item) =>
+                  ShopItemOwnership.fromJson(item as Map<String, dynamic>),
+            )
+            .toList() ??
+        [];
     return User(
       id: j['_id']?.toString() ?? j['id']?.toString() ?? '',
       username: j['username']?.toString() ?? '',
@@ -23,6 +33,11 @@ class User {
       avatar: j['avatar']?.toString() ?? '',
       avatarCustom: j['avatarCustom']?.toString(),
       stats: stats,
+      virtualMoney:
+          (j['virtualMoney'] is int)
+              ? j['virtualMoney'] as int
+              : int.tryParse('${j['virtualMoney']}') ?? 0,
+      shopItems: shopItemsList,
     );
   }
 
@@ -33,6 +48,8 @@ class User {
   final String avatar;
   final UserStats stats;
   final String? avatarCustom;
+  final int virtualMoney;
+  final List<ShopItemOwnership> shopItems;
 
   User copyWith({
     String? id,
@@ -42,6 +59,8 @@ class User {
     String? avatar,
     UserStats? stats,
     String? avatarCustom,
+    int? virtualMoney,
+    List<ShopItemOwnership>? shopItems,
   }) {
     return User(
       id: id ?? this.id,
@@ -51,8 +70,33 @@ class User {
       avatar: avatar ?? this.avatar,
       stats: stats ?? this.stats,
       avatarCustom: avatarCustom ?? this.avatarCustom,
+      virtualMoney: virtualMoney ?? this.virtualMoney,
+      shopItems: shopItems ?? this.shopItems,
     );
   }
+}
+
+class ShopItemOwnership {
+  const ShopItemOwnership({
+    required this.itemId,
+    required this.equipped,
+    this.purchaseDate,
+  });
+
+  factory ShopItemOwnership.fromJson(Map<String, dynamic> j) {
+    return ShopItemOwnership(
+      itemId: j['itemId']?.toString() ?? '',
+      equipped: j['equipped'] as bool? ?? false,
+      purchaseDate:
+          j['purchaseDate'] != null
+              ? DateTime.tryParse(j['purchaseDate'].toString())
+              : null,
+    );
+  }
+
+  final String itemId;
+  final bool equipped;
+  final DateTime? purchaseDate;
 }
 
 class GameStats {

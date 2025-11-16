@@ -115,4 +115,5 @@ export enum GameEndReason {
 export interface GameEndResult {
     reason: GameEndReason;
     winner?: Player;
+    moneyRewards?: { [key: string]: number };
 }

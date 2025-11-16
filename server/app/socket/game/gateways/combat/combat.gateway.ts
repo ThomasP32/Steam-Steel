@@ -440,7 +440,6 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     private handleEvasionFailure(evadingPlayer: Player, gameId: string, combatId: string): void {
         this.server.to(combatId).emit(CombatEvents.EvasionFailed, evadingPlayer);
         this.prepareNextTurn(gameId);
-        // this.journalService.logMessage(combatId, `Tentative d'évasion par ${evadingPlayer.name}: non réussie.`, [evadingPlayer.name]);
     }
 
     /**

@@ -92,24 +92,50 @@
         }
     </div>
     <div class="exit-button-container">
+        @if (moneyReward > 0 || challengeReward > 0) {
+        <div class="money-reward-card">
+            <div class="reward-icon">
+                <img src="assets/icons/money.png" alt="Money icon" />
+            </div>
+            <div class="reward-content">
+                <h2>Récompenses</h2>
+                <div class="total-amount">+{{ moneyReward + challengeReward }} pièces</div>
+                <div class="reward-breakdown">
+                    @if (moneyReward > 0) {
+                    <div class="breakdown-item">
+                        <span>Partie:</span>
+                        <span class="amount">+{{ moneyReward }}</span>
+                    </div>
+                    } @if (challengeReward > 0) {
+                    <div class="breakdown-item">
+                        <span>Défi:</span>
+                        <span class="amount">+{{ challengeReward }}</span>
+                    </div>
+                    }
+                </div>
+            </div>
+        </div>
+        }
         <button (click)="navigateToMain()">Menu principal</button>
     </div>
     @if(showLevelModal){
-    <div class="levelup-backdrop" >
+    <div class="levelup-backdrop">
         <div class="levelup-modal">
-          <h2>Félicitations ! 🎉</h2>
-          <p>Tu viens de passer au <strong>niveau {{ newLevel }}</strong> !</p>
-      
-          @if (bannerUnlocked) {
+            <h2>Félicitations ! 🎉</h2>
+            <p>
+                Tu viens de passer au <strong>niveau {{ newLevel }}</strong> !
+            </p>
+
+            @if (bannerUnlocked) {
             <p>Tu as débloqué une nouvelle bannière. Va voir la boutique pour la découvrir !</p>
-          } @else {
+            } @else {
             <p>Continue de jouer, une nouvelle bannière t’attend tous les 5 niveaux.</p>
-          }
-      
-          <div class="levelup-action">
-            <button (click)="showLevelModal = false">OK</button>
-          </div>
+            }
+
+            <div class="levelup-action">
+                <button (click)="showLevelModal = false">OK</button>
+            </div>
         </div>
-      </div>
+    </div>
     }
 </div>

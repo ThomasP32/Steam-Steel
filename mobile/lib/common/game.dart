@@ -43,7 +43,12 @@ enum Avatar {
   avatar9(9),
   avatar10(10),
   avatar11(11),
-  avatar12(12);
+  avatar12(12),
+  avatar13(13),
+  avatar14(14),
+  avatar15(15),
+  avatar16(16),
+  avatar17(17);
 
   const Avatar(this.value);
   final int value;
