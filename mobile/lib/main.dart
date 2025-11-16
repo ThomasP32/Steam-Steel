@@ -12,6 +12,7 @@ import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/friends/friend_button.dart';
 import 'package:mobile/widgets/mainpage/main_page_footer.dart';
+import 'package:mobile/widgets/mainpage/shop_widget.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -148,6 +149,17 @@ class HomeScreen extends StatelessWidget {
                                       TextButton(
                                         onPressed: () => context.go('/auth'),
                                         child: const Text('Compte'),
+                                      ),
+                                      const SizedBox(width: 24),
+                                      TextButton(
+                                        onPressed: () {
+                                          showDialog<void>(
+                                            context: context,
+                                            builder:
+                                                (context) => const ShopWidget(),
+                                          );
+                                        },
+                                        child: const Text('Boutique'),
                                       ),
                                     ]
                                     : [

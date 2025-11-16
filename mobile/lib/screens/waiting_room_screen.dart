@@ -3,14 +3,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/common/game.dart';
+import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/channel_service.dart';
 import 'package:mobile/services/game_service.dart';
 import 'package:mobile/services/player_service.dart';
+import 'package:mobile/services/shop_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/services/waiting_room_service.dart';
+import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/friends/friend_button.dart';
 import 'package:mobile/widgets/game/challenges_widget.dart';
+import 'package:mobile/widgets/money_widget.dart';
 import 'package:mobile/widgets/waiting_room/profile_modal_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
@@ -36,6 +40,8 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
   final _service = WaitingRoomService();
   final _gameService = GameService();
   final _playerService = PlayerService();
+  final _authService = AuthService();
+  final _shopService = ShopService();
   late AnimationController _gearController;
 
   StreamSubscription<dynamic>? _closedSub;
@@ -44,6 +50,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
 
   VoidCallback? _playerListener;
   String _playerName = '';
+  final Map<String, String> _playerBanners = {};
 
   @override
   void initState() {
@@ -72,6 +79,9 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
     _listenToGameClosed();
     _listenToGameInitialized();
     _listenToPlayerKicked();
+    _loadPlayerBanners();
+
+    _service.players.addListener(_loadPlayerBanners);
   }
 
   void _listenToGameClosed() {
@@ -134,13 +144,10 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
       if (!mounted) return;
 
       try {
-        // Quitter le salon de la partie avant de partir
         if (widget.gameId != null) {
           await ChannelService().removeGameChannel(widget.gameId!);
         }
-        // Déconnecter pour nettoyer l'état de la partie
         SocketService().disconnect();
-        // Reconnecter immédiatement pour garder le chat fonctionnel
         await SocketService().connect();
 
         if (!mounted) return;
@@ -155,12 +162,58 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
           );
         }
       } on Exception catch (e) {
-        // DebugLogger.log(
-        //   'Error handling player kicked: $e',
-        //   tag: 'WaitingRoomScreen',
-        // );
+        DebugLogger.log(
+          'Error handling player kicked: $e',
+          tag: 'WaitingRoomScreen',
+        );
       }
     });
+  }
+
+  Future<void> _loadPlayerBanners() async {
+    final players = _service.players.value;
+    DebugLogger.log(
+      'Loading banners for ${players.length} players',
+      tag: 'WaitingRoomScreen',
+    );
+    if (players.isEmpty) return;
+
+    for (final player in players) {
+      if (player.socketId.startsWith('virtualPlayer')) continue;
+
+      try {
+        final userItems = await _shopService.getUserItemsByUsername(
+          player.name,
+        );
+        final equippedBanner = userItems.firstWhere(
+          (item) =>
+              item['equipped'] == true &&
+              (item['itemId'] as String).startsWith('banner_'),
+          orElse: () => {},
+        );
+
+        if (equippedBanner.isNotEmpty) {
+          final bannerId = equippedBanner['itemId'] as String;
+          final bannerNumber = bannerId.replaceAll('banner_', '');
+          final bannerPath = 'lib/assets/banner/$bannerNumber.png';
+          if (mounted) {
+            setState(() {
+              _playerBanners[player.name] = bannerPath;
+            });
+          }
+        } else {
+          DebugLogger.log(
+            'No equipped banner found for ${player.name}',
+            tag: 'WaitingRoomScreen',
+          );
+        }
+      } catch (e) {
+        DebugLogger.log(
+          'Error loading banner for ${player.name}: $e',
+          tag: 'WaitingRoomScreen',
+        );
+      }
+    }
   }
 
   @override
@@ -168,6 +221,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
     if (_playerListener != null) {
       _playerService.notifier.removeListener(_playerListener!);
     }
+    _service.players.removeListener(_loadPlayerBanners);
     _gearController.dispose();
     _closedSub?.cancel();
     _gameInitializedSub?.cancel();
@@ -183,19 +237,27 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
   }
 
   Widget _buildPlayerRow(Player p) {
-    final idx = (p.avatar.index + 1).clamp(1, 12);
+    final idx = (p.avatar.index + 1).clamp(1, 17);
     final isAI = p.socketId.startsWith('virtualPlayer');
     final isSelected = _service.selectedPlayerSocketId.value == p.socketId;
     final isFirstPlayer =
         _service.players.value.isNotEmpty &&
         _service.players.value[0].socketId == p.socketId;
     final canKick = _service.isHost.value && !isFirstPlayer;
+    final bannerPath = _playerBanners[p.name];
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         border:
             isFirstPlayer ? Border.all(color: Colors.orange, width: 2) : null,
+        image:
+            bannerPath != null
+                ? DecorationImage(
+                  image: AssetImage(bannerPath),
+                  fit: BoxFit.cover,
+                )
+                : null,
       ),
       child: ListTile(
         selected: isSelected,
@@ -261,7 +323,22 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                           const SizedBox(height: 12),
                           _buildPlayersList(),
                           const SizedBox(height: 12),
-                          const ChallengesWidget(),
+                          const Row(
+                            children: [
+                              SizedBox(width: 25),
+                              Text(
+                                'Mon argent: ',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              MoneyWidget(),
+                              SizedBox(width: 175),
+                              ChallengesWidget(),
+                            ],
+                          ),
                           const SizedBox(height: 12),
                           _buildFooter(),
                         ],

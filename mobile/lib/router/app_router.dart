@@ -133,8 +133,20 @@ class AppRouter {
         name: 'endgame',
         builder: (context, state) {
           final gameId = state.pathParameters['gameId'] ?? '';
-          final game = state.extra! as GameClassic;
-          return EndgameScreen(gameId: gameId, game: game);
+          final extra = state.extra;
+
+          if (extra is Map<String, dynamic>) {
+            final game = extra['game'] as GameClassic;
+            final moneyReward = extra['moneyReward'] as int? ?? 0;
+            return EndgameScreen(
+              gameId: gameId,
+              game: game,
+              moneyReward: moneyReward,
+            );
+          } else {
+            final game = extra! as GameClassic;
+            return EndgameScreen(gameId: gameId, game: game);
+          }
         },
       ),
     ],

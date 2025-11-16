@@ -27,7 +27,7 @@ class FriendButton extends StatelessWidget {
           padding: EdgeInsets.zero,
         ),
         onPressed: () => _showFriendList(context),
-        child: const Icon(Icons.people, color: Color(0xFFC0C0C0)),
+        child: const Icon(Icons.people, color: Color(0xFFC0C0C0), size: 24),
       ),
     );
 

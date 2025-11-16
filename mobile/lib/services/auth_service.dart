@@ -31,11 +31,7 @@ class AuthService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'username': username, 'password': password}),
     );
-    DebugLogger.log(
-      'Auth.login response status: ${r.statusCode}',
-      tag: 'AuthService',
-    );
-    DebugLogger.log('Auth.login response body: ${r.body}', tag: 'AuthService');
+
     if (r.statusCode == 200) {
       final body = jsonDecode(r.body);
       final t = body['token'] as String?;

@@ -1,10 +1,13 @@
+import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
+import { ChallengeService } from '@app/services/challenge/challenge.service';
 import { ChannelService } from '@app/services/channel/channel.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { EndgameService } from '@app/services/endgame/endgame.service';
+import { GameTurnService } from '@app/services/game-turn/game-turn.service';
 import { GameService } from '@app/services/game/game.service';
 import { PlayerService } from '@app/services/player-service/player.service';
 import { ShopHttpService } from '@app/services/shop-http/shop-http.service';
@@ -18,7 +21,7 @@ import { Subscription } from 'rxjs';
 @Component({
     selector: 'app-endgame-page',
     standalone: true,
-    imports: [ChatroomComponent],
+    imports: [CommonModule, ChatroomComponent],
     templateUrl: './endgame-page.component.html',
     styleUrl: './endgame-page.component.scss',
 })
@@ -29,6 +32,8 @@ export class EndgamePageComponent implements OnInit, OnDestroy {
     showLevelModal: boolean = false;
     newLevel: number = 0;
     bannerUnlocked: boolean = false;
+    moneyReward: number = 0;
+    challengeReward: number = 0;
 
     constructor(
         private readonly socketService: SocketService,
@@ -38,6 +43,8 @@ export class EndgamePageComponent implements OnInit, OnDestroy {
         private readonly router: Router,
         protected endgameService: EndgameService,
         private readonly channelService: ChannelService,
+        private readonly gameTurnService: GameTurnService,
+        private readonly challengeService: ChallengeService,
         private readonly shopHttpService: ShopHttpService,
     ) {
         this.socketService = socketService;
@@ -47,6 +54,18 @@ export class EndgamePageComponent implements OnInit, OnDestroy {
         this.router = router;
         this.endgameService = endgameService;
         this.channelService = channelService;
+        this.gameTurnService = gameTurnService;
+        this.challengeService = challengeService;
+
+        this.gameTurnService.moneyReward$.subscribe((reward) => {
+            this.moneyReward = reward;
+        });
+
+        this.challengeService.challenge$.subscribe((challenge) => {
+            if (challenge?.completed) {
+                this.challengeReward = challenge.reward || 0;
+            }
+        });
         this.shopHttpService = shopHttpService;
     }
 
@@ -77,7 +96,7 @@ export class EndgamePageComponent implements OnInit, OnDestroy {
 
     listenToPlayerLeveledUp(): void {
         this.socketSubscription.add(
-            this.socketService.listen<{ newLevel: number; bannerUnlocked: boolean} >(GameManagerEvents.PlayerLeveledUp).subscribe((data) => {
+            this.socketService.listen<{ newLevel: number; bannerUnlocked: boolean }>(GameManagerEvents.PlayerLeveledUp).subscribe((data) => {
                 {
                     this.showLevelModal = true;
                     this.newLevel = data.newLevel;

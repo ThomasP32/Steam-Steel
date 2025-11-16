@@ -14,12 +14,14 @@ class AvatarPicker extends StatefulWidget {
     required this.onCustomPreviewChanged,
     super.key,
     this.customPreview,
+    this.unlockedAvatars,
   });
 
   final Avatar selected;
   final String? customPreview;
   final AvatarChanged onAvatarChanged;
   final CustomAvatarChanged onCustomPreviewChanged;
+  final List<int>? unlockedAvatars;
 
   @override
   State<AvatarPicker> createState() => _AvatarPickerState();
@@ -43,44 +45,79 @@ class _AvatarPickerState extends State<AvatarPicker> {
     final hasCustom =
         widget.customPreview != null && widget.customPreview!.isNotEmpty;
 
+    final unlockedSet =
+        widget.unlockedAvatars?.toSet() ??
+        {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+
     return Wrap(
       spacing: 10,
       runSpacing: 10,
       children: [
         for (final a in avatars)
-          GestureDetector(
-            onTap: () {
-              widget.onCustomPreviewChanged(null);
-              widget.onAvatarChanged(a);
-            },
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color:
-                      widget.selected == a && !hasCustom
-                          ? Colors.blueAccent
-                          : Colors.transparent,
-                  width: 3,
-                ),
-                boxShadow:
-                    widget.selected == a && !hasCustom
-                        ? [
-                          BoxShadow(
-                            color: Colors.blue.withValues(alpha: 0.16),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
-                          ),
-                        ]
+          Builder(
+            builder: (context) {
+              final isUnlocked = unlockedSet.contains(a.value);
+              final isSelected = widget.selected == a && !hasCustom;
+
+              return GestureDetector(
+                onTap:
+                    isUnlocked
+                        ? () {
+                          widget.onCustomPreviewChanged(null);
+                          widget.onAvatarChanged(a);
+                        }
                         : null,
-                image: DecorationImage(
-                  image: AssetImage('lib/assets/characters/${a.value}.png'),
-                  fit: BoxFit.cover,
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color:
+                              isSelected
+                                  ? Colors.blueAccent
+                                  : Colors.transparent,
+                          width: 3,
+                        ),
+                        boxShadow:
+                            isSelected
+                                ? [
+                                  BoxShadow(
+                                    color: Colors.blue.withValues(alpha: 0.16),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ]
+                                : null,
+                        image: DecorationImage(
+                          image: AssetImage(
+                            'lib/assets/characters/${a.value}.png',
+                          ),
+                          fit: BoxFit.cover,
+                          opacity: isUnlocked ? 1.0 : 0.3,
+                        ),
+                      ),
+                    ),
+                    if (!isUnlocked)
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.black.withValues(alpha: 0.5),
+                        ),
+                        child: const Icon(
+                          Icons.lock,
+                          color: Colors.white70,
+                          size: 24,
+                        ),
+                      ),
+                  ],
                 ),
-              ),
-            ),
+              );
+            },
           ),
         GestureDetector(
           onTap: _pickCustomAvatar,

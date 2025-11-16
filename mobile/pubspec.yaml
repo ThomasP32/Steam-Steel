@@ -44,6 +44,7 @@ flutter:
         - lib/assets/pixelcharacters/
         - lib/assets/items/
         - lib/assets/tiles/
+        - lib/assets/banner/
         - .env
 
     fonts:

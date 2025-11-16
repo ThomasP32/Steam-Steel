@@ -83,10 +83,6 @@ class _ChatWidgetState extends State<ChatWidget>
       _prevSub = SocketService()
           .listen<List<dynamic>>('previousMessages')
           .listen((List<dynamic> data) {
-            DebugLogger.log(
-              'Received previousMessages: ${data.length} messages',
-              tag: 'ChatWidget',
-            );
             final msgs =
                 data
                     .whereType<Map<String, dynamic>>()
@@ -139,7 +135,6 @@ class _ChatWidgetState extends State<ChatWidget>
           .listen<Map<String, dynamic>>('newMessage')
           .listen((m) {
             try {
-              DebugLogger.log('newMessage received: $m', tag: 'ChatWidget');
               final msg = chatService.messageFromMap(m);
               if (!mounted) return;
               setState(() {
@@ -279,10 +274,6 @@ class _ChatWidgetState extends State<ChatWidget>
     DebugLogger.log('Starting to load friends...', tag: 'ChatWidget');
     try {
       final friends = await _friendService.getFriends();
-      DebugLogger.log(
-        'getFriends() returned ${friends.length} friends',
-        tag: 'ChatWidget',
-      );
       if (!mounted) return;
       setState(() {
         _friends = friends;
@@ -587,6 +578,7 @@ class _ChatWidgetState extends State<ChatWidget>
               child: const Icon(
                 Icons.chat_bubble_outline,
                 color: Color(0xFFC0C0C0),
+                size: 24,
               ),
             ),
           ),

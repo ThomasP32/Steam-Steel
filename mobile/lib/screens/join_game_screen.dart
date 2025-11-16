@@ -7,6 +7,7 @@ import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/friends/friend_button.dart';
+import 'package:mobile/widgets/money_widget.dart';
 import 'package:mobile/widgets/waiting_room/game_preview_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
@@ -344,7 +345,18 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
             const Positioned(
               top: 18,
               right: 12,
-              child: Row(children: [FriendButton(), ChatWidget()]),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(top: 7),
+                    child: MoneyWidget(),
+                  ),
+                  SizedBox(width: 8),
+                  FriendButton(),
+                  ChatWidget(),
+                ],
+              ),
             ),
           ],
         ),
