@@ -324,15 +324,16 @@ export class GameGateway {
             return;
         }
         const userId = this.userSocketSession.getUserIdBySocket(client.id);
+        const isHost = this.gameCreationService.isPlayerHost(client.id, game.id);
         if (!game.hasStarted) {
-            if (this.gameCreationService.isPlayerHost(client.id, game.id)) {
+            if (isHost) {
                 const { totalRefunded, refundedUsers } = await this.gameCreationService.refundAllPlayersInGame(gameId);
                 for (const refundedUserId of refundedUsers) {
                     await this.shopGateway.notifyMoneyUpdate(refundedUserId);
                 }
                 console.log(`[GameCreationGateway] Host leaving - refunded ${totalRefunded} to ${refundedUsers.length} players`);
                 this.server.to(game.id).emit(GameCreationEvents.GameClosed);
-                this.gameCreationService.deleteRoom(game.id);
+                await this.gameCreationService.deleteRoom(game.id);
                 this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
                 this.gameCountdownService.deleteCountdown(game.id); // Clean up timers if any
                 this.combatCountdownService.deleteCountdown(game.id);

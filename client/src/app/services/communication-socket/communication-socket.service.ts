@@ -49,4 +49,27 @@ export class SocketService {
         }
         this.socket.disconnect();
     }
+
+    async waitForConnection(timeoutMs: number = 1000): Promise<boolean> {
+        if (this.isSocketAlive()) {
+            return true;
+        }
+        if (!this.socket) {
+            return false;
+        }
+        return new Promise((resolve) => {
+            // Check if already connected before setting up listener
+            if (this.socket.connected) {
+                resolve(true);
+                return;
+            }
+            const timeout = setTimeout(() => {
+                resolve(this.isSocketAlive());
+            }, timeoutMs);
+            this.socket.once('connect', () => {
+                clearTimeout(timeout);
+                resolve(true);
+            });
+        });
+    }
 }

@@ -177,11 +177,14 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         if (!this.isHost) {
             this.socketSubscription.add(
                 this.socketService.listen(GameCreationEvents.GameClosed).subscribe(() => {
-                    this.dialogBoxMessage = "L'hôte de la partie a quitté.";
-                    this.showExitModal = true;
-                    setTimeout(() => {
-                        this.exitGame();
-                    }, TIME_LIMIT_DELAY);
+                    const currentGameId = this.waitingRoomCode || this.route.snapshot.params['gameId'];
+                    if (currentGameId && !this.isHost && this.router.url.includes('waiting-room')) {
+                        this.dialogBoxMessage = "L'hôte de la partie a quitté.";
+                        this.showExitModal = true;
+                        setTimeout(() => {
+                            this.exitGame();
+                        }, TIME_LIMIT_DELAY);
+                    }
                 }),
             );
             this.socketSubscription.add(

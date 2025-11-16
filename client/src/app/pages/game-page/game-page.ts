@@ -202,7 +202,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
 
         setTimeout(() => {
             this.characterService.resetCharacterAvailability();
-            this.socketService.disconnect();
+            // Socket stays connected - only leaving the game room
             this.router.navigate(['/main-menu'], { state: {} });
         }, 100);
     }
