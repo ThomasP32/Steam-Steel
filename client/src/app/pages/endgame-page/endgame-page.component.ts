@@ -94,7 +94,7 @@ export class EndgamePageComponent implements OnInit, OnDestroy {
 
         setTimeout(() => {
             this.characterService.resetCharacterAvailability();
-            this.socketService.disconnect();
+            // Socket stays connected - only leaving the game room
             this.router.navigate(['/main-menu']);
         }, 100);
     }
@@ -103,7 +103,7 @@ export class EndgamePageComponent implements OnInit, OnDestroy {
         if (this.socketSubscription) {
             this.socketSubscription.unsubscribe();
         }
-        this.socketService.disconnect();
+        // Socket stays connected - only unsubscribing from events
     }
 
     private async loadPlayerBanners(): Promise<void> {

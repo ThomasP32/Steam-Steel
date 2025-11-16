@@ -264,8 +264,7 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     }
 
     private cleanupPartyChannel(): void {
-        const partyChannelName = `partie-${this.gameId}`;
-        this.channelService.removePartyChannel(partyChannelName);
+        this.channelService.removePartyChannel(this.gameId);
     }
 
     getMessageAuthorAvatarUrl(message: Message): string | null {
