@@ -407,6 +407,23 @@ export class GameCreationService {
         return this.gamePrizePools[gameId]?.totalPool || 0;
     }
 
+    convertUserRewardsToSocketRewards(
+        gameId: string,
+        userRewardsMap: Map<string, number>,
+        // eslint-disable-next-line no-unused-vars
+        getSocketIdByUserId: (userId: string) => string | undefined,
+    ): { [key: string]: number } {
+        const socketRewards: { [key: string]: number } = {};
+        for (const [userId, amount] of userRewardsMap) {
+            const socketId = getSocketIdByUserId(userId);
+            if (socketId) {
+                socketRewards[socketId] = amount;
+            }
+        }
+
+        return socketRewards;
+    }
+
     async chargeHostForGameCreation(userId: string, gameId: string, entryFee: number): Promise<boolean> {
         const canAfford = await this.shopService.canAfford(userId, entryFee);
         if (!canAfford) {

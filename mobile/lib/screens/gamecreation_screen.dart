@@ -9,6 +9,7 @@ import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/friends/friend_button.dart';
 import 'package:mobile/widgets/game/game_options_modal_widget.dart';
+import 'package:mobile/widgets/money_widget.dart';
 
 class GameCreationScreen extends StatefulWidget {
   const GameCreationScreen({super.key});
@@ -88,11 +89,13 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
     required bool isFastElimination,
     required bool isDropInOut,
     required bool isFriendsOnly,
+    required int entryFee,
   }) {
     final settings = GameSettings(
       isFastElimination: isFastElimination,
       isDropInOut: isDropInOut,
       isFriendsOnly: isFriendsOnly,
+      entryFee: entryFee,
     );
 
     setState(() {
@@ -140,10 +143,8 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
       return maps;
     }
 
-    final sorted = List<dynamic>.from(maps);
-
-    sorted.sort((a, b) {
-      int comparison = 0;
+    final sorted = List<dynamic>.from(maps)..sort((a, b) {
+      var comparison = 0;
 
       switch (sortBy) {
         case 'name':
@@ -309,7 +310,7 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
                                         const SizedBox(width: 8),
                                         _buildFilterButton('Mode', 'mode'),
                                         const SizedBox(width: 8),
-                                        Container(
+                                        DecoratedBox(
                                           decoration: BoxDecoration(
                                             color:
                                                 sortBy != null
@@ -589,8 +590,16 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
               top: 18,
               right: 12,
               child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [FriendButton(), ChatWidget()],
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(top: 7),
+                    child: MoneyWidget(),
+                  ),
+                  SizedBox(width: 8),
+                  FriendButton(),
+                  ChatWidget(),
+                ],
               ),
             ),
           ],

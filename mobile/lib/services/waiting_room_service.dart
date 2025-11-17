@@ -21,6 +21,7 @@ class WaitingRoomService {
   final ValueNotifier<bool> isHost = ValueNotifier(false);
   final ValueNotifier<String> gameId = ValueNotifier('');
   final ValueNotifier<String?> selectedPlayerSocketId = ValueNotifier(null);
+  final ValueNotifier<int> entryFee = ValueNotifier(0);
   final ValueNotifier<GameSettings> gameSettings = ValueNotifier(
     GameSettings(),
   );
@@ -153,11 +154,14 @@ class WaitingRoomService {
       final settingsData = data['settings'] as Map<String, dynamic>?;
       if (settingsData != null) {
         try {
+          final entryFeeData = settingsData['entryFee'] as int?;
           final isFriendsOnly = settingsData['isFriendsOnly'] as bool? ?? false;
           final isFastElimination =
               settingsData['isFastElimination'] as bool? ?? false;
           final isDropInOut = settingsData['isDropInOut'] as bool? ?? false;
-
+          if (entryFeeData != null) {
+            entryFee.value = entryFeeData;
+          }
           gameSettings.value = GameSettings(
             isFriendsOnly: isFriendsOnly,
             isFastElimination: isFastElimination,
@@ -312,6 +316,7 @@ class WaitingRoomService {
       );
       isLocked.value = false;
       players.value = [storedPlayer];
+      entryFee.value = gameSettings.entryFee;
 
       SocketService().send('createGame', gamePayload);
 

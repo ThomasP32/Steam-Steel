@@ -646,10 +646,9 @@ export class GameManagerService {
         );
         const rewardsMap = await this.gameCreationService.endGameAndDistributeRewards(gameId, winners, activePlayers);
 
-        const rewardsObject: { [key: string]: number } = {};
-        for (const [userId, amount] of rewardsMap) {
-            rewardsObject[userId] = amount;
-        }
+        const rewardsObject = this.gameCreationService.convertUserRewardsToSocketRewards(gameId, rewardsMap, (userId) =>
+            this.userSocketService.getSocketId(userId),
+        );
 
         server.to(gameId).emit(CombatEvents.GameFinished, { updatedGame: game, moneyRewards: rewardsObject });
         server.to(gameId).emit(CombatEvents.GameFinishedPlayerWon, endResult.winner);

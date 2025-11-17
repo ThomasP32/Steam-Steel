@@ -49,6 +49,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
   StreamSubscription<dynamic>? _closedSub;
   StreamSubscription<dynamic>? _gameInitializedSub;
   StreamSubscription<dynamic>? _playerKickedSub;
+  StreamSubscription<int>? _moneyUpdatesSub;
 
   VoidCallback? _playerListener;
   String _playerName = '';
@@ -82,6 +83,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
     _listenToGameClosed();
     _listenToGameInitialized();
     _listenToPlayerKicked();
+    _listenToMoneyUpdates();
     _loadPlayerBanners();
 
     _service.players.addListener(_loadPlayerBanners);
@@ -172,6 +174,21 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
     });
   }
 
+  void _listenToMoneyUpdates() {
+    _moneyUpdatesSub = _shopService.moneyUpdates.listen((newMoney) async {
+      if (!mounted) return;
+
+      try {
+        await _authService.fetchUser();
+      } on Exception catch (e) {
+        DebugLogger.log(
+          'Error refreshing user info after money update: $e',
+          tag: 'WaitingRoomScreen',
+        );
+      }
+    });
+  }
+
   Future<void> _loadPlayerBanners() async {
     final players = _service.players.value;
     DebugLogger.log(
@@ -246,6 +263,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
     _closedSub?.cancel();
     _gameInitializedSub?.cancel();
     _playerKickedSub?.cancel();
+    _moneyUpdatesSub?.cancel();
     _service.reset();
 
     final gameId = widget.gameId ?? _service.gameId.value;
@@ -343,20 +361,80 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                           const SizedBox(height: 12),
                           _buildPlayersList(),
                           const SizedBox(height: 12),
-                          const Row(
+                          Row(
                             children: [
-                              SizedBox(width: 25),
-                              Text(
+                              const SizedBox(width: 25),
+                              const Text(
                                 'Mon argent: ',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              SizedBox(width: 4),
-                              MoneyWidget(),
-                              SizedBox(width: 175),
-                              ChallengesWidget(),
+                              const SizedBox(width: 4),
+                              const MoneyWidget(),
+                              const SizedBox(width: 175),
+                              const ChallengesWidget(),
+                              const SizedBox(width: 100),
+                              ValueListenableBuilder(
+                                valueListenable: _service.entryFee,
+                                builder: (context, entryFee, _) {
+                                  if (entryFee <= 0) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: Colors.orange.shade700,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Text(
+                                          "Frais d'entrée: ",
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF7D4F00),
+                                          ),
+                                        ),
+                                        Image.asset(
+                                          'lib/assets/icons/money.png',
+                                          width: 20,
+                                          height: 20,
+                                          errorBuilder: (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) {
+                                            return const Icon(
+                                              Icons.monetization_on,
+                                              size: 16,
+                                              color: Colors.white,
+                                            );
+                                          },
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '$entryFee',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF7D4F00),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
                             ],
                           ),
                           const SizedBox(height: 12),

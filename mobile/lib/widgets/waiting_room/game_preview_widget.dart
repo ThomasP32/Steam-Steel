@@ -54,6 +54,9 @@ class GamePreviewWidget extends StatelessWidget {
           as bool? ??
       false;
 
+  int get _entryFee =>
+      (game['settings'] as Map<String, dynamic>?)?['entryFee'] as int? ?? 0;
+
   bool get _isFull {
     if (_maxPlayers <= 0) return false;
     if (_isFastElimination) {
@@ -238,6 +241,27 @@ class GamePreviewWidget extends StatelessWidget {
                     Text(_mapSize, style: const TextStyle(fontSize: 9)),
                   ],
                 ),
+                if (_entryFee > 0) ...[
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.monetization_on,
+                        size: 10,
+                        color: Colors.orange,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        '$_entryFee pièces',
+                        style: const TextStyle(
+                          fontSize: 9,
+                          color: Colors.orange,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 3),
                 Row(
                   children: [
