@@ -332,8 +332,22 @@ export class GameCreationService {
         console.log(`[endGameAndDistributeRewards] Game ${gameId} ending. Winners: ${winners.length}, Active players: ${activePlayers.length}`);
 
         let rewardsMap = new Map<string, number>();
+        
         if (winners.length > 0 || activePlayers.length > 0) {
             rewardsMap = await this.distributeGameRewards(gameId, winners, activePlayers);
+        }
+
+        for (const winnerId of winners) {
+            await this.shopService.addMoney(winnerId, 50);
+            const currentReward = rewardsMap.get(winnerId) || 0;
+            rewardsMap.set(winnerId, currentReward + 50);
+        }
+
+        const otherActivePlayers = activePlayers.filter(playerId => !winners.includes(playerId));
+        for (const playerId of otherActivePlayers) {
+            await this.shopService.addMoney(playerId, 30);
+            const currentReward = rewardsMap.get(playerId) || 0;
+            rewardsMap.set(playerId, currentReward + 30);
         }
 
         this.deleteRoom(gameId);
