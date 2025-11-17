@@ -195,14 +195,16 @@ class FriendService {
 
     try {
       final friend = Friend.fromJson(data);
+
+      if (!_cachedFriends.any((f) => f.username == friend.username)) {
+        _cachedFriends.add(friend);
+      }
+
       for (final listener in _onFriendAddedListeners) {
         listener(friend);
       }
-    } catch (e) {
-      DebugLogger.log(
-        'Erreur lors du traitement de friendAdded: $e',
-        tag: 'FriendService',
-      );
+    } catch (_) {
+      // Silently fail
     }
   }
 
@@ -211,6 +213,8 @@ class FriendService {
 
     final username = data['username'] as String?;
     if (username != null) {
+      _cachedFriends.removeWhere((friend) => friend.username == username);
+
       for (final listener in _onFriendRemovedListeners) {
         listener(username);
       }
@@ -532,6 +536,52 @@ class FriendService {
     } catch (e) {
       DebugLogger.log('Error updating user status: $e', tag: 'FriendService');
     }
+  }
+
+  void inviteAllOnlineFriends(String gameId, String gameName) {
+    try {
+      if (_socketService.socketId == null) {
+        return;
+      }
+
+      final payload = {'gameId': gameId, 'gameName': gameName};
+
+      _socketService.send('inviteAllOnlineFriends', payload);
+    } catch (e) {
+      DebugLogger.log('Error inviting friends: $e', tag: 'FriendService');
+    }
+  }
+
+  void acceptGameInvitation(String gameId, String inviterUsername) {
+    try {
+      final payload = {'gameId': gameId, 'inviterUsername': inviterUsername};
+      _socketService.send('gameInvitationAccepted', payload);
+    } catch (e) {
+      DebugLogger.log('Error accepting invitation: $e', tag: 'FriendService');
+    }
+  }
+
+  void rejectGameInvitation(String gameId, String inviterUsername) {
+    try {
+      final payload = {'gameId': gameId, 'inviterUsername': inviterUsername};
+      _socketService.send('gameInvitationRejected', payload);
+    } catch (e) {
+      DebugLogger.log('Error rejecting invitation: $e', tag: 'FriendService');
+    }
+  }
+
+  List<Friend> getOnlineFriends() {
+    return _cachedFriends
+        .where(
+          (friend) =>
+              friend.status == UserStatus.online ||
+              friend.status == UserStatus.inGame,
+        )
+        .toList();
+  }
+
+  List<Friend> getCachedFriends() {
+    return List.from(_cachedFriends);
   }
 
   void dispose() {}

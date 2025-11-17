@@ -545,6 +545,8 @@ class _GameScreenState extends State<GameScreen> {
       DebugLogger.log('leaveGame error: $e', tag: 'GameScreen');
     }
 
+    FriendService().updateUserStatus(UserStatus.online);
+
     if (widget.gameId.isNotEmpty) {
       ChannelService().removeGameChannel(widget.gameId);
     }

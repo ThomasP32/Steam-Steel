@@ -11,6 +11,7 @@ import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/friends/friend_button.dart';
+import 'package:mobile/widgets/game/game_invitation_listener.dart';
 import 'package:mobile/widgets/mainpage/main_page_footer.dart';
 import 'package:mobile/widgets/mainpage/shop_widget.dart';
 
@@ -87,6 +88,9 @@ class MobileApp extends StatelessWidget {
       routerConfig: AppRouter.router,
       theme: AppTheme.darkTheme,
       themeMode: ThemeMode.dark,
+      builder: (context, child) {
+        return GameInvitationListener(child: child ?? const SizedBox.shrink());
+      },
     );
   }
 }

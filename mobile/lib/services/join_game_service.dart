@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:mobile/common/game.dart';
 import 'package:mobile/services/auth_service.dart';
+import 'package:mobile/services/friend_service.dart';
 import 'package:mobile/services/game_service.dart';
 import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
@@ -22,31 +23,71 @@ class JoinGameService {
 
   String? get currentUsername => AuthService().notifier.value?.username;
 
-  void fetchGames() {
+  Future<void> fetchGames() async {
     _loadingController.add(true);
-    _socketService.send('getGames', null);
 
-    Timer(const Duration(seconds: 3), () {
-      if (_loadingController.isClosed) return;
-      _loadingController.add(false);
-      DebugLogger.log('getGames timeout', tag: 'JoinGameService');
-    });
+    await FriendService().getFriends();
+
+    await _socketService
+        .emitWithAck<dynamic>('getGames')
+        .then(handleGamesResponse)
+        .catchError((_) {
+          _loadingController.add(false);
+          _gamesController.add([]);
+        })
+        .timeout(
+          const Duration(seconds: 3),
+          onTimeout: () {
+            _loadingController.add(false);
+            _gamesController.add([]);
+          },
+        );
   }
 
   void handleGamesResponse(dynamic gameRooms) {
     if (gameRooms is List) {
       final games = gameRooms.whereType<Map<String, dynamic>>().toList();
-
-      DebugLogger.log('Received ${games.length} games', tag: 'JoinGameService');
-      _gamesController.add(games);
+      final filteredGames = _filterFriendsOnlyGames(games);
+      _gamesController.add(filteredGames);
     } else {
-      DebugLogger.log(
-        'Invalid games response: ${gameRooms.runtimeType}',
-        tag: 'JoinGameService',
-      );
       _gamesController.add([]);
     }
     _loadingController.add(false);
+  }
+
+  List<Map<String, dynamic>> _filterFriendsOnlyGames(
+    List<Map<String, dynamic>> games,
+  ) {
+    final myFriends = FriendService().getCachedFriends();
+    final myFriendUsernames = myFriends.map((f) => f.username).toSet();
+
+    final filtered =
+        games.where((game) {
+          final settings = game['settings'] as Map<String, dynamic>?;
+          final isFriendsOnly = settings?['isFriendsOnly'] as bool? ?? false;
+
+          if (!isFriendsOnly) {
+            return true;
+          }
+
+          final players = game['players'] as List<dynamic>?;
+          if (players != null && players.isNotEmpty) {
+            final hostPlayer = players[0] as Map<String, dynamic>?;
+            final hostName = hostPlayer?['name'] as String?;
+
+            if (hostName == currentUsername) {
+              return true;
+            }
+
+            if (hostName != null && myFriendUsernames.contains(hostName)) {
+              return true;
+            }
+          }
+
+          return false;
+        }).toList();
+
+    return filtered;
   }
 
   Future<void> accessGame(String gameCode) async {

@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/common/game.dart';
+import 'package:mobile/models/user_models.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/channel_service.dart';
+import 'package:mobile/services/friend_service.dart';
 import 'package:mobile/services/game_service.dart';
 import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/shop_service.dart';
@@ -55,6 +57,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
   @override
   void initState() {
     super.initState();
+    FriendService().updateUserStatus(UserStatus.inGame);
 
     final local = _playerService.notifier.value;
     if (local.name.isNotEmpty) {
@@ -87,6 +90,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
   void _listenToGameClosed() {
     _closedSub = SocketService().listen<dynamic>('gameClosed').listen((_) {
       if (!mounted) return;
+      FriendService().updateUserStatus(UserStatus.online);
       if (context.mounted) {
         context.go('/');
       }
@@ -142,16 +146,14 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
       _,
     ) async {
       if (!mounted) return;
-
+      FriendService().updateUserStatus(UserStatus.online);
       try {
         if (widget.gameId != null) {
           await ChannelService().removeGameChannel(widget.gameId!);
         }
         SocketService().disconnect();
         await SocketService().connect();
-
         if (!mounted) return;
-
         if (context.mounted) {
           context.go('/');
           showTopSnackBar(
@@ -216,8 +218,26 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
     }
   }
 
+  void _onInviteAllFriends() {
+    final gameId = _service.gameId.value;
+    final gameName = _service.mapName.value;
+    if (gameId.isNotEmpty && gameName.isNotEmpty) {
+      FriendService().inviteAllOnlineFriends(gameId, gameName);
+      if (mounted && context.mounted) {
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.success(
+            message: 'Invitations envoyées à vos amis en ligne',
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
+    FriendService().updateUserStatus(UserStatus.online);
+
     if (_playerListener != null) {
       _playerService.notifier.removeListener(_playerListener!);
     }
@@ -381,93 +401,151 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                         return ValueListenableBuilder(
                           valueListenable: _service.mapName,
                           builder: (context, mapName, _) {
-                            return Row(
+                            return Column(
                               children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Code:',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            gameId,
+                                            style: const TextStyle(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (isHost) ...[
                                       const Text(
-                                        'Code:',
+                                        'La partie est',
                                         style: TextStyle(
+                                          fontSize: 16,
                                           fontWeight: FontWeight.bold,
+                                          color: Colors.orange,
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed:
+                                            (isLocked &&
+                                                    players.length ==
+                                                        maxPlayers)
+                                                ? null
+                                                : () => _service.toggleLock(
+                                                  !isLocked,
+                                                ),
+                                        child: Text(
+                                          isLocked ? 'fermée' : 'ouverte',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            decoration:
+                                                TextDecoration.underline,
+                                          ),
+                                        ),
+                                      ),
+                                    ] else ...[
+                                      const Text(
+                                        'La partie est',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.orange,
                                         ),
                                       ),
                                       Text(
-                                        gameId,
+                                        isLocked ? ' fermée' : ' ouverte',
                                         style: const TextStyle(
-                                          fontSize: 24,
+                                          fontSize: 16,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ],
-                                  ),
-                                ),
-                                if (isHost) ...[
-                                  const Text(
-                                    'La partie est',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.orange,
-                                    ),
-                                  ),
-                                  TextButton(
-                                    onPressed:
-                                        (isLocked &&
-                                                players.length == maxPlayers)
-                                            ? null
-                                            : () =>
-                                                _service.toggleLock(!isLocked),
-                                    child: Text(
-                                      isLocked ? 'fermée' : 'ouverte',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        decoration: TextDecoration.underline,
+                                    const SizedBox(width: 24),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 120,
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            const Text(
+                                              'Carte:',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Text(
+                                              mapName,
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ] else ...[
-                                  const Text(
-                                    'La partie est',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.orange,
-                                    ),
-                                  ),
-                                  Text(
-                                    isLocked ? ' fermée' : ' ouverte',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  ],
+                                ),
+                                if (isHost) ...[
+                                  ValueListenableBuilder(
+                                    valueListenable: _service.gameSettings,
+                                    builder: (context, settings, _) {
+                                      if (!settings.isFriendsOnly) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return ValueListenableBuilder(
+                                        valueListenable: _service.isLocked,
+                                        builder: (context, isLocked, _) {
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 12,
+                                            ),
+                                            child: ElevatedButton.icon(
+                                              onPressed:
+                                                  isLocked
+                                                      ? null
+                                                      : _onInviteAllFriends,
+                                              icon: const Icon(
+                                                Icons.group,
+                                                size: 18,
+                                              ),
+                                              label: const Text(
+                                                'Inviter tous mes amis en ligne',
+                                                style: TextStyle(fontSize: 14),
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.green,
+                                                foregroundColor: Colors.white,
+                                                disabledBackgroundColor:
+                                                    Colors.grey,
+                                                disabledForegroundColor:
+                                                    Colors.white70,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 10,
+                                                    ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
                                   ),
                                 ],
-                                const SizedBox(width: 24),
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(right: 120),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        const Text(
-                                          'Carte:',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        Text(
-                                          mapName,
-                                          style: const TextStyle(fontSize: 18),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
                               ],
                             );
                           },
@@ -573,6 +651,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                       children: [
                         ElevatedButton.icon(
                           onPressed: () {
+                            FriendService().updateUserStatus(UserStatus.online);
                             final gameId =
                                 widget.gameId ?? _service.gameId.value;
                             if (gameId.isNotEmpty) {
@@ -583,20 +662,21 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                           },
                           label: const Text('Quitter la partie'),
                         ),
-                        if (isHost && players.length > 1 && isLocked) ...[
-                          ElevatedButton(
-                            onPressed: _service.initializeGame,
-                            child: const Text('Commencer la partie'),
-                          ),
-                        ] else if (isHost && players.length > 1) ...[
-                          const Text(
-                            'Vérouillez la salle pour commencer',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange,
+                        if (isHost) ...[
+                          if (players.length > 1 && isLocked)
+                            ElevatedButton(
+                              onPressed: _service.initializeGame,
+                              child: const Text('Commencer la partie'),
+                            )
+                          else if (players.length > 1)
+                            const Text(
+                              'Vérouillez la salle pour commencer',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                              ),
                             ),
-                          ),
                         ] else ...[
                           RotationTransition(
                             turns: _gearController,
