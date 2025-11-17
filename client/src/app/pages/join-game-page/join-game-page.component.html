@@ -22,20 +22,18 @@
 
     <div class="map-view">
         <div class="section-header">
-            <h3>Parties en attente</h3>
+            <h3>Parties disponibles</h3>
         </div>
         <div class="game-grid">
-            @if (waitingGames.length > 0) { @for (game of waitingGames; track game.id) { @if(canSeeGame(game)){
-            <app-game-preview [game]="game" (join)="onJoin(game)" (rejoin)="onResume(game)" (observe)="onObserve(game)"> </app-game-preview>
-            }} }
-        </div>
-        <div class="section-header">
-            <h3>Parties en cours</h3>
-        </div>
-        <div class="game-grid">
-            @if (activeGames.length > 0) { @for (game of activeGames; track game.id) { @if(canSeeGame(game)){
-            <app-game-preview [game]="game" (join)="onJoin(game)" (rejoin)="onResume(game)" (observe)="onObserve(game)"> </app-game-preview>
-            }} }
+            @if (activeGames.length > 0) { 
+                @for (game of activeGames; track game.id) { 
+                    <app-game-preview [game]="game" 
+                        (join)="onJoin(game)" 
+                        (rejoin)="onResume(game)" 
+                        (observe)="onObserve(game)"> 
+                    </app-game-preview>
+                } 
+            }
         </div>
     </div>
 </div>

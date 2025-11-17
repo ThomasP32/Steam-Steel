@@ -214,8 +214,10 @@ export class GameGateway {
     }
 
     @SubscribeMessage(GameCreationEvents.GetGames)
-    getGames(): Game[] {
-        return this.gameCreationService.getGames();
+    getGames(client: Socket): Game[] {
+        const games = this.gameCreationService.getGames();
+        client.emit(GameCreationEvents.GetGames, games);
+        return games;
     }
 
     @SubscribeMessage(GameCreationEvents.AccessGame)
@@ -337,6 +339,7 @@ export class GameGateway {
                 this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
                 this.gameCountdownService.deleteCountdown(game.id); // Clean up timers if any
                 this.combatCountdownService.deleteCountdown(game.id);
+                this.server.emit(GameCreationEvents.GameListUpdated);
                 return;
             } else {
                 const { refundAmount } = await this.gameCreationService.handlePlayerLeaving(client, gameId, userId);
