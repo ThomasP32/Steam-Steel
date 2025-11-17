@@ -139,6 +139,7 @@ class GameClassic {
     this.imagePreview = '',
     this.mode,
     this.settings,
+    this.lastTurnPlayer,
     this.participants = const [],
   });
   final String id;
@@ -161,6 +162,7 @@ class GameClassic {
   final String imagePreview;
   final Mode? mode;
   final GameSettings? settings;
+  final String? lastTurnPlayer;
   final List<Player> participants;
 }
 
@@ -187,6 +189,8 @@ class GameCtf extends GameClassic {
     super.imagePreview,
     super.mode,
     super.settings,
+    super.lastTurnPlayer,
+    super.participants,
   });
   final List<Player> nPlayersCtf;
 }

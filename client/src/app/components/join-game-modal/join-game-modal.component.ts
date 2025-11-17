@@ -1,9 +1,8 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, QueryList, ViewChildren } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-// import { Router } from '@angular/router';
 import { AuthService } from '@app/services/auth/auth.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
-import { GameCreationEvents } from '@common/events/game-creation.events';
+import { GameCreationEvents, JoinGameData } from '@common/events/game-creation.events';
 import { Game } from '@common/game';
 import { Subscription } from 'rxjs';
 
@@ -25,11 +24,9 @@ export class JoinGameModalComponent implements OnInit, AfterViewInit, OnDestroy 
 
     constructor(
         private readonly socketService: SocketService,
-        // private readonly router: Router,
         private readonly authService: AuthService,
     ) {
         this.socketService = socketService;
-        // this.router = router;
         this.authService = authService;
     }
 
@@ -96,7 +93,8 @@ export class JoinGameModalComponent implements OnInit, AfterViewInit, OnDestroy 
             this.socketService.listen<Game>(GameCreationEvents.CurrentGame).subscribe((game) => {
                 const existingPlayer = game.players.find((plyr) => plyr.name === this.currentUsername)
                 if (existingPlayer) {
-                    this.socketService.sendMessage(GameCreationEvents.ResumeGame, game.id);
+                    const joinGameData: JoinGameData = { player: existingPlayer, gameId: game.id! };
+                    this.socketService.sendMessage(GameCreationEvents.ResumeGame, joinGameData);
                 } else {
                     this.socketService.sendMessage(GameCreationEvents.AccessGame, game.id);
                 }

@@ -104,23 +104,37 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _ensureGameDataLoaded() {
-    if (_gameService.currentGame == null) {
-      SocketService().send('getGameData', widget.gameId);
-      SocketService().listen<dynamic>('currentGame').listen((data) {
-        if (!mounted) return;
-        if (data is Map<String, dynamic>) {
-          _gameService.updateFromJson(data);
-          setState(() {
-            final turnName = _gameTurnService.playerTurnNotifier.value;
-            if (turnName.isNotEmpty) {
-              _currentPlayerName = turnName;
-            } else {
-              _currentPlayerName = _gameService.getActivePlayerName();
-            }
-          });
+    SocketService().send('getGameData', widget.gameId);
+
+    SocketService().listen<dynamic>('currentGame').listen((data) {
+      if (!mounted) return;
+      if (data is Map<String, dynamic>) {
+        _gameService.updateFromJson(data);
+
+        final currentSocketId = SocketService().socketId;
+        if (currentSocketId != null) {
+          final currentPlayer = _gameService.findPlayerBySocketId(
+            currentSocketId,
+          );
+          if (currentPlayer != null) {
+            PlayerService().setPlayer(currentPlayer);
+            DebugLogger.log(
+              'Player synced from game data: ${currentPlayer.name}, position: ${currentPlayer.position}',
+              tag: 'GameScreen',
+            );
+          }
         }
-      });
-    }
+
+        setState(() {
+          final turnName = _gameTurnService.playerTurnNotifier.value;
+          if (turnName.isNotEmpty) {
+            _currentPlayerName = turnName;
+          } else {
+            _currentPlayerName = _gameService.getActivePlayerName();
+          }
+        });
+      }
+    });
   }
 
   void _listenToCountdown() {
@@ -590,6 +604,7 @@ class _GameScreenState extends State<GameScreen> {
             description: game.description,
             imagePreview: game.imagePreview,
             mode: game.mode,
+            lastTurnPlayer: game.lastTurnPlayer,
           );
           _gameService.setGame(updatedGame);
         }
