@@ -237,7 +237,6 @@ export class GamePageComponent implements OnInit, OnDestroy {
             this.currentPlayerTurn = playerName;
             this.countdown = TURN_DURATION;
             this.isYourTurn = false;
-            this.delayFinished = false;
             if (playerName === this.player.name) {
                 this.isYourTurn = true;
             }
@@ -364,6 +363,10 @@ export class GamePageComponent implements OnInit, OnDestroy {
         this.socketSubscription.add(
             this.socketService.listen<number>(CountdownEvents.Delay).subscribe((delay) => {
                 this.startTurnCountdown = delay;
+                if (delay > 0) {
+                    this.delayFinished = false;
+                }
+                
                 if (delay === 0) {
                     this.startTurnCountdown = 3;
                     this.delayFinished = true;

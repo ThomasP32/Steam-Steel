@@ -95,14 +95,19 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
     onJoin(game: Game) {
         const existingPlayer = game.players.find((plyr) => plyr.name === this.currentUsername);
         if (existingPlayer) {
-            this.socketService.sendMessage(GameCreationEvents.ResumeGame, game.id);
+            const joinGameData: JoinGameData = { player: existingPlayer, gameId: game.id! };
+            this.socketService.sendMessage(GameCreationEvents.ResumeGame, joinGameData);
         } else {
             this.socketService.sendMessage(GameCreationEvents.AccessGame, game.id);
         }
     }
 
     onResume(game: Game) {
-        this.socketService.sendMessage(GameCreationEvents.ResumeGame, game.id);
+        const existingPlayer = game.players.find((plyr) => plyr.name === this.currentUsername);
+        if(existingPlayer){
+            const joinGameData: JoinGameData = { player: existingPlayer, gameId: game.id! };
+            this.socketService.sendMessage(GameCreationEvents.ResumeGame, joinGameData);
+        }
     }
 
     onObserve(game: Game) {
@@ -127,12 +132,8 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
         this.socketSubscription.add(
             this.socketService.listen<Game>(GameCreationEvents.GameResumed).subscribe(async (game) => {
                 const existingPlayer = game.players.find((plyr) => plyr.name === this.currentUsername);
-                const existingParticipant = game.participants.find((plyr) => plyr.name === this.currentUsername);
-                if (existingPlayer && !existingParticipant) {
+                if (existingPlayer){
                     const joinGameData: JoinGameData = { player: existingPlayer, gameId: game.id! };
-                    this.socketService.sendMessage(GameCreationEvents.JoinGame, joinGameData);
-                } else if (existingParticipant) {
-                    const joinGameData: JoinGameData = { player: existingParticipant, gameId: game.id! };
                     this.socketService.sendMessage(GameCreationEvents.JoinGame, joinGameData);
                 }
             }),

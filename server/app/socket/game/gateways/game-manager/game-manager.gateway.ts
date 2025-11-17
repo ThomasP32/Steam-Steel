@@ -205,6 +205,7 @@ export class GameManagerGateway implements OnGatewayInit {
         if (player.socketId !== client.id) {
             return;
         }
+        game.lastTurnPlayer = player.name;
         // Move to next turn - stats will be reset in startTurn for the next player
         this.prepareNextTurn(gameId);
     }
@@ -262,7 +263,7 @@ export class GameManagerGateway implements OnGatewayInit {
         }
         const activePlayer = game.players.find((player) => player.turn === game.currentTurn);
         const involvedPlayers = game.players.map((player) => player.name);
-        if (!activePlayer?.isActive || activePlayer?.isObservationMode === true) {
+        if (!activePlayer?.isActive || activePlayer?.isObservationMode === true || activePlayer.name === game.lastTurnPlayer) {
             game.currentTurn++;
             if (game.currentTurn >= game.players.length) {
                 game.currentTurn = 0;

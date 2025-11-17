@@ -67,6 +67,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
             .listen<void>('gameListUpdated')
             .listen(_onGameListUpdated),
       )
+      ..add(_socketService.listen<dynamic>('getGames').listen(_onGetGames))
       ..add(_socketService.listen<void>('gameAccessed').listen(_onGameAccessed))
       ..add(
         _socketService
@@ -125,6 +126,8 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
   void _onGameEnded(void _) {
     _joinService.fetchGames();
   }
+
+  void _onGetGames(dynamic data) => _joinService.handleGamesResponse(data);
 
   void _onFriendRemoved(Map<String, dynamic> data) {
     final username = data['username'] as String?;
@@ -266,15 +269,26 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
   void _onJoinGame(Map<String, dynamic> game) {
     final gameId = game['id'] as String?;
     if (gameId == null) return;
-    final existingPlayer = _joinService.getExistingPlayer(game);
+
+    final hasStarted = game['hasStarted'] as bool? ?? false;
     final existingParticipant = _joinService.getExistingParticipant(game);
 
-    if (existingParticipant != null || existingPlayer != null) {
+    if (existingParticipant != null) {
       setState(() {
         _isLoading = true;
         _pendingGameCode = gameId;
       });
-      _joinService.resumeGame(gameId);
+      _joinService.resumeGame(gameId, existingParticipant);
+      _startTimeout();
+      return;
+    }
+
+    if (hasStarted) {
+      setState(() {
+        _isLoading = true;
+        _pendingGameCode = gameId;
+      });
+      _joinService.accessGame(gameId);
       _startTimeout();
       return;
     }

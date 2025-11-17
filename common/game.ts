@@ -83,6 +83,7 @@ export interface GameClassic extends Map {
     nDoorsManipulated: Coordinate[];
     duration: number;
     nTurns: number;
+    lastTurnPlayer?: string;
     debug: boolean;
     isLocked: boolean;
     hasStarted: boolean;

@@ -112,10 +112,8 @@ export class GameGateway {
             const user = await this.userService.findByUsername(newPlayer.name);
             newPlayer.level = user.stats.level ?? 1;
 
-            newPlayer.isObservationMode = false;
             if (game.hasStarted) {
                 const activePlayers = game.players.filter((plyr) => plyr.isActive);
-                newPlayer.turn = activePlayers.length - 1;
                 let positionInitialized = false;
                 for (const tile of game.startTiles) {
                     const isOccupiedTile = activePlayers.some((plyr) => this.gameCreationService.sameCoords(plyr.position, tile.coordinate));
@@ -138,6 +136,7 @@ export class GameGateway {
                     }
                 }
             }
+            if(game.hasStarted) {this.gameCreationService.recalculateTurnOrder(game);}
             client.emit(GameCreationEvents.YouJoined, { updatedPlayer: newPlayer, updatedGame: game });
             this.server.to(data.gameId).emit(GameCreationEvents.PlayerJoined, game.players);
             this.server.to(data.gameId).emit(GameCreationEvents.CurrentPlayers, game.players);
@@ -214,8 +213,10 @@ export class GameGateway {
     }
 
     @SubscribeMessage(GameCreationEvents.GetGames)
-    getGames(): Game[] {
-        return this.gameCreationService.getGames();
+    getGames(client: Socket): Game[] {
+        const games = this.gameCreationService.getGames();
+        client.emit(GameCreationEvents.GetGames, games);
+        return games;
     }
 
     @SubscribeMessage(GameCreationEvents.AccessGame)
@@ -337,6 +338,7 @@ export class GameGateway {
                 this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
                 this.gameCountdownService.deleteCountdown(game.id); // Clean up timers if any
                 this.combatCountdownService.deleteCountdown(game.id);
+                this.server.emit(GameCreationEvents.GameListUpdated);
                 return;
             } else {
                 const { refundAmount } = await this.gameCreationService.handlePlayerLeaving(client, gameId, userId);
@@ -364,7 +366,7 @@ export class GameGateway {
                 return player.socketId === client.id ? { ...player, isActive: false, isObservationMode: false } : player;
             });
 
-            if (game.hasStarted && leavingPlayer?.initialPosition) {
+            if (game.hasStarted && !game.settings.isDropInOut && leavingPlayer?.initialPosition) {
                 game.startTiles = game.startTiles.filter(
                     (tile) => tile.coordinate.x !== leavingPlayer.initialPosition.x || tile.coordinate.y !== leavingPlayer.initialPosition.y,
                 );
@@ -392,13 +394,22 @@ export class GameGateway {
     }
 
     @SubscribeMessage(GameCreationEvents.ResumeGame)
-    handleResumeGame(client: Socket, gameId: string): void {
-        if (this.gameCreationService.doesGameExist(gameId)) {
-            const game = this.gameCreationService.getGameById(gameId);
+    handleResumeGame(client: Socket, data: JoinGameData): void {
+        if (this.gameCreationService.doesGameExist(data.gameId)) {
+            const game = this.gameCreationService.getGameById(data.gameId);
             if (game.hasStarted) {
                 if (!game.settings.isFastElimination) {
                     const activePlayers = game.players.filter((plyr) => plyr.isActive);
-                    if (this.gameCreationService.isMaxPlayersReached(activePlayers, gameId)) {
+                    if (this.gameCreationService.isMaxPlayersReached(activePlayers, data.gameId)) {
+                        client.emit(
+                            GameCreationEvents.GameLocked,
+                            'La partie a atteint son nombre de joueur maximal.\n Veuillez réessayez plus tard.',
+                        );
+                        return;
+                    }
+                } else {
+                    const isParticipant = game.participants.some((plyr) => plyr.name === data.player.name);
+                    if (!isParticipant && this.gameCreationService.isMaxPlayersReached(game.participants, data.gameId)) {
                         client.emit(
                             GameCreationEvents.GameLocked,
                             'La partie a atteint son nombre de joueur maximal.\n Veuillez réessayez plus tard.',
@@ -406,10 +417,27 @@ export class GameGateway {
                         return;
                     }
                 }
-                client.join(gameId);
+
+                const existingPlayer = game.players.find((plyr) => plyr.name === data.player.name);
+                if (!existingPlayer) {
+                    client.emit(GameCreationEvents.GameNotFound, 'Joueur introuvable dans cette partie.');
+                    return;
+                }
+
+                existingPlayer.socketId = client.id;
+                existingPlayer.isActive = true;
+                client.join(data.gameId);
                 client.emit(GameCreationEvents.GameResumed, game);
-                // Sync timer state for resuming player
-                this.syncTimerState(client, gameId);
+                
+                client.emit(GameCreationEvents.YouJoined, { updatedPlayer: existingPlayer, updatedGame: game });
+                this.server.to(data.gameId).emit(GameCreationEvents.PlayerJoined, game.players);
+                this.server.to(data.gameId).emit(GameCreationEvents.CurrentPlayers, game.players);
+                this.syncTimerState(client, data.gameId);
+                
+                const existingChallenge = this.challengeService.getPlayerChallenge(game.id, existingPlayer.name);
+                if (existingChallenge) {
+                    client.emit(ChallengeEvent.Updated, existingChallenge);
+                }
             }
         } else {
             client.emit(GameCreationEvents.GameNotFound, 'La partie a été fermée.');
@@ -424,7 +452,7 @@ export class GameGateway {
 
             let existingPlayer = game.players.find((plyr) => plyr.name === data.player.name);
             if (existingPlayer) {
-                existingPlayer.socketId = data.player.socketId;
+                existingPlayer.socketId = client.id;
                 existingPlayer.isObservationMode = true;
                 existingPlayer.isActive = false;
             } else {

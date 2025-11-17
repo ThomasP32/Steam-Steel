@@ -194,13 +194,14 @@ class JoinGameService {
     );
   }
 
-  Future<void> resumeGame(String gameId) async {
+  Future<void> resumeGame(String gameId, Map<String, dynamic> player) async {
     await _ensureSocketConnected();
     DebugLogger.log(
       'Requesting resumeGame for $gameId',
       tag: 'JoinGameService',
     );
-    _socketService.send('resumeGame', gameId);
+    final payload = {'gameId': gameId, 'player': player};
+    _socketService.send('resumeGame', payload);
   }
 
   Future<void> joinGame({

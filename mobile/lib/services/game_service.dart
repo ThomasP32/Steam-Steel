@@ -31,14 +31,13 @@ class GameService {
       );
     }
   }
-    Player? findPlayerBySocketId(String socketId) {
+
+  Player? findPlayerBySocketId(String socketId) {
     final game = currentGame;
     if (game == null || socketId.isEmpty) return null;
 
     try {
-      return game.players.firstWhere(
-        (p) => p.socketId == socketId,
-      );
+      return game.players.firstWhere((p) => p.socketId == socketId);
     } catch (_) {
       return null;
     }
@@ -153,6 +152,7 @@ class GameService {
       name: json['name'] as String? ?? '',
       description: json['description'] as String? ?? '',
       imagePreview: json['imagePreview'] as String? ?? '',
+      lastTurnPlayer: json['lastTurnPlayer'] as String? ?? '',
       mode: mode != null ? _parseMode(mode) : null,
     );
 
@@ -184,6 +184,7 @@ class GameService {
         imagePreview: baseGame.imagePreview,
         mode: Mode.ctf,
         nPlayersCtf: nPlayersCtf,
+        lastTurnPlayer: baseGame.lastTurnPlayer,
       );
     }
 

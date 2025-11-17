@@ -94,9 +94,14 @@ export class GameCreationService {
         }
 
         const existingPlayer = game.players.find((plyr) => plyr.name === player.name);
-        if (existingPlayer) {
-            if (existingPlayer.specs.life !== 0) {
+        if(existingPlayer){
+            if(game.settings.isFastElimination && existingPlayer.specs.nDefeats === 1){
+                existingPlayer.isActive = false;
+                existingPlayer.isObservationMode = true;
+
+            } else {
                 existingPlayer.isActive = true;
+                existingPlayer.isObservationMode = false;
                 existingPlayer.inventory = [];
             }
             existingPlayer.socketId = socketId;
@@ -105,7 +110,6 @@ export class GameCreationService {
             if (!player.inventory) {
                 player.inventory = [];
             }
-            player.turn = game.participants.length - 1;
             game.participants.push(player);
             this.gameRooms[gameId].players.push(player);
 
@@ -429,4 +433,34 @@ export class GameCreationService {
 
         return true;
     }
+
+    recalculateTurnOrder(game: Game): void {
+        const currentPlayer = game.players.find((p) => p.turn === game.currentTurn);
+        const activePlayers = game.players.filter((p) => p.isActive);
+        const inactivePlayers = game.players.filter((p) => !p.isActive);
+        const orderedActivePlayers = [...activePlayers].sort((player1, player2) => {
+            const speedDifference = player2.specs.speed - player1.specs.speed;
+            return speedDifference === 0 ? Math.random() - HALF : speedDifference;
+        });
+
+        const orderedPlayers = [...orderedActivePlayers, ...inactivePlayers];
+    
+        orderedPlayers.forEach((player, index) => {
+            player.turn = index;
+        });
+    
+        game.players = orderedPlayers;
+    
+        if (currentPlayer) {
+            const newIndex = game.players.findIndex((p) => p.socketId === currentPlayer.socketId);
+            if (newIndex !== -1) {
+                game.currentTurn = newIndex;
+            } else {
+                game.currentTurn = 0;
+            }
+        } else {
+            game.currentTurn = 0;
+        }
+    }
+    
 }

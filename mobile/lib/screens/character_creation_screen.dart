@@ -170,12 +170,12 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
           }
 
           final effectiveSettings = widget.gameSettings ?? _fetchedSettings;
-
-          final isDropInDropOut = effectiveSettings?.isDropInOut ?? false;
           final isObservationMode =
               updatedPlayer['isObservationMode'] as bool? ?? false;
+          final hasStarted = updatedGame['hasStarted'] as bool? ?? false;
+          final isDropInDropOut = effectiveSettings?.isDropInOut ?? false;
 
-          if (isObservationMode || isDropInDropOut) {
+          if (isObservationMode || (hasStarted && isDropInDropOut)) {
             final gameId = updatedGame['id'] as String?;
             final mapData = updatedGame['map'] as Map<String, dynamic>?;
             final mapName = mapData?['name'] as String? ?? widget.mapName ?? '';
