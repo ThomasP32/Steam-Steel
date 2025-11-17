@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/map_types.dart';
+import 'package:mobile/models/user_models.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/character_creation_service.dart';
+import 'package:mobile/services/friend_service.dart';
 import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
@@ -56,6 +58,9 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   @override
   void initState() {
     super.initState();
+
+    FriendService().updateUserStatus(UserStatus.inGame);
+
     _loadUserName();
     _listenToGameLocked();
     _listenToYouJoined();
@@ -373,6 +378,8 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
 
   @override
   void dispose() {
+    FriendService().updateUserStatus(UserStatus.online);
+
     _gameLockedSub?.cancel();
     _youJoinedSub?.cancel();
     _currentGameSub?.cancel();

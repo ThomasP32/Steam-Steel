@@ -6,7 +6,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/user.dart';
+import 'package:mobile/models/user_models.dart' show UserStatus;
 import 'package:mobile/services/api_client.dart';
+import 'package:mobile/services/friend_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 
@@ -253,6 +255,9 @@ class AuthService {
     try {
       SocketService().disconnect();
     } on Object catch (_) {}
+    try {
+      FriendService().updateUserStatus(UserStatus.offline);
+    } catch (_) {}
     await _storage.delete(key: _tokenKey);
     notifier.value = null;
   }

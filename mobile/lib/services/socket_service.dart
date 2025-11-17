@@ -4,6 +4,30 @@ import 'package:mobile/services/socket_client.dart';
 import 'package:mobile/utils/debug_logger.dart';
 
 class SocketService {
+  Future<T> emitWithAck<T>(String event, [dynamic data]) {
+    final completer = Completer<T>();
+    final socket = _client.socket;
+
+    if (socket == null) {
+      completer.completeError(Exception('Socket not connected'));
+      return completer.future;
+    }
+
+    socket.emitWithAck(
+      event,
+      data,
+      ack: (dynamic response) {
+        try {
+          completer.complete(response as T);
+        } catch (e) {
+          completer.completeError(e);
+        }
+      },
+    );
+
+    return completer.future;
+  }
+
   factory SocketService() => _instance;
   SocketService._internal();
   static final SocketService _instance = SocketService._internal();

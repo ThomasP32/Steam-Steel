@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/common/game.dart';
+import 'package:mobile/models/user_models.dart';
 import 'package:mobile/services/challenge_service.dart';
 import 'package:mobile/services/channel_service.dart';
 import 'package:mobile/services/endgame_service.dart';
+import 'package:mobile/services/friend_service.dart';
 import 'package:mobile/services/shop_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
@@ -37,6 +39,9 @@ class _EndgameScreenState extends State<EndgameScreen> {
   @override
   void initState() {
     super.initState();
+
+    FriendService().updateUserStatus(UserStatus.online);
+
     final socketService = SocketService();
     final currentSocketId = socketService.socketId ?? '';
     if (currentSocketId.isNotEmpty) {
@@ -520,6 +525,8 @@ class _EndgameScreenState extends State<EndgameScreen> {
     } on Exception catch (e) {
       DebugLogger.log('Error leaving game: $e', tag: 'EndgameScreen');
     }
+
+    FriendService().updateUserStatus(UserStatus.online);
 
     if (widget.gameId.isNotEmpty) {
       ChannelService().removeGameChannel(widget.gameId);

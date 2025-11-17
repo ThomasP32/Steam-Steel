@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/services/friend_service.dart';
 import 'package:mobile/services/join_game_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
@@ -43,8 +44,18 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     _joinService = JoinGameService();
     _socketService = SocketService();
 
+    _loadFriends();
+
     _setupListeners();
     _joinService.fetchGames();
+  }
+
+  Future<void> _loadFriends() async {
+    try {
+      await FriendService().getFriends();
+    } on Exception catch (_) {
+      // Silently fail
+    }
   }
 
   void _setupListeners() {
@@ -56,12 +67,6 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
             .listen<void>('gameListUpdated')
             .listen(_onGameListUpdated),
       )
-      ..add(
-        _socketService
-            .listen<void>('gameListUpdated')
-            .listen(_onGameListUpdated),
-      )
-      ..add(_socketService.listen<dynamic>('getGames').listen(_onGetGames))
       ..add(_socketService.listen<void>('gameAccessed').listen(_onGameAccessed))
       ..add(
         _socketService
@@ -76,7 +81,29 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
       ..add(
         _socketService.listen<String?>('gameNotFound').listen(_onGameNotFound),
       )
-      ..add(_socketService.listen<String>('gameLocked').listen(_onGameLocked));
+      ..add(_socketService.listen<String>('gameLocked').listen(_onGameLocked))
+      ..add(_socketService.listen<void>('gameClosed').listen(_onGameClosed))
+      ..add(
+        _socketService
+            .listen<void>('gameEndedNoActivePlayers')
+            .listen(_onGameEnded),
+      )
+      ..add(_socketService.listen<void>('gameFinished').listen(_onGameEnded))
+      ..add(
+        _socketService
+            .listen<Map<String, dynamic>>('friendRemoved')
+            .listen(_onFriendRemoved),
+      )
+      ..add(
+        _socketService
+            .listen<Map<String, dynamic>>('friendAdded')
+            .listen(_onFriendAdded),
+      )
+      ..add(
+        _socketService
+            .listen<Map<String, dynamic>>('friendListUpdated')
+            .listen(_onFriendListUpdated),
+      );
   }
 
   void _handleGamesUpdate(List<Map<String, dynamic>> games) {
@@ -91,7 +118,34 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
 
   void _onGameListUpdated(void _) => _joinService.fetchGames();
 
-  void _onGetGames(dynamic data) => _joinService.handleGamesResponse(data);
+  void _onGameClosed(void _) {
+    _joinService.fetchGames();
+  }
+
+  void _onGameEnded(void _) {
+    _joinService.fetchGames();
+  }
+
+  void _onFriendRemoved(Map<String, dynamic> data) {
+    final username = data['username'] as String?;
+    if (username != null) {
+      _loadFriends().then((_) {
+        _joinService.fetchGames();
+      });
+    }
+  }
+
+  void _onFriendAdded(Map<String, dynamic> data) {
+    _loadFriends().then((_) {
+      _joinService.fetchGames();
+    });
+  }
+
+  void _onFriendListUpdated(Map<String, dynamic> data) {
+    _loadFriends().then((_) {
+      _joinService.fetchGames();
+    });
+  }
 
   void _onGameAccessed(void _) {
     _cancelTimeout();

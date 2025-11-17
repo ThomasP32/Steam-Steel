@@ -21,6 +21,9 @@ class WaitingRoomService {
   final ValueNotifier<bool> isHost = ValueNotifier(false);
   final ValueNotifier<String> gameId = ValueNotifier('');
   final ValueNotifier<String?> selectedPlayerSocketId = ValueNotifier(null);
+  final ValueNotifier<GameSettings> gameSettings = ValueNotifier(
+    GameSettings(),
+  );
 
   final _playerService = PlayerService();
 
@@ -32,6 +35,19 @@ class WaitingRoomService {
     GameSettings? gameSettings,
   ) {
     gameId.value = initialGameId ?? '';
+
+    if (gameSettings != null) {
+      this.gameSettings.value = gameSettings;
+      DebugLogger.log(
+        'GameSettings set to: ${this.gameSettings.value.toJson()}',
+        tag: 'WaitingRoomService',
+      );
+    } else {
+      DebugLogger.log(
+        'No gameSettings provided, using default',
+        tag: 'WaitingRoomService',
+      );
+    }
 
     if (initialMapName != null && initialMapName.isNotEmpty) {
       _createGameForHost(initialMapName, gameSettings ?? GameSettings());
@@ -132,6 +148,32 @@ class WaitingRoomService {
       final isLockedData = data['isLocked'] as bool?;
       if (isLockedData != null) {
         isLocked.value = isLockedData;
+      }
+
+      final settingsData = data['settings'] as Map<String, dynamic>?;
+      if (settingsData != null) {
+        try {
+          final isFriendsOnly = settingsData['isFriendsOnly'] as bool? ?? false;
+          final isFastElimination =
+              settingsData['isFastElimination'] as bool? ?? false;
+          final isDropInOut = settingsData['isDropInOut'] as bool? ?? false;
+
+          gameSettings.value = GameSettings(
+            isFriendsOnly: isFriendsOnly,
+            isFastElimination: isFastElimination,
+            isDropInOut: isDropInOut,
+          );
+
+          DebugLogger.log(
+            'Game settings updated: isFriendsOnly=$isFriendsOnly, isFastElimination=$isFastElimination, isDropInOut=$isDropInOut',
+            tag: 'WaitingRoomService',
+          );
+        } on Exception catch (e) {
+          DebugLogger.log(
+            'Failed to parse game settings: $e',
+            tag: 'WaitingRoomService',
+          );
+        }
       }
     } on Exception catch (e) {
       DebugLogger.log(
@@ -395,5 +437,6 @@ class WaitingRoomService {
     isHost.value = false;
     gameId.value = '';
     selectedPlayerSocketId.value = null;
+    gameSettings.value = GameSettings();
   }
 }
