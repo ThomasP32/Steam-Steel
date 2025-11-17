@@ -125,14 +125,6 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
         });
     }
 
-    async next() {
-        if (this.selectedMap) {
-            this.router.navigate([`create-game/${this.selectedMap}/create-character`]);
-        } else {
-            this.showErrorMessage.userError = true;
-        }
-    }
-
     onReturn() {
         this.router.navigate(['/']);
     }
@@ -153,7 +145,6 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
-        this.unsubscribe$.next();
         this.unsubscribe$.complete();
     }
 }

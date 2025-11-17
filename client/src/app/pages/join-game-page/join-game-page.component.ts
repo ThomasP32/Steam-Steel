@@ -28,7 +28,6 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
     currentUsername: string = '';
     currentUserId: string = '';
     games: Game;
-    waitingGames: Game[] = [];
     activeGames: Game[] = [];
     friendIds: Friend[] = [];
     socketSubscription: Subscription = new Subscription();
@@ -79,8 +78,7 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
 
     private async loadGames(): Promise<void> {
         this.socketService.sendMessage(GameCreationEvents.GetGames, (gameRooms: Game[]) => {
-            this.waitingGames = gameRooms.filter((game) => game.hasStarted === false);
-            this.activeGames = gameRooms.filter((game) => game.hasStarted === true);
+            this.activeGames = gameRooms.filter((game) => this.canSeeGame(game));
         });
     }
 

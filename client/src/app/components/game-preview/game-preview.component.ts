@@ -2,11 +2,13 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { Game, Player } from '@common/game';
 import { AuthService } from '@app/services/auth/auth.service';
 import { MapConfig, MapSize } from '@common/constants';
+import { NgClass } from '@angular/common';
+import { MapConversionService } from '@app/services/map-conversion/map-conversion.service';
 
 @Component({
   selector: 'app-game-preview',
   standalone: true,
-  imports: [],
+  imports: [NgClass],
   templateUrl: './game-preview.component.html',
   styleUrl: './game-preview.component.scss'
 })
@@ -23,8 +25,10 @@ export class GamePreviewComponent implements OnInit {
 
   constructor(
     private readonly authService: AuthService,
+    private readonly mapConversionService: MapConversionService,
   ) {
     this.authService = authService;
+    this.mapConversionService = mapConversionService;
   }    
   async ngOnInit(): Promise<void> {
     await this.loadUserInfo();
@@ -60,6 +64,10 @@ export class GamePreviewComponent implements OnInit {
     this.currentUsername = userInfo.user.username;
     this.existingPlayer = this.game.players.find(plyr => plyr.name === this.currentUsername) ;
     this.existingParticipant = this.game.participants.find(plyr => plyr.name === this.currentUsername) ;
+  }
+
+  convertMapSize(value: number): string {
+    return this.mapConversionService.convertNumberToString(value);
   }
 
   onJoinClick() {this.join.emit(this.game)}
