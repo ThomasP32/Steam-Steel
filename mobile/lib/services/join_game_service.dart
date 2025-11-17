@@ -225,6 +225,7 @@ class JoinGameService {
       isFastElimination: settingsMap['isFastElimination'] as bool? ?? false,
       isDropInOut: settingsMap['isDropInOut'] as bool? ?? false,
       isFriendsOnly: settingsMap['isFriendsOnly'] as bool? ?? false,
+      entryFee: settingsMap['entryFee'] as int? ?? 0,
     );
   }
 

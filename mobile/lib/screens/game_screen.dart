@@ -535,10 +535,10 @@ class _GameScreenState extends State<GameScreen> {
       if (mounted) {
         final currentGame = _gameService.notifier.value;
         if (currentGame != null) {
-          final userId = _authService.notifier.value?.id ?? '';
+          final socketId = SocketService().socketId ?? '';
           final moneyReward =
-              (moneyRewards != null && userId.isNotEmpty)
-                  ? (moneyRewards[userId] as num?)?.toInt() ?? 0
+              (moneyRewards != null && socketId.isNotEmpty)
+                  ? (moneyRewards[socketId] as num?)?.toInt() ?? 0
                   : 0;
 
           context.go(

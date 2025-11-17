@@ -104,16 +104,19 @@ class GameSettings {
     this.isFastElimination = false,
     this.isDropInOut = false,
     this.isFriendsOnly = false,
+    this.entryFee = 0,
   });
 
   final bool isFastElimination;
   final bool isDropInOut;
   final bool isFriendsOnly;
+  final int entryFee;
 
   Map<String, dynamic> toJson() => {
     'isFastElimination': isFastElimination,
     'isDropInOut': isDropInOut,
     'isFriendsOnly': isFriendsOnly,
+    'entryFee': entryFee,
   };
 }
 

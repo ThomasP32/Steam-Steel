@@ -126,10 +126,9 @@ export class VirtualGameManagerService extends EventEmitter {
 
                 const rewardsMap = await this.gameCreationService.endGameAndDistributeRewards(game.id, winners, activePlayers);
 
-                const rewardsObject: { [key: string]: number } = {};
-                for (const [userId, amount] of rewardsMap) {
-                    rewardsObject[userId] = amount;
-                }
+                const rewardsObject = this.gameCreationService.convertUserRewardsToSocketRewards(game.id, rewardsMap, (userId) =>
+                    this.userSocketService.getSocketId(userId),
+                );
 
                 this.server.to(game.id).emit(CombatEvents.GameFinished, { updatedGame: game, moneyRewards: rewardsObject });
                 return;
