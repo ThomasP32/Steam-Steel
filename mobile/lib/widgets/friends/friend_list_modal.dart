@@ -2,9 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:mobile/models/user_models.dart';
+import 'package:mobile/common/user.dart';
+import 'package:mobile/models/user_models.dart' hide User;
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/friend_service.dart';
+import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/profile_picture_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
@@ -698,38 +700,7 @@ class _FriendListModalState extends State<FriendListModal>
                 if (otherUsers.isEmpty)
                   _buildEmptyState('Aucun autre utilisateur')
                 else
-                  ...otherUsers.map(
-                    (user) => DecoratedBox(
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: Color(0xFF3B3F46),
-                            width: 0.5,
-                          ),
-                        ),
-                      ),
-                      child: ListTile(
-                        title: Text(
-                          user.username,
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        trailing:
-                            getPendingRequestStatus(user.username).isEmpty &&
-                                    !_sentRequests.contains(user.username)
-                                ? IconButton(
-                                  icon: const Icon(
-                                    Icons.person_add,
-                                    color: Colors.green,
-                                  ),
-                                  onPressed:
-                                      _isAddingFriend
-                                          ? null
-                                          : () => _addFriend(user.username),
-                                )
-                                : null,
-                      ),
-                    ),
-                  ),
+                  ...otherUsers.map(_buildOtherUserItem),
               ],
             ],
           ),
@@ -760,6 +731,16 @@ class _FriendListModalState extends State<FriendListModal>
   }
 
   Widget _buildFriendItem(Friend friend) {
+    final user = _allUsers.firstWhere(
+      (u) => u.username == friend.username,
+      orElse:
+          () => User(
+            id: '',
+            username: friend.username,
+            email: '',
+          ),
+    );
+
     return ListTile(
       leading: ProfilePictureWidget(
         size: 40,
@@ -769,7 +750,30 @@ class _FriendListModalState extends State<FriendListModal>
         showStatusIndicator: true,
         username: friend.username,
       ),
-      title: Text(friend.username, style: const TextStyle(fontSize: 12)),
+      title: Row(
+        children: [
+          Flexible(
+            child: Text(
+              friend.username,
+              style: const TextStyle(fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Image.asset(
+            'lib/assets/level-badges/level-${user.stats.level}.png',
+            width: 25,
+            height: 25,
+            errorBuilder: (context, error, stackTrace) {
+              DebugLogger.log(
+                'Failed to load badge level-${user.stats.level}.png: $error',
+                tag: 'FriendList',
+              );
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
+      ),
       subtitle: Text(
         _getStatusText(friend.status),
         style: TextStyle(color: _getStatusColor(friend.status), fontSize: 10),
@@ -777,6 +781,46 @@ class _FriendListModalState extends State<FriendListModal>
       trailing: IconButton(
         icon: const Icon(Icons.person_remove, color: Colors.red),
         onPressed: () => _removeFriend(friend),
+      ),
+    );
+  }
+
+  Widget _buildOtherUserItem(User user) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Color(0xFF3B3F46), width: 0.5),
+        ),
+      ),
+      child: ListTile(
+        title: Row(
+          children: [
+            Flexible(
+              child: Text(
+                user.username,
+                style: const TextStyle(fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Image.asset(
+              'lib/assets/level-badges/level-${user.stats.level}.png',
+              width: 25,
+              height: 25,
+              errorBuilder:
+                  (context, error, stackTrace) => const SizedBox.shrink(),
+            ),
+          ],
+        ),
+        trailing:
+            getPendingRequestStatus(user.username).isEmpty &&
+                    !_sentRequests.contains(user.username)
+                ? IconButton(
+                  icon: const Icon(Icons.person_add, color: Colors.green),
+                  onPressed:
+                      _isAddingFriend ? null : () => _addFriend(user.username),
+                )
+                : null,
       ),
     );
   }

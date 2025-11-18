@@ -112,12 +112,14 @@ class UserStats {
     required this.ctf,
     required this.avgTime,
     this.challengesCompleted = 0,
+    this.level = 1,
   });
 
   final GameStats classique;
   final GameStats ctf;
   final double avgTime;
   final int challengesCompleted;
+  final int level;
 }
 
 // helpers
@@ -155,6 +157,10 @@ extension UserStatsJson on UserStats {
             (j['challengesCompleted'] is int)
                 ? j['challengesCompleted'] as int
                 : int.tryParse('${j['challengesCompleted']}') ?? 0,
+        level:
+            (j['level'] is int)
+                ? j['level'] as int
+                : int.tryParse('${j['level']}') ?? 1,
       );
     }
     return const UserStats(
@@ -162,6 +168,7 @@ extension UserStatsJson on UserStats {
       ctf: GameStats(gamesPlayed: 0, gamesWon: 0),
       avgTime: 0,
       challengesCompleted: 0,
+      level: 1,
     );
   }
 }

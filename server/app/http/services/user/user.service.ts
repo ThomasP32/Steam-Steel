@@ -1,20 +1,25 @@
-import { JWT_SECRET, N_WINS_PER_LEVEL, MAX_LEVEL, N_LEVEL_BANNER } from '@common/constants';
+import { JWT_SECRET, MAX_LEVEL, N_LEVEL_BANNER, N_WINS_PER_LEVEL } from '@common/constants';
+import { GameManagerEvents } from '@common/events/game-manager.events';
 import { Avatar } from '@common/game';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as jwt from 'jsonwebtoken';
 import { Model } from 'mongoose';
-import { User } from '../../model/schemas/user/user.schema';
 import { Server } from 'socket.io';
-import { GameManagerEvents } from '@common/events/game-manager.events';
+import { UserSocketService } from '../../../services/user-socket/user-socket.service';
+import { User } from '../../model/schemas/user/user.schema';
 
 @Injectable()
 export class UserService {
     private readonly activeSessions: Map<string, string> = new Map();
     server: Server;
 
-    constructor(@InjectModel(User.name) private readonly userModel: Model<User>) {
+    constructor(
+        @InjectModel(User.name) private readonly userModel: Model<User>,
+        @Inject(UserSocketService) private readonly userSocketService: UserSocketService,
+    ) {
         this.userModel = userModel;
+        this.userSocketService = userSocketService;
     }
 
     setServer(server: Server): void {
@@ -68,16 +73,19 @@ export class UserService {
         if (isWin) {
             user.stats[mode].gamesWon += 1;
             const totalGamesWon = user.stats.classique.gamesWon + user.stats.ctf.gamesWon;
-            if(totalGamesWon % N_WINS_PER_LEVEL === 0) {
+           if (totalGamesWon % N_WINS_PER_LEVEL === 0) {
                 if (!user.stats.level) {
                     user.stats.level = 1;
                 }
                 user.stats.level = Math.min(user.stats.level + 1, MAX_LEVEL);
                 const bannerUnlocked = user.stats.level % N_LEVEL_BANNER === 0;
-                this.server.to(id).emit(GameManagerEvents.PlayerLeveledUp, {
-                    newLevel: user.stats.level,
-                    bannerUnlocked,
-                  });
+                const socketId = this.userSocketService.getSocketId(id);
+                if (socketId) {
+                    this.server.to(socketId).emit(GameManagerEvents.PlayerLeveledUp, {
+                        newLevel: user.stats.level,
+                        bannerUnlocked,
+                    });
+                }
             }
         }
         const totalGames = (user.stats.classique?.gamesPlayed || 0) + (user.stats.ctf?.gamesPlayed || 0);

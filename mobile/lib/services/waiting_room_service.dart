@@ -254,6 +254,7 @@ class WaitingRoomService {
       final playerPayload = {
         'name': storedPlayer.name,
         'socketId': SocketService().socketId ?? storedPlayer.socketId,
+        'level': storedPlayer.level,
         'isActive': storedPlayer.isActive,
         'isObservationMode': storedPlayer.isObservationMode,
         'avatar': storedPlayer.avatar.index + 1,

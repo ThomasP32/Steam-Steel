@@ -1,7 +1,8 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:mobile/models/user_models.dart';
+import 'package:mobile/common/user.dart';
+import 'package:mobile/models/user_models.dart' hide User;
 import 'package:mobile/services/api_config.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/socket_service.dart';
@@ -500,9 +501,25 @@ class FriendService {
 
       if (data['success'] as bool && data['users'] != null) {
         return _cachedAllUsers =
-            (data['users'] as List)
-                .map((user) => User(username: user['username'] as String))
-                .toList();
+            (data['users'] as List).map((user) {
+              final userMap = user as Map<String, dynamic>;
+              final level =
+                  (userMap['level'] is int)
+                      ? userMap['level'] as int
+                      : int.tryParse('${userMap['level']}') ?? 1;
+
+              return User(
+                id: '',
+                username: userMap['username'] as String,
+                email: '',
+                stats: UserStats(
+                  classique: const GameStats(gamesPlayed: 0, gamesWon: 0),
+                  ctf: const GameStats(gamesPlayed: 0, gamesWon: 0),
+                  avgTime: 0,
+                  level: level,
+                ),
+              );
+            }).toList();
       }
       return _cachedAllUsers;
     } catch (e) {

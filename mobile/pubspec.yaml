@@ -45,6 +45,7 @@ flutter:
         - lib/assets/items/
         - lib/assets/tiles/
         - lib/assets/banner/
+        - lib/assets/level-badges/
         - .env
 
     fonts:

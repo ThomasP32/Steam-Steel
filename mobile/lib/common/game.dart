@@ -15,6 +15,7 @@ class Player {
     this.turn = 0,
     this.visitedTiles = const [],
     this.profile = ProfileType.normal,
+    this.level = 1,
   });
 
   final String socketId;
@@ -29,6 +30,7 @@ class Player {
   final int turn;
   final List<Coordinate> visitedTiles;
   final ProfileType profile;
+  final int level;
 }
 
 enum Avatar {

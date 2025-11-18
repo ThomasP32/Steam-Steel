@@ -64,6 +64,13 @@ const double CONTINUE_ODDS = 0.4;
 
 const double HALF = 0.5;
 
+const int N_WIN_VICTORIES = 3;
+
+const int N_WINS_PER_LEVEL = 5;
+
+const int N_LEVEL_BANNER = 5;
+const int MAX_LEVEL = 25;
+
 const List<String> CHAT_REACTIONS = ['👍', '❤️', '🤡', '💀'];
 
 enum ProfileType {

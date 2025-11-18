@@ -144,6 +144,7 @@ class CharacterCreationService {
     required String socketId,
     required int avatar,
     required Specs specs,
+    required int level,
     bool isObserver = false,
   }) {
     return {
@@ -152,6 +153,7 @@ class CharacterCreationService {
       'isActive': !isObserver,
       'isObservationMode': isObserver,
       'avatar': avatar,
+      'level': level,
       'specs': {
         'life': specs.life,
         'speed': specs.speed,
@@ -184,12 +186,14 @@ class CharacterCreationService {
     required String socketId,
     required int avatar,
     required Specs specs,
+    required int level,
     bool isObserver = false,
   }) {
     return Player(
       socketId: socketId,
       name: name,
       avatar: Avatar.values[(avatar - 1).clamp(0, Avatar.values.length - 1)],
+      level: level,
       position: [Coordinate(0, 0)],
       inventory: [],
       visitedTiles: [],
@@ -205,6 +209,7 @@ class CharacterCreationService {
     required String socketId,
     required int avatar,
     required Specs specs,
+    required int level,
     required void Function(Player) onSuccess,
     required VoidCallback onTimeout,
   }) async {
@@ -215,6 +220,7 @@ class CharacterCreationService {
       socketId: SocketService().socketId ?? socketId,
       avatar: avatar,
       specs: specs,
+      level: level,
       isObserver: true,
     );
 
@@ -223,6 +229,7 @@ class CharacterCreationService {
       socketId: SocketService().socketId ?? socketId,
       avatar: avatar,
       specs: specs,
+      level: level,
       isObserver: true,
     );
 
@@ -317,6 +324,7 @@ class CharacterCreationService {
     required String socketId,
     required int avatar,
     required Specs specs,
+    required int level,
     required void Function(Player) onSuccess,
     required VoidCallback onTimeout,
   }) async {
@@ -327,6 +335,7 @@ class CharacterCreationService {
       socketId: SocketService().socketId ?? socketId,
       avatar: avatar,
       specs: specs,
+      level: level,
     );
 
     final localPlayer = buildLocalPlayer(
@@ -334,6 +343,7 @@ class CharacterCreationService {
       socketId: SocketService().socketId ?? socketId,
       avatar: avatar,
       specs: specs,
+      level: level,
     );
 
     final payload = {'gameId': gameId, 'player': player};
@@ -361,6 +371,7 @@ class CharacterCreationService {
               0,
               Avatar.values.length - 1,
             )],
+        level: json['level'] as int? ?? 1,
         isActive: json['isActive'] as bool? ?? true,
         isObservationMode: json['isObservationMode'] as bool? ?? false,
         specs: Specs(
