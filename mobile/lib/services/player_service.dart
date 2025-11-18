@@ -45,6 +45,7 @@ class PlayerService {
       socketId: json['socketId'] as String? ?? '',
       name: json['name'] as String? ?? '',
       avatar: Avatar.values[(json['avatar'] as int? ?? 1) - 1],
+      level: json['level'] as int? ?? 1,
       isActive: json['isActive'] as bool? ?? true,
       isObservationMode: json['isObservationMode'] as bool? ?? false,
       isGameWinner: json['isGameWinner'] as bool? ?? false,

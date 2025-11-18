@@ -210,7 +210,9 @@ class _ShopWidgetState extends State<ShopWidget> {
   }
 
   bool _canAfford(ShopItem item) {
-    return _currentMoney >= item.price && !item.owned;
+    final hasEnoughMoney = _currentMoney >= item.price && !item.owned;
+    final hasRequiredLevel = item.levelRequired == null || item.canPurchase;
+    return hasEnoughMoney && hasRequiredLevel;
   }
 
   Future<void> _buyItem(ShopItem item) async {
@@ -573,6 +575,8 @@ class _ShopWidgetState extends State<ShopWidget> {
   }
 
   Widget _buildItemCard(ShopItem item) {
+    final isLocked = item.levelRequired != null && !item.canPurchase;
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: const Color(0xFF34495E),
@@ -612,6 +616,19 @@ class _ShopWidgetState extends State<ShopWidget> {
                     ),
                   ),
                 ),
+                if (isLocked)
+                  Positioned.fill(
+                    child: Container(
+                      margin: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.7),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.lock, color: Colors.white, size: 48),
+                      ),
+                    ),
+                  ),
                 if (item.equipped)
                   Positioned(
                     top: 12,
@@ -715,6 +732,7 @@ class _ShopWidgetState extends State<ShopWidget> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
+                      if (isLocked) return;
                       if (!item.owned && _canAfford(item)) {
                         _buyItem(item);
                       } else if (item.owned && !item.equipped) {
@@ -725,7 +743,9 @@ class _ShopWidgetState extends State<ShopWidget> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
-                          !item.owned
+                          isLocked
+                              ? Colors.grey
+                              : !item.owned
                               ? (_canAfford(item)
                                   ? const Color(0xFF27AE60)
                                   : Colors.grey)
@@ -738,17 +758,33 @@ class _ShopWidgetState extends State<ShopWidget> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text(
-                      !item.owned
-                          ? (_canAfford(item)
-                              ? 'Acheter'
-                              : 'Fonds insuffisants')
-                          : (item.equipped ? 'Déséquiper' : 'Équiper'),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child:
+                        isLocked
+                            ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.lock, size: 16),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Niveau ${item.levelRequired} requis',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            )
+                            : Text(
+                              !item.owned
+                                  ? (_canAfford(item)
+                                      ? 'Acheter'
+                                      : 'Fonds insuffisants')
+                                  : (item.equipped ? 'Déséquiper' : 'Équiper'),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                   ),
                 ),
               ],

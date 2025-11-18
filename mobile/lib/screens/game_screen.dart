@@ -1849,27 +1849,45 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        player.name.isNotEmpty ? player.name : 'Joueur',
-                        style: TextStyle(
-                          color:
-                              isNotInGame
-                                  ? Colors.white.withValues(alpha: 0.4)
-                                  : Colors.white,
-                          fontSize: 16,
-                          fontWeight:
-                              isActivePlayer
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                          decoration:
-                              isNotInGame
-                                  ? TextDecoration.lineThrough
-                                  : TextDecoration.none,
-                          decorationColor: Colors.orange,
-                          decorationThickness: 3,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              player.name.isNotEmpty ? player.name : 'Joueur',
+                              style: TextStyle(
+                                color:
+                                    isNotInGame
+                                        ? Colors.white.withValues(alpha: 0.4)
+                                        : Colors.white,
+                                fontSize: 16,
+                                fontWeight:
+                                    isActivePlayer
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                decoration:
+                                    isNotInGame
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                                decorationColor: Colors.orange,
+                                decorationThickness: 3,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Opacity(
+                            opacity: isNotInGame ? 0.4 : 1.0,
+                            child: Image.asset(
+                              'lib/assets/level-badges/level-${player.level}.png',
+                              width: 28,
+                              height: 28,
+                              errorBuilder:
+                                  (context, error, stackTrace) =>
+                                      const SizedBox.shrink(),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

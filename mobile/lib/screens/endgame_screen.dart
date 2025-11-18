@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/common/game.dart';
@@ -35,6 +37,9 @@ class _EndgameScreenState extends State<EndgameScreen> {
   final _challengeService = ChallengeService();
   final _shopService = ShopService();
   final Map<String, String> _playerBanners = {};
+  bool _showLevelModal = false;
+  int _newLevel = 0;
+  bool _bannerUnlocked = false;
 
   @override
   void initState() {
@@ -42,12 +47,42 @@ class _EndgameScreenState extends State<EndgameScreen> {
 
     FriendService().updateUserStatus(UserStatus.online);
 
+    _endgameService.initialize();
+
     final socketService = SocketService();
     final currentSocketId = socketService.socketId ?? '';
     if (currentSocketId.isNotEmpty) {
       _endgameService.updateUserStats(widget.game, currentSocketId);
     }
     _loadPlayerBanners();
+    _listenToPlayerLeveledUp();
+  }
+
+  @override
+  void dispose() {
+    _endgameService.levelUpNotifier.removeListener(_onLevelUp);
+    super.dispose();
+  }
+
+  void _listenToPlayerLeveledUp() {
+    _endgameService.levelUpNotifier.addListener(_onLevelUp);
+  }
+
+  void _onLevelUp() {
+    final data = _endgameService.levelUpNotifier.value;
+
+    if (!mounted) {
+      return;
+    }
+    if (data == null) {
+      return;
+    }
+
+    setState(() {
+      _showLevelModal = true;
+      _newLevel = data.newLevel;
+      _bannerUnlocked = data.bannerUnlocked;
+    });
   }
 
   Future<void> _loadPlayerBanners() async {
@@ -155,7 +190,76 @@ class _EndgameScreenState extends State<EndgameScreen> {
               ],
             ),
           ),
+          if (_showLevelModal) _buildLevelUpModal(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLevelUpModal() {
+    return Container(
+      color: Colors.black.withValues(alpha: 0.7),
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2C3E50),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.orange, width: 3),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Félicitations ! 🎉',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Tu viens de passer au niveau $_newLevel !',
+                style: const TextStyle(color: Colors.white, fontSize: 18),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _bannerUnlocked
+                    ? 'Tu as débloqué une nouvelle bannière. Va voir la boutique pour la découvrir !'
+                    : "Continue de jouer, une nouvelle bannière t'attend tous les 5 niveaux.",
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 48,
+                    vertical: 12,
+                  ),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _showLevelModal = false;
+                  });
+                },
+                child: const Text(
+                  'OK',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

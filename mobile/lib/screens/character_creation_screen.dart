@@ -243,6 +243,8 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
       );
     }
 
+    final userLevel = AuthService().notifier.value?.stats.level ?? 1;
+
     if (widget.mapName != null &&
         widget.mapName!.isNotEmpty &&
         (widget.gameId == null || widget.gameId!.isEmpty)) {
@@ -250,6 +252,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
         socketId: SocketService().socketId ?? '',
         name: name.isNotEmpty ? name : 'Hôte',
         avatar: Avatar.values[_creationService.selectedAvatar.value - 1],
+        level: userLevel,
         specs: finalSpecs,
         inventory: [],
         position: [Coordinate(0, 0)],
@@ -299,6 +302,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
           socketId: SocketService().socketId ?? '',
           avatar: _creationService.selectedAvatar.value,
           specs: finalSpecs,
+          level: userLevel,
           onSuccess: (player) {
             try {
               PlayerService().setPlayer(player);
@@ -341,6 +345,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
           socketId: SocketService().socketId ?? '',
           avatar: _creationService.selectedAvatar.value,
           specs: finalSpecs,
+          level: userLevel,
           onSuccess: (player) {
             try {
               PlayerService().setPlayer(player);

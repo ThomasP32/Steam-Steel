@@ -8,6 +8,8 @@ class ShopItem {
     required this.description,
     this.owned = false,
     this.equipped = false,
+    this.levelRequired,
+    this.canPurchase = true,
   });
 
   factory ShopItem.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,8 @@ class ShopItem {
       description: json['description'] as String,
       owned: json['owned'] as bool? ?? false,
       equipped: json['equipped'] as bool? ?? false,
+      levelRequired: json['levelRequired'] as int?,
+      canPurchase: json['canPurchase'] as bool? ?? true,
     );
   }
   final String id;
@@ -28,6 +32,8 @@ class ShopItem {
   final String category;
   final String imagePath;
   final String description;
+  final int? levelRequired;
+  final bool canPurchase;
   bool owned;
   bool equipped;
 
@@ -41,6 +47,8 @@ class ShopItem {
       'description': description,
       'owned': owned,
       'equipped': equipped,
+      'levelRequired': levelRequired,
+      'canPurchase': canPurchase,
     };
   }
 
