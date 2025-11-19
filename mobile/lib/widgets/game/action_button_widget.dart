@@ -14,6 +14,8 @@ class ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Opacity(
       opacity: isEnabled ? 1.0 : 0.3,
       child: SizedBox(
@@ -21,7 +23,8 @@ class ActionButton extends StatelessWidget {
         height: 60,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2C3E50),
+            backgroundColor:
+                isDark ? const Color(0xFF2C3E50) : Colors.grey.shade200,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),

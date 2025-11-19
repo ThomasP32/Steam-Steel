@@ -260,6 +260,8 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
   }
 
   Widget _buildAvailableDropdown() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: () {
         widget.onDropdownOpened?.call();
@@ -272,7 +274,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFF3B3F46),
+          color: isDark ? const Color(0xFF3B3F46) : Colors.grey.shade300,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Row(
@@ -280,15 +282,15 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
           children: [
             Icon(
               _showAvailable ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-              color: Colors.white,
+              color: isDark ? Colors.white : Colors.black,
               size: 16,
             ),
             const SizedBox(width: 4),
-            const Flexible(
+            Flexible(
               child: Text(
                 'Salons disponibles',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : Colors.black,
                   fontSize: 8.5,
                   fontFamily: 'Press Start 2P',
                 ),
@@ -302,6 +304,8 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
   }
 
   Widget _buildJoinedDropdown() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: () {
         widget.onDropdownOpened?.call();
@@ -314,7 +318,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFF3B3F46),
+          color: isDark ? const Color(0xFF3B3F46) : Colors.grey.shade300,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Row(
@@ -322,15 +326,15 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
           children: [
             Icon(
               _showJoined ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-              color: Colors.white,
+              color: isDark ? Colors.white : Colors.black,
               size: 16,
             ),
             const SizedBox(width: 4),
-            const Flexible(
+            Flexible(
               child: Text(
                 'Salons rejoints',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : Colors.black,
                   fontSize: 8.5,
                   fontFamily: 'Press Start 2P',
                 ),
@@ -346,13 +350,20 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
   Widget _buildAvailablePanel() {
     if (!_showAvailable) return const SizedBox.shrink();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       constraints: const BoxConstraints(maxHeight: 300),
       decoration: BoxDecoration(
-        color: const Color(0xFF2E3136),
+        color:
+            isDark
+                ? const Color(0xFF2E3136)
+                : Colors.white.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFF1E2124)),
+        border: Border.all(
+          color: isDark ? const Color(0xFF1E2124) : Colors.grey.shade300,
+        ),
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -363,9 +374,9 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.search,
-                    color: AppColors.accentHighlight,
+                    color: AppColors.accentHighlight(context),
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -373,20 +384,26 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                     child: TextField(
                       controller: _searchAvailableController,
                       onChanged: (_) => setState(() {}),
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
                         fontSize: 11,
                         fontFamily: 'Press Start 2P',
                       ),
                       decoration: InputDecoration(
                         hintText: 'Rechercher un salon...',
                         hintStyle: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
+                          color:
+                              isDark
+                                  ? Colors.white.withValues(alpha: 0.5)
+                                  : Colors.black.withValues(alpha: 0.5),
                           fontSize: 9,
                           fontFamily: 'Press Start 2P',
                         ),
                         filled: true,
-                        fillColor: const Color(0xFF1E2124),
+                        fillColor:
+                            isDark
+                                ? const Color(0xFF1E2124)
+                                : Colors.grey.shade100,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4),
                           borderSide: BorderSide.none,
@@ -401,9 +418,9 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.add,
-                      color: AppColors.accentHighlight,
+                      color: AppColors.accentHighlight(context),
                     ),
                     iconSize: 20,
                     padding: EdgeInsets.zero,
@@ -420,12 +437,12 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                 final channels = _filterAvailableChannels(snapshot.data ?? []);
 
                 if (channels.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.all(12),
+                  return Padding(
+                    padding: const EdgeInsets.all(12),
                     child: Text(
                       'Aucun salon disponible',
                       style: TextStyle(
-                        color: Colors.white54,
+                        color: isDark ? Colors.white54 : Colors.black54,
                         fontSize: 8,
                         fontFamily: 'Press Start 2P',
                       ),
@@ -473,13 +490,20 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
   Widget _buildJoinedPanel() {
     if (!_showJoined) return const SizedBox.shrink();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       constraints: const BoxConstraints(maxHeight: 300),
       decoration: BoxDecoration(
-        color: const Color(0xFF2E3136),
+        color:
+            isDark
+                ? const Color(0xFF2E3136)
+                : Colors.white.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFF1E2124)),
+        border: Border.all(
+          color: isDark ? const Color(0xFF1E2124) : Colors.grey.shade300,
+        ),
       ),
       child: StreamBuilder<List<Channel>>(
         stream: _channelService.joinedChannels$,
@@ -487,12 +511,12 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
           final channels = _filterJoinedChannels(snapshot.data ?? []);
 
           if (channels.isEmpty) {
-            return const Padding(
-              padding: EdgeInsets.all(12),
+            return Padding(
+              padding: const EdgeInsets.all(12),
               child: Text(
                 'Aucun salon rejoint',
                 style: TextStyle(
-                  color: Colors.white54,
+                  color: isDark ? Colors.white54 : Colors.black54,
                   fontSize: 8,
                   fontFamily: 'Press Start 2P',
                 ),
@@ -531,6 +555,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
   }
 
   Widget _buildChannelItem(Channel channel, {required bool isJoined}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isActive = _channelService.activeChannel?.name == channel.name;
     final isGlobal = channel.name.toLowerCase() == 'global';
     final isPartyChannel = _channelService.isPartyChannel(channel.name);
@@ -538,7 +563,12 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: isActive ? AppColors.accentHighlight : const Color(0xFF3B3F46),
+        color:
+            isActive
+                ? AppColors.accentHighlight(context)
+                : isDark
+                ? const Color(0xFF3B3F46)
+                : Colors.grey.shade200,
         borderRadius: BorderRadius.circular(4),
       ),
       child: InkWell(
@@ -559,7 +589,13 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
               Expanded(
                 child: Text(
                   channel.name,
-                  style: const TextStyle(color: Colors.white, fontSize: 10),
+                  style: TextStyle(
+                    color:
+                        isActive
+                            ? Colors.white
+                            : (isDark ? Colors.white : Colors.black),
+                    fontSize: 10,
+                  ),
                 ),
               ),
               // Actions à droite
@@ -621,6 +657,8 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
   }
 
   Widget _buildCreateModal() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Positioned(
       top: 0,
       left: 0,
@@ -638,10 +676,10 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                 width: 400,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2E3136),
+                  color: isDark ? const Color(0xFF2E3136) : Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: AppColors.accentHighlight,
+                    color: AppColors.accentHighlight(context),
                     width: 2,
                   ),
                 ),
@@ -649,10 +687,10 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Créer un salon',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: isDark ? Colors.white : Colors.black,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -661,20 +699,26 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                     TextField(
                       controller: _createChannelController,
                       autofocus: true,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
                         fontSize: 12,
                         fontFamily: 'Press Start 2P',
                       ),
                       decoration: InputDecoration(
                         labelText: 'Nom du salon',
                         labelStyle: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.7),
+                          color:
+                              isDark
+                                  ? Colors.white.withValues(alpha: 0.7)
+                                  : Colors.black.withValues(alpha: 0.7),
                           fontSize: 10,
                           fontFamily: 'Press Start 2P',
                         ),
                         filled: true,
-                        fillColor: const Color(0xFF1E2124),
+                        fillColor:
+                            isDark
+                                ? const Color(0xFF1E2124)
+                                : Colors.grey.shade100,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -686,10 +730,10 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                       children: [
                         TextButton(
                           onPressed: _toggleCreateModal,
-                          child: const Text(
+                          child: Text(
                             'Annuler',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: isDark ? Colors.white : Colors.black,
                               fontSize: 10,
                               fontFamily: 'Press Start 2P',
                             ),
@@ -699,7 +743,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                         ElevatedButton(
                           onPressed: _createChannel,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accentHighlight,
+                            backgroundColor: AppColors.accentHighlight(context),
                           ),
                           child: const Text(
                             'Créer',
@@ -723,6 +767,8 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
   }
 
   Widget _buildDeleteModal() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Positioned(
       top: 0,
       left: 0,
@@ -740,7 +786,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                 width: 400,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2E3136),
+                  color: isDark ? const Color(0xFF2E3136) : Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.red, width: 2),
                 ),
@@ -748,10 +794,10 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Confirmer la suppression',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: isDark ? Colors.white : Colors.black,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'Press Start 2P',
@@ -760,8 +806,8 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                     const SizedBox(height: 20),
                     Text(
                       'Voulez-vous vraiment supprimer le salon "$_channelToDelete" ?',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
                         fontSize: 10,
                         fontFamily: 'Press Start 2P',
                       ),
@@ -772,10 +818,10 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                       children: [
                         TextButton(
                           onPressed: _toggleDeleteModal,
-                          child: const Text(
+                          child: Text(
                             'Annuler',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: isDark ? Colors.white : Colors.black,
                               fontSize: 10,
                               fontFamily: 'Press Start 2P',
                             ),

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/assets/theme/diagonal_painter.dart';
 import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/game.dart';
@@ -26,6 +27,7 @@ import 'package:mobile/widgets/game/end_game_alert_widget.dart';
 import 'package:mobile/widgets/game/inventory_modal_widget.dart';
 import 'package:mobile/widgets/game/observation_mode_modal_widget.dart';
 import 'package:mobile/widgets/game/player_left_modal_widget.dart';
+import 'package:mobile/widgets/theme/theme_widget.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({required this.gameId, required this.mapName, super.key});
@@ -743,25 +745,27 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void quitGame() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showDialog<void>(
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF2C3E50),
-          title: const Text(
+          backgroundColor: isDark ? const Color(0xFF2C3E50) : Colors.white,
+          title: Text(
             'Quitter la partie',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
           ),
-          content: const Text(
+          content: Text(
             'Voulez-vous vraiment quitter la partie?',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text(
+              child: Text(
                 'Annuler',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
               ),
             ),
             ElevatedButton(
@@ -816,14 +820,19 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _showCombatSelectionModal(List<dynamic> opponents) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showDialog<void>(
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF2C3E50),
-          title: const Text(
+          backgroundColor: isDark ? const Color(0xFF2C3E50) : Colors.white,
+          title: Text(
             'Choisir un adversaire',
-            style: TextStyle(color: Colors.white, fontSize: 18),
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontSize: 18,
+            ),
           ),
           content: SizedBox(
             width: double.maxFinite,
@@ -841,7 +850,10 @@ class _GameScreenState extends State<GameScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF34495E),
+                      backgroundColor:
+                          isDark
+                              ? const Color(0xFF34495E)
+                              : Colors.grey.shade200,
                       padding: const EdgeInsets.all(12),
                     ),
                     onPressed: () {
@@ -852,7 +864,10 @@ class _GameScreenState extends State<GameScreen> {
                       children: [
                         CircleAvatar(
                           radius: 20,
-                          backgroundColor: Colors.grey.shade900,
+                          backgroundColor:
+                              isDark
+                                  ? Colors.grey.shade900
+                                  : Colors.grey.shade300,
                           child: Image.asset(
                             'lib/assets/previewcharacters/${avatarValue}_preview.png',
                             width: 40,
@@ -864,13 +879,16 @@ class _GameScreenState extends State<GameScreen> {
                         Expanded(
                           child: Text(
                             opponentName,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black,
                               fontSize: 16,
                             ),
                           ),
                         ),
-                        const Icon(Icons.arrow_forward, color: Colors.orange),
+                        Icon(
+                          Icons.arrow_forward,
+                          color: AppColors.accentHighlight(dialogContext),
+                        ),
                       ],
                     ),
                   ),
@@ -881,9 +899,9 @@ class _GameScreenState extends State<GameScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text(
+              child: Text(
                 'Annuler',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
               ),
             ),
           ],
@@ -901,12 +919,7 @@ class _GameScreenState extends State<GameScreen> {
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Image.asset(
-              'lib/assets/backgrounds/backgroundcombat.png',
-              fit: BoxFit.cover,
-            ),
-          ),
+          const Positioned.fill(child: ThemeBackground(pageId: 'game')),
           Positioned(
             top: -40,
             left: 320,
@@ -936,16 +949,22 @@ class _GameScreenState extends State<GameScreen> {
                       height: 44,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2C3E50),
+                          backgroundColor:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.buttonBackgroundDark
+                                  : AppColors.buttonBackgroundLight,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(6),
                           ),
                           padding: EdgeInsets.zero,
                         ),
                         onPressed: _toggleGameInfo,
-                        child: const Icon(
+                        child: Icon(
                           Icons.info_outline,
-                          color: Color(0xFFC0C0C0),
+                          color:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.buttonTextDark
+                                  : AppColors.buttonTextLight,
                         ),
                       ),
                     ),
@@ -962,12 +981,19 @@ class _GameScreenState extends State<GameScreen> {
                 ValueListenableBuilder<GameClassic?>(
                   valueListenable: _gameService.notifier,
                   builder: (context, game, _) {
+                    final isDark =
+                        Theme.of(context).brightness == Brightness.dark;
+
                     return Container(
                       width: 270,
                       margin: const EdgeInsets.only(top: 8),
                       padding: const EdgeInsets.all(12),
-                      decoration: const BoxDecoration(
-                        color: Colors.transparent,
+                      decoration: BoxDecoration(
+                        color:
+                            isDark
+                                ? Colors.black.withValues(alpha: 0.6)
+                                : Colors.white.withValues(alpha: 0.75),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1083,8 +1109,14 @@ class _GameScreenState extends State<GameScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(40),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2C3E50),
-                    border: Border.all(color: Colors.orange, width: 3),
+                    color:
+                        Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF2C3E50)
+                            : Colors.white,
+                    border: Border.all(
+                      color: AppColors.accentHighlight(context),
+                      width: 3,
+                    ),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -1092,8 +1124,11 @@ class _GameScreenState extends State<GameScreen> {
                     children: [
                       Text(
                         "C'est au tour de $_currentPlayerName",
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1102,8 +1137,8 @@ class _GameScreenState extends State<GameScreen> {
                       const SizedBox(height: 20),
                       Text(
                         _startTurnCountdown.toString(),
-                        style: const TextStyle(
-                          color: Colors.orange,
+                        style: TextStyle(
+                          color: AppColors.accentHighlight(context),
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1145,8 +1180,14 @@ class _GameScreenState extends State<GameScreen> {
                     width: 400,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2C3E50),
-                      border: Border.all(color: Colors.orange, width: 2),
+                      color:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF2C3E50)
+                              : Colors.white,
+                      border: Border.all(
+                        color: AppColors.accentHighlight(context),
+                        width: 2,
+                      ),
                       borderRadius: BorderRadius.circular(8),
                       boxShadow: [
                         BoxShadow(
@@ -1160,11 +1201,15 @@ class _GameScreenState extends State<GameScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Center(
+                        Center(
                           child: Text(
                             'Informations de la partie',
                             style: TextStyle(
-                              color: Colors.white,
+                              color:
+                                  Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -1197,6 +1242,7 @@ class _GameScreenState extends State<GameScreen> {
     final displayTime = _countdown.toString();
     final timeLeft = _countdown is int ? _countdown as int : 0;
     final progress = timeLeft / _turnDuration;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Stack(
       alignment: Alignment.center,
@@ -1207,14 +1253,17 @@ class _GameScreenState extends State<GameScreen> {
           child: CircularProgressIndicator(
             value: progress.clamp(0.0, 1.0),
             strokeWidth: 4,
-            backgroundColor: const Color(0xFF1A252F),
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
+            backgroundColor:
+                isDark ? const Color(0xFF1A252F) : Colors.grey.shade300,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              AppColors.accentHighlight(context),
+            ),
           ),
         ),
         Text(
           displayTime,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -1238,7 +1287,7 @@ class _GameScreenState extends State<GameScreen> {
 
     final gridWidget = DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.orange, width: 2),
+        border: Border.all(color: AppColors.accentHighlight(context), width: 2),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -1404,13 +1453,17 @@ class _GameScreenState extends State<GameScreen> {
             if (isPossibleMove && !isInPreviewPath)
               CustomPaint(
                 size: Size(tileSize, tileSize),
-                painter: DiagonalStripePainter(),
+                painter: DiagonalStripePainter(
+                  color: AppColors.accentHighlight(context),
+                ),
               ),
 
             if (isInPreviewPath)
               CustomPaint(
                 size: Size(tileSize, tileSize),
-                painter: PathPreviewPainter(),
+                painter: PathPreviewPainter(
+                  color: AppColors.accentHighlight(context),
+                ),
               ),
           ],
         ),
@@ -1508,13 +1561,17 @@ class _GameScreenState extends State<GameScreen> {
       valueListenable: PlayerService().notifier,
       builder: (context, player, _) {
         final specs = player.specs;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return Container(
           width: 300,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF2C3E50),
-            border: Border.all(color: Colors.orange, width: 2),
+            color: isDark ? const Color(0xFF2C3E50) : Colors.white,
+            border: Border.all(
+              color: AppColors.accentHighlight(context),
+              width: 2,
+            ),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
@@ -1527,9 +1584,15 @@ class _GameScreenState extends State<GameScreen> {
                     width: 70,
                     height: 70,
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.orange, width: 2),
+                      border: Border.all(
+                        color: AppColors.accentHighlight(context),
+                        width: 2,
+                      ),
                       borderRadius: BorderRadius.circular(4),
-                      color: const Color(0xFF3A4F5F),
+                      color:
+                          isDark
+                              ? const Color(0xFF3A4F5F)
+                              : Colors.grey.shade200,
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: Image.asset(
@@ -1541,8 +1604,8 @@ class _GameScreenState extends State<GameScreen> {
                   Expanded(
                     child: Text(
                       player.name,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1588,10 +1651,10 @@ class _GameScreenState extends State<GameScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Inventaire',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? AppColors.textDark : AppColors.textLight,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1617,6 +1680,8 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _buildStatBar(String icon, String label, int current, int max) {
     final percentage = max > 0 ? current / max : 0.0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1627,13 +1692,16 @@ class _GameScreenState extends State<GameScreen> {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(color: Colors.white, fontSize: 12),
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black87,
+                  fontSize: 12,
+                ),
               ),
             ),
             Text(
               '$current/$max',
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
@@ -1644,7 +1712,7 @@ class _GameScreenState extends State<GameScreen> {
         Container(
           height: 8,
           decoration: BoxDecoration(
-            color: const Color(0xFF1A252F),
+            color: isDark ? const Color(0xFF1A252F) : Colors.grey.shade300,
             borderRadius: BorderRadius.circular(4),
           ),
           child: FractionallySizedBox(
@@ -1652,7 +1720,7 @@ class _GameScreenState extends State<GameScreen> {
             widthFactor: percentage.clamp(0.0, 1.0),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.orange,
+                color: AppColors.accentHighlight(context),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -1664,12 +1732,13 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _buildDiceIndicator(String label, int value) {
     final diceImage = value == 4 ? 'd4.png' : 'd6.png';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A252F),
-        border: Border.all(color: Colors.orange),
+        color: isDark ? const Color(0xFF1A252F) : Colors.grey.shade200,
+        border: Border.all(color: AppColors.accentHighlight(context)),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -1680,8 +1749,8 @@ class _GameScreenState extends State<GameScreen> {
           Flexible(
             child: Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
               ),
@@ -1699,11 +1768,12 @@ class _GameScreenState extends State<GameScreen> {
       builder: (context, player, _) {
         final hasItem = player.inventory.length > index;
         final item = hasItem ? player.inventory[index] : null;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return Container(
           height: 60,
           decoration: BoxDecoration(
-            color: const Color(0xFF1A252F),
+            color: isDark ? const Color(0xFF1A252F) : Colors.grey.shade200,
             border: Border.all(color: Colors.grey),
             borderRadius: BorderRadius.circular(6),
           ),
@@ -1731,13 +1801,16 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildCounter(String label, int value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(color: Colors.white, fontSize: 12),
+            style: TextStyle(color: textColor, fontSize: 11),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -1745,7 +1818,7 @@ class _GameScreenState extends State<GameScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.orange,
+            color: AppColors.accentHighlight(context),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -1762,6 +1835,8 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildInfoRow(String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -1770,7 +1845,10 @@ class _GameScreenState extends State<GameScreen> {
             flex: 6,
             child: Text(
               label,
-              style: const TextStyle(color: Colors.white, fontSize: 12),
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black87,
+                fontSize: 12,
+              ),
               overflow: TextOverflow.ellipsis,
               maxLines: 2,
             ),
@@ -1780,8 +1858,8 @@ class _GameScreenState extends State<GameScreen> {
             flex: 4,
             child: Text(
               value,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
@@ -1797,13 +1875,20 @@ class _GameScreenState extends State<GameScreen> {
 
   List<Widget> _buildPlayerList(GameClassic? game) {
     if (game == null || game.players.isEmpty) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
       return [
-        const Text(
+        Text(
           'Aucun joueur',
-          style: TextStyle(color: Colors.white70, fontSize: 14),
+          style: TextStyle(
+            color: isDark ? Colors.white70 : Colors.black54,
+            fontSize: 14,
+          ),
         ),
       ];
     }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
 
     return game.players.map((player) {
       final isActivePlayer = player.name == _currentPlayerName;
@@ -1821,7 +1906,7 @@ class _GameScreenState extends State<GameScreen> {
         decoration: BoxDecoration(
           color:
               isActivePlayer
-                  ? Colors.orange.withValues(alpha: 0.2)
+                  ? AppColors.accentHighlight(context).withValues(alpha: 0.2)
                   : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
         ),
@@ -1857,8 +1942,8 @@ class _GameScreenState extends State<GameScreen> {
                               style: TextStyle(
                                 color:
                                     isNotInGame
-                                        ? Colors.white.withValues(alpha: 0.4)
-                                        : Colors.white,
+                                        ? textColor.withValues(alpha: 0.4)
+                                        : textColor,
                                 fontSize: 16,
                                 fontWeight:
                                     isActivePlayer
@@ -1868,7 +1953,9 @@ class _GameScreenState extends State<GameScreen> {
                                     isNotInGame
                                         ? TextDecoration.lineThrough
                                         : TextDecoration.none,
-                                decorationColor: Colors.orange,
+                                decorationColor: AppColors.accentHighlight(
+                                  context,
+                                ),
                                 decorationThickness: 3,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -1956,8 +2043,10 @@ class _GameScreenState extends State<GameScreen> {
                           style: TextStyle(
                             color:
                                 isActivePlayer
-                                    ? Colors.orange.shade200
-                                    : Colors.white70,
+                                    ? AppColors.accentHighlight(context)
+                                    : (isDark
+                                        ? Colors.white70
+                                        : Colors.black54),
                             fontSize: 16,
                           ),
                         ),
@@ -1998,11 +2087,15 @@ class _GameScreenState extends State<GameScreen> {
 }
 
 class _CrossLinePainter extends CustomPainter {
+  _CrossLinePainter(this.color);
+
+  final Color color;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint =
         Paint()
-          ..color = Colors.orange.withValues(alpha: 0.8)
+          ..color = color.withValues(alpha: 0.8)
           ..strokeWidth = 2
           ..style = PaintingStyle.stroke;
 

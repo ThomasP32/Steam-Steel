@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/widgets/friends/friend_list_modal.dart';
 
 class FriendButton extends StatelessWidget {
@@ -17,17 +18,25 @@ class FriendButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor =
+        isDark
+            ? AppColors.buttonBackgroundDark
+            : AppColors.buttonBackgroundLight;
+    final iconColor =
+        isDark ? AppColors.buttonTextDark : AppColors.buttonTextLight;
+
     final button = SizedBox(
       width: 44,
       height: 44,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF2C3E50),
+          backgroundColor: backgroundColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
           padding: EdgeInsets.zero,
         ),
         onPressed: () => _showFriendList(context),
-        child: const Icon(Icons.people, color: Color(0xFFC0C0C0), size: 24),
+        child: Icon(Icons.people, color: iconColor, size: 24),
       ),
     );
 

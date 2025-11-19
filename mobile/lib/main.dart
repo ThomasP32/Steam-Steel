@@ -8,12 +8,15 @@ import 'package:mobile/router/app_router.dart';
 import 'package:mobile/services/api_client.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/socket_service.dart';
+import 'package:mobile/services/theme_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/friends/friend_button.dart';
 import 'package:mobile/widgets/game/game_invitation_listener.dart';
 import 'package:mobile/widgets/mainpage/main_page_footer.dart';
 import 'package:mobile/widgets/mainpage/shop_widget.dart';
+import 'package:mobile/widgets/theme/theme_widget.dart';
+import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,20 +80,43 @@ Future<void> setupUserAndGlobalChat() async {
   }
 }
 
-class MobileApp extends StatelessWidget {
+class MobileApp extends StatefulWidget {
   const MobileApp({super.key});
 
   @override
+  State<MobileApp> createState() => _MobileAppState();
+}
+
+class _MobileAppState extends State<MobileApp> {
+  final ThemeService _themeService = ThemeService();
+
+  @override
+  void initState() {
+    super.initState();
+    _themeService.init();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      debugShowCheckedModeBanner: false,
-      title: 'Steam & Steel Battlegrounds',
-      routerConfig: AppRouter.router,
-      theme: AppTheme.darkTheme,
-      themeMode: ThemeMode.dark,
-      builder: (context, child) {
-        return GameInvitationListener(child: child ?? const SizedBox.shrink());
-      },
+    return ChangeNotifierProvider.value(
+      value: _themeService,
+      child: Consumer<ThemeService>(
+        builder: (context, themeService, child) {
+          return MaterialApp.router(
+            debugShowCheckedModeBanner: false,
+            title: 'Steam & Steel Battlegrounds',
+            routerConfig: AppRouter.router,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeService.isLight ? ThemeMode.light : ThemeMode.dark,
+            builder: (context, child) {
+              return GameInvitationListener(
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
@@ -104,12 +130,7 @@ class HomeScreen extends StatelessWidget {
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Image.asset(
-              'lib/assets/backgrounds/origbig.png',
-              fit: BoxFit.cover,
-            ),
-          ),
+          const Positioned.fill(child: ThemeBackground(pageId: 'home')),
           Column(
             children: [
               Expanded(

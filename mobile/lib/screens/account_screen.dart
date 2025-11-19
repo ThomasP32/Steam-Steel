@@ -3,11 +3,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/user.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/register/avatar_picker.dart';
+import 'package:mobile/widgets/theme/theme_widget.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key, this.initialTab});
@@ -389,6 +391,8 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       }
 
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+
       final profileSection = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -401,15 +405,23 @@ class _AuthScreenState extends State<AuthScreen> {
                 },
                 child: const Text('Retour'),
               ),
-              const Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(left: 30),
-                  child: Text(
-                    'Mon compte',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color:
+                      isDark
+                          ? Colors.black45
+                          : Colors.white.withValues(alpha: 0.75),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'Mon compte',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
               ),
+
+              const Spacer(),
             ],
           ),
           const SizedBox(height: 16),
@@ -421,43 +433,119 @@ class _AuthScreenState extends State<AuthScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Pseudonyme:'),
-                            Text(
-                              user.username,
-                              style: const TextStyle(
-                                fontSize: 25,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                isDark
+                                    ? Colors.black45
+                                    : Colors.white.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('Pseudonyme:'),
                         ),
-                        const SizedBox(width: 16),
-                        Image.asset(
-                          'lib/assets/level-badges/level-${user.stats.level}.png',
-                          width: 48,
-                          height: 48,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const SizedBox.shrink();
-                          },
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                isDark
+                                    ? Colors.black45
+                                    : Colors.white.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                user.username,
+                                style: const TextStyle(
+                                  fontSize: 25,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(width: 8),
+                              Image.asset(
+                                'lib/assets/level-badges/level-${user.stats.level}.png',
+                                width: 48,
+                                height: 48,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const SizedBox.shrink();
+                                },
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    const Text('Status:'),
-                    Text(
-                      _getStatusText(user.status),
-                      style: TextStyle(
-                        fontSize: 25,
-                        fontWeight: FontWeight.bold,
-                        color: _getStatusColor(user.status),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
                       ),
-                      overflow: TextOverflow.ellipsis,
+                      decoration: BoxDecoration(
+                        color:
+                            isDark
+                                ? Colors.black45
+                                : Colors.white.withValues(alpha: 0.75),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text('Statut:'),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            isDark
+                                ? Colors.black45
+                                : Colors.white.withValues(alpha: 0.75),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        _getStatusText(user.status),
+                        style: TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                          color: _getStatusColor(user.status),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                isDark
+                                    ? Colors.black45
+                                    : Colors.white.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('Thème:'),
+                        ),
+                        const SizedBox(width: 8),
+                        const ThemeToggleButton(),
+                      ],
                     ),
                   ],
                 ),
@@ -468,14 +556,35 @@ class _AuthScreenState extends State<AuthScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Email:'),
-              Text(
-                user.email,
-                style: const TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color:
+                      isDark
+                          ? Colors.black45
+                          : Colors.white.withValues(alpha: 0.75),
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                overflow: TextOverflow.ellipsis,
+                child: const Text('Email:'),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color:
+                      isDark
+                          ? Colors.black45
+                          : Colors.white.withValues(alpha: 0.75),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  user.email,
+                  style: const TextStyle(
+                    fontSize: 25,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -503,9 +612,19 @@ class _AuthScreenState extends State<AuthScreen> {
       final statsSection = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Statistiques',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color:
+                  isDark
+                      ? Colors.black45
+                      : Colors.white.withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text(
+              'Statistiques',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
           ),
           const SizedBox(height: 16),
           _buildStatCard(
@@ -602,20 +721,29 @@ class _AuthScreenState extends State<AuthScreen> {
       },
       child: Scaffold(
         resizeToAvoidBottomInset: true,
-        body: DecoratedBox(
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('lib/assets/backgrounds/backgroundcombat.png'),
-              fit: BoxFit.cover,
+        body: Stack(
+          children: [
+            const Positioned.fill(child: ThemeBackground(pageId: 'account')),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Expanded(child: SingleChildScrollView(child: pageContent)),
+                  ],
+                ),
+              ),
             ),
-          ),
-          child: SafeArea(child: pageContent),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildLoginForm() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final labelColor = isDark ? Colors.white70 : Colors.black87;
+
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -633,11 +761,18 @@ class _AuthScreenState extends State<AuthScreen> {
             const SizedBox(height: 20),
             TextField(
               controller: _usernameCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Pseudonyme',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
-                contentPadding: EdgeInsets.symmetric(
+                labelStyle: TextStyle(color: labelColor),
+                border: const OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppColors.accentHighlight(context),
+                    width: 2,
+                  ),
+                ),
+                prefixIcon: const Icon(Icons.person),
+                contentPadding: const EdgeInsets.symmetric(
                   vertical: 12,
                   horizontal: 12,
                 ),
@@ -647,11 +782,18 @@ class _AuthScreenState extends State<AuthScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: _passCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Mot de passe',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.lock),
-                contentPadding: EdgeInsets.symmetric(
+                labelStyle: TextStyle(color: labelColor),
+                border: const OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppColors.accentHighlight(context),
+                    width: 2,
+                  ),
+                ),
+                prefixIcon: const Icon(Icons.lock),
+                contentPadding: const EdgeInsets.symmetric(
                   vertical: 12,
                   horizontal: 12,
                 ),
@@ -699,6 +841,9 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _buildRegisterForm() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final labelColor = isDark ? Colors.white70 : Colors.black87;
+
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -716,11 +861,18 @@ class _AuthScreenState extends State<AuthScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: _emailCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Email',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.email),
-                contentPadding: EdgeInsets.symmetric(
+                labelStyle: TextStyle(color: labelColor),
+                border: const OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppColors.accentHighlight(context),
+                    width: 2,
+                  ),
+                ),
+                prefixIcon: const Icon(Icons.email),
+                contentPadding: const EdgeInsets.symmetric(
                   vertical: 12,
                   horizontal: 12,
                 ),
@@ -731,11 +883,18 @@ class _AuthScreenState extends State<AuthScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _passCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Mot de passe',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.lock),
-                contentPadding: EdgeInsets.symmetric(
+                labelStyle: TextStyle(color: labelColor),
+                border: const OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppColors.accentHighlight(context),
+                    width: 2,
+                  ),
+                ),
+                prefixIcon: const Icon(Icons.lock),
+                contentPadding: const EdgeInsets.symmetric(
                   vertical: 12,
                   horizontal: 12,
                 ),
@@ -746,11 +905,18 @@ class _AuthScreenState extends State<AuthScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _usernameCtrl,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Pseudonyme',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
-                contentPadding: EdgeInsets.symmetric(
+                labelStyle: TextStyle(color: labelColor),
+                border: const OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppColors.accentHighlight(context),
+                    width: 2,
+                  ),
+                ),
+                prefixIcon: const Icon(Icons.person),
+                contentPadding: const EdgeInsets.symmetric(
                   vertical: 12,
                   horizontal: 12,
                 ),

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 
 class PlayerLeftModalWidget extends StatelessWidget {
   const PlayerLeftModalWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return ColoredBox(
       color: Colors.black.withValues(alpha: 0.85),
       child: Center(
@@ -12,14 +15,17 @@ class PlayerLeftModalWidget extends StatelessWidget {
           width: 500,
           padding: const EdgeInsets.all(25),
           decoration: BoxDecoration(
-            color: const Color(0xFF2C3E50),
-            border: Border.all(color: Colors.orange, width: 3),
+            color: isDark ? const Color(0xFF2C3E50) : Colors.white,
+            border: Border.all(
+              color: AppColors.accentHighlight(context),
+              width: 3,
+            ),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Column(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
+              const Text(
                 'Tous les joueurs ont abandonné.',
                 style: TextStyle(
                   color: Colors.red,
@@ -28,11 +34,11 @@ class PlayerLeftModalWidget extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Text(
                 'La partie est finie, vous serez redirigé.',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : Colors.black,
                   fontSize: 16,
                 ),
                 textAlign: TextAlign.center,

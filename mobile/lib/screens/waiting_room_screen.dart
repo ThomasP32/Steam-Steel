@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/models/user_models.dart';
 import 'package:mobile/services/auth_service.dart';
@@ -17,6 +18,7 @@ import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/friends/friend_button.dart';
 import 'package:mobile/widgets/game/challenges_widget.dart';
 import 'package:mobile/widgets/money_widget.dart';
+import 'package:mobile/widgets/theme/theme_widget.dart';
 import 'package:mobile/widgets/waiting_room/profile_modal_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
@@ -288,7 +290,12 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         border:
-            isFirstPlayer ? Border.all(color: Colors.orange, width: 2) : null,
+            isFirstPlayer
+                ? Border.all(
+                  color: AppColors.accentHighlight(context),
+                  width: 2,
+                )
+                : null,
         image:
             bannerPath != null
                 ? DecorationImage(
@@ -350,113 +357,118 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                Expanded(
-                  child: Card(
-                    elevation: 6,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        children: [
-                          _buildHeader(),
-                          const SizedBox(height: 12),
-                          _buildPlayersList(),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              const SizedBox(width: 25),
-                              const Text(
-                                'Mon argent: ',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+          const Positioned.fill(child: ThemeBackground(pageId: 'waitingroom')),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 12),
+                  _buildPlayersList(),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              isDark
+                                  ? Colors.black.withValues(alpha: 0.6)
+                                  : Colors.white.withValues(alpha: 0.75),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          children: [
+                            Text(
+                              'Mon argent: ',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
-                              const SizedBox(width: 4),
-                              const MoneyWidget(),
-                              const SizedBox(width: 175),
-                              const ChallengesWidget(),
-                              const SizedBox(width: 100),
-                              ValueListenableBuilder(
-                                valueListenable: _service.entryFee,
-                                builder: (context, entryFee, _) {
-                                  if (entryFee <= 0) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.orange,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: Colors.orange.shade700,
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Text(
-                                          "Frais d'entrée: ",
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF7D4F00),
-                                          ),
-                                        ),
-                                        Image.asset(
-                                          'lib/assets/icons/money.png',
-                                          width: 20,
-                                          height: 20,
-                                          errorBuilder: (
-                                            context,
-                                            error,
-                                            stackTrace,
-                                          ) {
-                                            return const Icon(
-                                              Icons.monetization_on,
-                                              size: 16,
-                                              color: Colors.white,
-                                            );
-                                          },
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '$entryFee',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF7D4F00),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          _buildFooter(),
-                        ],
+                            ),
+                            SizedBox(width: 4),
+                            MoneyWidget(),
+                          ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      const ChallengesWidget(),
+                      const Spacer(),
+                      ValueListenableBuilder(
+                        valueListenable: _service.entryFee,
+                        builder: (context, entryFee, _) {
+                          if (entryFee <= 0) {
+                            return const SizedBox.shrink();
+                          }
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.accentHighlight(context),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AppColors.accentHighlight(context),
+                                width: 2,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Text(
+                                  "Frais d'entrée: ",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF7D4F00),
+                                  ),
+                                ),
+                                Image.asset(
+                                  'lib/assets/icons/money.png',
+                                  width: 20,
+                                  height: 20,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(
+                                      Icons.monetization_on,
+                                      size: 16,
+                                      color: Colors.white,
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '$entryFee',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF7D4F00),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  _buildFooter(),
+                ],
+              ),
             ),
           ),
           const Positioned(
-            top: 18,
+            top: 28,
             right: 12,
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -469,6 +481,8 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
   }
 
   Widget _buildHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return ValueListenableBuilder(
       valueListenable: _service.gameId,
       builder: (context, gameId, _) {
@@ -492,76 +506,125 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                                 Row(
                                   children: [
                                     Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            'Code:',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              isDark
+                                                  ? Colors.black.withValues(
+                                                    alpha: 0.6,
+                                                  )
+                                                  : Colors.white.withValues(
+                                                    alpha: 0.75,
+                                                  ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
                                           ),
-                                          Text(
-                                            gameId,
-                                            style: const TextStyle(
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.bold,
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Code:',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                            Text(
+                                              gameId,
+                                              style: const TextStyle(
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                    if (isHost) ...[
-                                      const Text(
-                                        'La partie est',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.orange,
+                                    const SizedBox(width: 12),
+                                    GestureDetector(
+                                      onTap:
+                                          isHost &&
+                                                  !(isLocked &&
+                                                      players.length ==
+                                                          maxPlayers)
+                                              ? () =>
+                                                  _service.toggleLock(!isLocked)
+                                              : null,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
                                         ),
-                                      ),
-                                      TextButton(
-                                        onPressed:
-                                            (isLocked &&
-                                                    players.length ==
-                                                        maxPlayers)
-                                                ? null
-                                                : () => _service.toggleLock(
-                                                  !isLocked,
-                                                ),
-                                        child: Text(
-                                          isLocked ? 'fermée' : 'ouverte',
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            decoration:
-                                                TextDecoration.underline,
+                                        decoration: BoxDecoration(
+                                          color:
+                                              isDark
+                                                  ? Colors.black.withValues(
+                                                    alpha: 0.6,
+                                                  )
+                                                  : Colors.white.withValues(
+                                                    alpha: 0.75,
+                                                  ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
                                           ),
                                         ),
-                                      ),
-                                    ] else ...[
-                                      const Text(
-                                        'La partie est',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.orange,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'La partie est',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color:
+                                                    AppColors.accentHighlight(
+                                                      context,
+                                                    ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              isLocked ? 'fermée' : 'ouverte',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                decoration:
+                                                    isHost
+                                                        ? TextDecoration
+                                                            .underline
+                                                        : null,
+                                                color:
+                                                    isHost
+                                                        ? AppColors.accentHighlight(
+                                                          context,
+                                                        )
+                                                        : (isDark
+                                                            ? Colors.white
+                                                            : Colors.black),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      Text(
-                                        isLocked ? ' fermée' : ' ouverte',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                    const SizedBox(width: 24),
+                                    ),
+                                    const SizedBox(width: 12),
                                     Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(
-                                          right: 120,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              isDark
+                                                  ? Colors.black.withValues(
+                                                    alpha: 0.6,
+                                                  )
+                                                  : Colors.white.withValues(
+                                                    alpha: 0.75,
+                                                  ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                         child: Column(
                                           crossAxisAlignment:
@@ -583,6 +646,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                                         ),
                                       ),
                                     ),
+                                    const SizedBox(width: 125),
                                   ],
                                 ),
                                 if (isHost) ...[
@@ -649,11 +713,19 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
   }
 
   Widget _buildPlayersList() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Expanded(
       child: DecoratedBox(
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.orange.shade700),
-          color: Colors.grey.shade800,
+          border: Border.all(
+            color: AppColors.accentHighlight(context),
+            width: 2,
+          ),
+          color:
+              isDark
+                  ? Colors.black.withValues(alpha: 0.6)
+                  : Colors.white.withValues(alpha: 0.75),
         ),
         child: ValueListenableBuilder(
           valueListenable: _service.players,
@@ -694,7 +766,9 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                               child: ElevatedButton(
                                 onPressed: _onAddVirtualPlayer,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange,
+                                  backgroundColor: AppColors.accentHighlight(
+                                    context,
+                                  ),
                                   foregroundColor: Colors.white,
                                   elevation: 0,
                                   side: BorderSide.none,
@@ -720,6 +794,8 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
   }
 
   Widget _buildFooter() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return ValueListenableBuilder(
       valueListenable: _service.isHost,
       builder: (context, isHost, _) {
@@ -746,23 +822,79 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                             _service.leaveGame();
                             GoRouter.of(context).go('/');
                           },
+                          style: ElevatedButton.styleFrom(
+                            side: BorderSide(
+                              color: AppColors.accentHighlight(context),
+                              width: 3,
+                            ),
+                          ),
                           label: const Text('Quitter la partie'),
                         ),
                         if (isHost) ...[
                           if (players.length > 1 && isLocked)
                             ElevatedButton(
                               onPressed: _service.initializeGame,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.accentHighlight(
+                                  context,
+                                ),
+                                foregroundColor: Colors.white,
+                              ),
                               child: const Text('Commencer la partie'),
                             )
                           else if (players.length > 1)
-                            const Text(
-                              'Vérouillez la salle pour commencer',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.orange,
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    isDark
+                                        ? Colors.black.withValues(alpha: 0.6)
+                                        : Colors.white.withValues(alpha: 0.75),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Vérouillez la salle pour commencer',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.accentHighlight(context),
+                                ),
+                              ),
+                            )
+                          else ...[
+                            RotationTransition(
+                              turns: _gearController,
+                              child: const Image(
+                                image: AssetImage('lib/assets/icons/gear.png'),
+                                width: 80,
+                                height: 80,
                               ),
                             ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    isDark
+                                        ? Colors.black.withValues(alpha: 0.6)
+                                        : Colors.white.withValues(alpha: 0.75),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                "En attente d'autres joueurs...",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.accentHighlight(context),
+                                ),
+                              ),
+                            ),
+                          ],
                         ] else ...[
                           RotationTransition(
                             turns: _gearController,
@@ -772,20 +904,46 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                               height: 80,
                             ),
                           ),
-                          const Text(
-                            "En attente d'autres joueurs...",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  isDark
+                                      ? Colors.black.withValues(alpha: 0.6)
+                                      : Colors.white.withValues(alpha: 0.75),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              "En attente d'autres joueurs...",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.accentHighlight(context),
+                              ),
                             ),
                           ),
                         ],
-                        Text(
-                          '${players.length}/$maxPlayers joueurs',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                isDark
+                                    ? Colors.black.withValues(alpha: 0.6)
+                                    : Colors.white.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${players.length}/$maxPlayers joueurs',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],

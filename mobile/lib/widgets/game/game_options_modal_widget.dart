@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 
 class GameOptionsModalWidget extends StatefulWidget {
   const GameOptionsModalWidget({
@@ -66,6 +67,12 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C3E50) : Colors.white;
+    final borderColor = AppColors.accentHighlight(context);
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final textColorSecondary = isDark ? Colors.white70 : Colors.black54;
+    
     return ColoredBox(
       color: Colors.black.withValues(alpha: 0.7),
       child: Center(
@@ -74,20 +81,20 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
             width: 500,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: const Color(0xFF2C3E50),
-              border: Border.all(color: Colors.orange, width: 2),
+              color: bgColor,
+              border: Border.all(color: borderColor, width: 2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Row(
+                Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       'Options de jeu',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: textColor,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
@@ -97,7 +104,7 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
                 const SizedBox(height: 8),
                 Text(
                   'Carte: ${widget.selectedMapName}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 16),
+                  style: TextStyle(color: textColorSecondary, fontSize: 16),
                 ),
                 const SizedBox(height: 24),
                 _buildEntryFeeInput(),
@@ -136,16 +143,19 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
                           vertical: 12,
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Retour',
-                        style: TextStyle(color: Colors.white70, fontSize: 16),
+                        style: TextStyle(
+                          color: textColorSecondary,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 16),
                     ElevatedButton(
                       onPressed: _handleNext,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
+                        backgroundColor: borderColor,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                           vertical: 12,
@@ -153,7 +163,7 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
                       ),
                       child: const Text(
                         'Suivant',
-                        style: TextStyle(fontSize: 16),
+                        style: TextStyle(fontSize: 16, color: Colors.white),
                       ),
                     ),
                   ],
@@ -167,12 +177,17 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
   }
 
   Widget _buildEntryFeeInput() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = AppColors.accentHighlight(context);
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final textColorSecondary = isDark ? Colors.white70 : Colors.black54;
+    
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.orange),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         children: [
@@ -187,18 +202,18 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
                       width: 20,
                       height: 20,
                       errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
+                        return Icon(
                           Icons.monetization_on,
                           size: 20,
-                          color: Color(0xFF7D4F00),
+                          color: borderColor,
                         );
                       },
                     ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       "Frais d'entrée",
                       style: TextStyle(
-                        color: Colors.orange,
+                        color: borderColor,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
@@ -211,24 +226,28 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
                   child: TextField(
                     controller: _entryFeeController,
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    style: TextStyle(color: textColor, fontSize: 16),
                     decoration: InputDecoration(
                       suffixText: 'pièces',
-                      suffixStyle: const TextStyle(color: Colors.white70),
+                      suffixStyle: TextStyle(color: textColorSecondary),
                       filled: true,
                       fillColor: Colors.black.withValues(alpha: 0.3),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.white24),
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.black26,
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.white24),
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white24 : Colors.black26,
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                          color: Colors.orange,
+                        borderSide: BorderSide(
+                          color: borderColor,
                           width: 2,
                         ),
                       ),
@@ -240,9 +259,9 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Montant que chaque joueur doit payer pour rejoindre la partie. Les gains seront redistribués aux gagnants.',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                  style: TextStyle(color: textColorSecondary, fontSize: 12),
                 ),
                 const SizedBox(height: 8),
               ],
@@ -259,6 +278,12 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
     required bool value,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = AppColors.accentHighlight(context);
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final textColorSecondary = isDark ? Colors.white70 : Colors.black54;
+    final checkboxBorderColor = isDark ? Colors.white24 : Colors.black26;
+    
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -267,14 +292,14 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: value ? Colors.orange : Colors.white24),
+          border: Border.all(color: value ? borderColor : checkboxBorderColor),
         ),
         child: Row(
           children: [
             Checkbox(
               value: value,
               onChanged: (_) => onTap(),
-              activeColor: Colors.orange,
+              activeColor: borderColor,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -283,8 +308,8 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: textColor,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -292,7 +317,7 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
                   const SizedBox(height: 4),
                   Text(
                     description,
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    style: TextStyle(color: textColorSecondary, fontSize: 12),
                   ),
                 ],
               ),

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/utils/debug_logger.dart';
 
 class GamePreviewWidget extends StatelessWidget {
@@ -245,17 +246,17 @@ class GamePreviewWidget extends StatelessWidget {
                   const SizedBox(height: 3),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.monetization_on,
                         size: 10,
-                        color: Colors.orange,
+                        color: AppColors.accentHighlight(context),
                       ),
                       const SizedBox(width: 2),
                       Text(
                         '$_entryFee pièces',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 9,
-                          color: Colors.orange,
+                          color: AppColors.accentHighlight(context),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -269,7 +270,10 @@ class GamePreviewWidget extends StatelessWidget {
                       width: 5,
                       height: 5,
                       decoration: BoxDecoration(
-                        color: _hasStarted ? Colors.orange : Colors.green,
+                        color:
+                            _hasStarted
+                                ? AppColors.accentHighlight(context)
+                                : Colors.green,
                         shape: BoxShape.circle,
                       ),
                     ),
