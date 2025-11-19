@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/map_types.dart';
@@ -14,6 +15,7 @@ import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/friends/friend_button.dart';
+import 'package:mobile/widgets/theme/theme_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
@@ -403,31 +405,24 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          DecoratedBox(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage(
-                  'lib/assets/backgrounds/backgroundcombat.png',
-                ),
-                fit: BoxFit.cover,
+          const Positioned.fill(
+            child: ThemeBackground(pageId: 'charactercreation'),
+          ),
+          SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height,
               ),
-            ),
-            child: SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: MediaQuery.of(context).size.height,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Expanded(flex: 3, child: _buildStatsPanel()),
-                      const SizedBox(width: 16),
-                      Expanded(flex: 4, child: _buildCenterPanel(canSubmit)),
-                      const SizedBox(width: 16),
-                      Expanded(flex: 3, child: _buildAvatarGrid()),
-                    ],
-                  ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(flex: 3, child: _buildStatsPanel()),
+                    const SizedBox(width: 16),
+                    Expanded(flex: 4, child: _buildCenterPanel(canSubmit)),
+                    const SizedBox(width: 16),
+                    const Expanded(flex: 3, child: SizedBox()),
+                  ],
                 ),
               ),
             ),
@@ -458,70 +453,153 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
               children: [FriendButton(), ChatWidget()],
             ),
           ),
+          Positioned(
+            top: 90,
+            right: 12,
+            bottom: 16,
+            child: _buildAvatarScrollableBox(),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildStatsPanel() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final accentColor = AppColors.accentHighlight(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 10),
-        const Text(
-          'Stats',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color:
+                isDark ? Colors.black45 : Colors.white.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            'Stats',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
         ),
         const SizedBox(height: 12),
-        _statRow('Vie', _specs.life, Colors.orange),
-        _statRow('Rapidité', _specs.speed, Colors.orange),
-        _statRow('Attaque', _specs.attack, Colors.orange),
-        _statRow('Défense', _specs.defense, Colors.orange),
-        const SizedBox(height: 12),
-        const Text('Ajoutes un bonus:'),
-        Row(
-          children: [
-            ElevatedButton(
-              onPressed: () => _addBonus('life'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    lifeOrSpeedBonus == 'life' ? Colors.orange : null,
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color:
+                isDark ? Colors.black45 : Colors.white.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _statRow('Vie', _specs.life, accentColor, showBackground: false),
+              _statRow(
+                'Rapidité',
+                _specs.speed,
+                accentColor,
+                showBackground: false,
               ),
-              child: const Text('Vie'),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton(
-              onPressed: () => _addBonus('speed'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    lifeOrSpeedBonus == 'speed' ? Colors.orange : null,
+              _statRow(
+                'Attaque',
+                _specs.attack,
+                accentColor,
+                showBackground: false,
               ),
-              child: const Text('Rapidité'),
-            ),
-          ],
+              _statRow(
+                'Défense',
+                _specs.defense,
+                accentColor,
+                showBackground: false,
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
-        const Text('Attribues un dé à 6 faces:'),
-        Row(
-          children: [
-            _buildDiceColumn('attack', _specs.attackBonus),
-            const SizedBox(width: 8),
-            _buildDiceColumn('defense', _specs.defenseBonus),
-          ],
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color:
+                isDark ? Colors.black45 : Colors.white.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Ajoutes un bonus:', style: TextStyle(color: textColor)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  ElevatedButton(
+                    onPressed: () => _addBonus('life'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          lifeOrSpeedBonus == 'life' ? accentColor : null,
+                      foregroundColor:
+                          lifeOrSpeedBonus == 'life' && !isDark
+                              ? Colors.white
+                              : null,
+                      side: BorderSide(color: accentColor, width: 2),
+                    ),
+                    child: const Text('Vie'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () => _addBonus('speed'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          lifeOrSpeedBonus == 'speed' ? accentColor : null,
+                      foregroundColor:
+                          lifeOrSpeedBonus == 'speed' && !isDark
+                              ? Colors.white
+                              : null,
+                      side: BorderSide(color: accentColor, width: 2),
+                    ),
+                    child: const Text('Rapidité'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Attribues un dé à 6 faces:',
+                style: TextStyle(color: textColor),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _buildDiceColumn('attack', _specs.attackBonus),
+                  const SizedBox(width: 8),
+                  _buildDiceColumn('defense', _specs.defenseBonus),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
   Widget _buildDiceColumn(String type, Bonus bonus) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accentColor = AppColors.accentHighlight(context);
+    final isSelected = attackOrDefenseBonus == type;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         ElevatedButton(
           onPressed: () => _assignDice(type),
           style: ElevatedButton.styleFrom(
-            backgroundColor:
-                attackOrDefenseBonus == type ? Colors.orange : null,
+            backgroundColor: isSelected ? accentColor : null,
+            foregroundColor: isSelected && !isDark ? Colors.white : null,
+            side: BorderSide(color: accentColor, width: 2),
           ),
           child: Text(type == 'attack' ? 'Attaque' : 'Défense'),
         ),
@@ -540,15 +618,33 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   }
 
   Widget _buildCenterPanel(bool canSubmit) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final accentColor = AppColors.accentHighlight(context);
+
     return ValueListenableBuilder<int>(
       valueListenable: _creationService.selectedAvatar,
       builder: (context, avatar, _) {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'CHOISIS TON AVATAR',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color:
+                    isDark
+                        ? Colors.black45
+                        : Colors.white.withValues(alpha: 0.75),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                'CHOISIS TON AVATAR',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -570,14 +666,33 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            Text(
-              name.isEmpty ? 'Aucun nom' : name,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color:
+                    isDark
+                        ? Colors.black45
+                        : Colors.white.withValues(alpha: 0.75),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                name.isEmpty ? 'Aucun nom' : name,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: canSubmit ? _onSubmit : null,
+              style: ElevatedButton.styleFrom(
+                disabledForegroundColor: !isDark ? Colors.grey : null,
+                side:
+                    canSubmit ? BorderSide(color: accentColor, width: 2) : null,
+              ),
               child: Text(
                 widget.isObserver
                     ? 'Observer'
@@ -592,102 +707,137 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     );
   }
 
-  Widget _buildAvatarGrid() {
-    return ValueListenableBuilder<Set<int>>(
-      valueListenable: _creationService.unavailableAvatars,
-      builder: (context, unavailable, _) {
-        return ValueListenableBuilder<int>(
-          valueListenable: _creationService.selectedAvatar,
-          builder: (context, selected, _) {
-            return ValueListenableBuilder<Set<int>>(
-              valueListenable: _creationService.ownedAvatars,
-              builder: (context, owned, _) {
-                return GridView.count(
-                  crossAxisCount: 3,
-                  shrinkWrap: true,
-                  children: List.generate(_creationService.totalAvatars, (
-                    index,
-                  ) {
-                    final id = index + 1;
-                    final isAvailable = !unavailable.contains(id);
-                    final isOwned = owned.contains(id);
-                    final canSelect = isAvailable && isOwned;
+  Widget _buildAvatarScrollableBox() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accentColor = AppColors.accentHighlight(context);
 
-                    return GestureDetector(
-                      onTap:
-                          canSelect
-                              ? () => _creationService.selectAvatar(id)
-                              : null,
-                      child: Stack(
-                        children: [
-                          Opacity(
-                            opacity: canSelect ? 1.0 : 0.4,
-                            child: Container(
-                              margin: const EdgeInsets.all(3),
-                              decoration: BoxDecoration(
-                                color:
-                                    id == selected
-                                        ? Colors.orange
-                                        : Colors.grey[800],
-                                border: Border.all(
-                                  color: Colors.orange,
-                                  width: 3,
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(5),
-                                child: Image.asset(
-                                  'lib/assets/previewcharacters/${id}_preview.png',
-                                  fit: BoxFit.contain,
-                                  errorBuilder:
-                                      (ctx, err, stack) => Image.asset(
-                                        'lib/assets/characters/unlocked.png',
-                                      ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (!isOwned)
-                            Positioned.fill(
+    return Container(
+      width: 440,
+      decoration: BoxDecoration(
+        color: isDark ? Colors.black45 : Colors.white.withValues(alpha: 0.75),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: accentColor, width: 2),
+      ),
+      child: ValueListenableBuilder<Set<int>>(
+        valueListenable: _creationService.unavailableAvatars,
+        builder: (context, unavailable, _) {
+          return ValueListenableBuilder<int>(
+            valueListenable: _creationService.selectedAvatar,
+            builder: (context, selected, _) {
+              return ValueListenableBuilder<Set<int>>(
+                valueListenable: _creationService.ownedAvatars,
+                builder: (context, owned, _) {
+                  return GridView.count(
+                    crossAxisCount: 3,
+                    padding: const EdgeInsets.all(8),
+                    children: List.generate(_creationService.totalAvatars, (
+                      index,
+                    ) {
+                      final id = index + 1;
+                      final isAvailable = !unavailable.contains(id);
+                      final isOwned = owned.contains(id);
+                      final canSelect = isAvailable && isOwned;
+
+                      return GestureDetector(
+                        onTap:
+                            canSelect
+                                ? () => _creationService.selectAvatar(id)
+                                : null,
+                        child: Stack(
+                          children: [
+                            Opacity(
+                              opacity: canSelect ? 1.0 : 0.4,
                               child: Container(
                                 margin: const EdgeInsets.all(3),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.7),
+                                  color:
+                                      id == selected
+                                          ? accentColor
+                                          : Colors.grey[800],
                                   border: Border.all(
-                                    color: Colors.orange,
-                                    width: 2,
+                                    color: accentColor,
+                                    width: 3,
                                   ),
                                 ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.lock,
-                                    color: Colors.orange,
-                                    size: 40,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(5),
+                                  child: Image.asset(
+                                    'lib/assets/previewcharacters/${id}_preview.png',
+                                    fit: BoxFit.contain,
+                                    errorBuilder:
+                                        (ctx, err, stack) => Image.asset(
+                                          'lib/assets/characters/unlocked.png',
+                                        ),
                                   ),
                                 ),
                               ),
                             ),
-                        ],
-                      ),
-                    );
-                  }),
-                );
-              },
-            );
-          },
-        );
-      },
+                            if (!isOwned)
+                              Positioned.fill(
+                                child: Container(
+                                  margin: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.7),
+                                    border: Border.all(
+                                      color: accentColor,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.lock,
+                                      color: accentColor,
+                                      size: 40,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    }),
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
-  Widget _statRow(String label, int value, Color color) {
+  Widget _statRow(
+    String label,
+    int value,
+    Color color, {
+    bool showBackground = true,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
     final pct = (value / 10).clamp(0.0, 1.0);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('$label : $value'),
+          if (showBackground)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              decoration: BoxDecoration(
+                color:
+                    isDark
+                        ? Colors.black45
+                        : Colors.white.withValues(alpha: 0.75),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '$label : $value',
+                style: TextStyle(color: textColor),
+              ),
+            )
+          else
+            Text('$label : $value', style: TextStyle(color: textColor)),
           const SizedBox(height: 6),
           LinearProgressIndicator(
             value: pct,

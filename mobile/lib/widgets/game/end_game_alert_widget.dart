@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/map_types.dart';
 
@@ -11,6 +12,7 @@ class EndGameAlertWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     var winnerName = 'Un joueur';
     var winMessage = 'a gagné la partie';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (game != null && game!.players.isNotEmpty) {
       final winner = game!.players.firstWhere(
@@ -37,8 +39,11 @@ class EndGameAlertWidget extends StatelessWidget {
           width: 500,
           padding: const EdgeInsets.all(25),
           decoration: BoxDecoration(
-            color: const Color(0xFF2C3E50),
-            border: Border.all(color: Colors.orange, width: 3),
+            color: isDark ? const Color(0xFF2C3E50) : Colors.white,
+            border: Border.all(
+              color: AppColors.accentHighlight(context),
+              width: 3,
+            ),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -50,10 +55,10 @@ class EndGameAlertWidget extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'La partie est finie, vous serez redirigé.',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : Colors.black,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),

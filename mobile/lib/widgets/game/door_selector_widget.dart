@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/map_types.dart';
 import 'package:mobile/services/game_service.dart';
@@ -27,13 +28,14 @@ class DoorSelectorWidget extends StatelessWidget {
 
     final player = PlayerService().player;
     final playerPos = player.position.isNotEmpty ? player.position.first : null;
-    
+
     if (playerPos == null) {
       return const SizedBox.shrink();
     }
 
     final surroundingMap = _buildSurroundingMap(game, playerPos);
     const cellSize = 80.0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -43,18 +45,21 @@ class DoorSelectorWidget extends StatelessWidget {
           Container(
             constraints: const BoxConstraints(maxWidth: 500),
             decoration: BoxDecoration(
-              color: const Color(0xFF2C3E50),
-              border: Border.all(color: const Color(0xFFB85C38), width: 2),
+              color: isDark ? const Color(0xFF2C3E50) : Colors.white,
+              border: Border.all(
+                color: isDark ? const Color(0xFFB85C38) : Colors.grey.shade400,
+                width: 2,
+              ),
               borderRadius: BorderRadius.circular(8),
             ),
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'CHOISIS TA PORTE',
                   style: TextStyle(
-                    color: Color(0xFFF39C12),
+                    color: AppColors.accentHighlight(context),
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1,
@@ -64,84 +69,101 @@ class DoorSelectorWidget extends StatelessWidget {
                 const SizedBox(height: 24),
                 DecoratedBox(
                   decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFFB85C38), width: 2),
+                    border: Border.all(
+                      color:
+                          isDark
+                              ? const Color(0xFFB85C38)
+                              : Colors.grey.shade400,
+                      width: 2,
+                    ),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    children: surroundingMap.asMap().entries.map((rowEntry) {
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: rowEntry.value.asMap().entries.map((cellEntry) {
-                          final cell = cellEntry.value;
-                          final coord = cell['coordinates'] as Coordinate;
-                          final isDoorCell = _isDoor(coord);
+                    children:
+                        surroundingMap.asMap().entries.map((rowEntry) {
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children:
+                                rowEntry.value.asMap().entries.map((cellEntry) {
+                                  final cell = cellEntry.value;
+                                  final coord =
+                                      cell['coordinates'] as Coordinate;
+                                  final isDoorCell = _isDoor(coord);
 
-                          return GestureDetector(
-                            onTap: isDoorCell
-                                ? () {
-                                    final door = doors.firstWhere(
-                                      (d) => d.coordinate.x == coord.x && d.coordinate.y == coord.y,
-                                    );
-                                    onDoorSelected(door);
-                                  }
-                                : null,
-                            child: Container(
-                              width: cellSize,
-                              height: cellSize,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: Colors.black.withValues(alpha: 0.5),
-                                  width: 2,
-                                ),
-                              ),
-                              child: Stack(
-                                children: [
-                                  if (!isDoorCell)
-                                    const ColoredBox(
-                                      color: Colors.black54,
-                                      child: SizedBox.expand(),
-                                    ),
-                                  if (cell['tileAsset'] != null)
-                                    Image.asset(
-                                      cell['tileAsset'] as String,
+                                  return GestureDetector(
+                                    onTap:
+                                        isDoorCell
+                                            ? () {
+                                              final door = doors.firstWhere(
+                                                (d) =>
+                                                    d.coordinate.x == coord.x &&
+                                                    d.coordinate.y == coord.y,
+                                              );
+                                              onDoorSelected(door);
+                                            }
+                                            : null,
+                                    child: Container(
                                       width: cellSize,
                                       height: cellSize,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  if (cell['isStartingPoint'] == true)
-                                    Center(
-                                      child: Image.asset(
-                                        'lib/assets/tiles/startingpoint.png',
-                                        width: cellSize,
-                                        height: cellSize,
-                                        fit: BoxFit.contain,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: Stack(
+                                        children: [
+                                          if (!isDoorCell)
+                                            const ColoredBox(
+                                              color: Colors.black54,
+                                              child: SizedBox.expand(),
+                                            ),
+                                          if (cell['tileAsset'] != null)
+                                            Image.asset(
+                                              cell['tileAsset'] as String,
+                                              width: cellSize,
+                                              height: cellSize,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          if (cell['isStartingPoint'] == true)
+                                            Center(
+                                              child: Image.asset(
+                                                'lib/assets/tiles/startingpoint.png',
+                                                width: cellSize,
+                                                height: cellSize,
+                                                fit: BoxFit.contain,
+                                              ),
+                                            ),
+                                          if (cell['itemCategory'] != null)
+                                            Center(
+                                              child: Image.asset(
+                                                getItemAssetPath(
+                                                  cell['itemCategory']
+                                                      as ItemCategory,
+                                                ),
+                                                width: cellSize * 0.7,
+                                                height: cellSize * 0.7,
+                                                fit: BoxFit.contain,
+                                              ),
+                                            ),
+                                          if (cell['playerAvatar'] != null)
+                                            Center(
+                                              child: Image.asset(
+                                                'lib/assets/pixelcharacters/${cell['playerAvatar']}_pixelated.png',
+                                                width: cellSize,
+                                                height: cellSize,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     ),
-                                  if (cell['itemCategory'] != null)
-                                    Center(
-                                      child: Image.asset(
-                                        getItemAssetPath(cell['itemCategory'] as ItemCategory),
-                                        width: cellSize * 0.7,
-                                        height: cellSize * 0.7,
-                                        fit: BoxFit.contain,
-                                      ),
-                                    ),
-                                  if (cell['playerAvatar'] != null)
-                                    Center(
-                                      child: Image.asset(
-                                        'lib/assets/pixelcharacters/${cell['playerAvatar']}_pixelated.png',
-                                        width: cellSize,
-                                        height: cellSize,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
+                                  );
+                                }).toList(),
                           );
                         }).toList(),
-                      );
-                    }).toList(),
                   ),
                 ),
               ],
@@ -152,10 +174,11 @@ class DoorSelectorWidget extends StatelessWidget {
             right: 10,
             child: IconButton(
               onPressed: onCancel,
-              icon: const Icon(Icons.close, color: Color(0xFFF39C12)),
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.transparent,
+              icon: Icon(
+                Icons.close,
+                color: AppColors.accentHighlight(context),
               ),
+              style: IconButton.styleFrom(backgroundColor: Colors.transparent),
             ),
           ),
         ],
@@ -163,7 +186,10 @@ class DoorSelectorWidget extends StatelessWidget {
     );
   }
 
-  List<List<Map<String, dynamic>>> _buildSurroundingMap(GameClassic game, Coordinate playerPos) {
+  List<List<Map<String, dynamic>>> _buildSurroundingMap(
+    GameClassic game,
+    Coordinate playerPos,
+  ) {
     const radius = 1;
     final surroundingMap = <List<Map<String, dynamic>>>[];
 
@@ -209,9 +235,10 @@ class DoorSelectorWidget extends StatelessWidget {
 
     String? tileAsset;
     if (door != null) {
-      tileAsset = door.isOpened
-          ? 'lib/assets/tiles/door_opened.jpg'
-          : 'lib/assets/tiles/door_closed.jpg';
+      tileAsset =
+          door.isOpened
+              ? 'lib/assets/tiles/door_opened.jpg'
+              : 'lib/assets/tiles/door_closed.jpg';
     } else if (tile != null) {
       switch (tile.category) {
         case TileCategory.water:
@@ -238,6 +265,8 @@ class DoorSelectorWidget extends StatelessWidget {
   }
 
   bool _isDoor(Coordinate coord) {
-    return doors.any((d) => d.coordinate.x == coord.x && d.coordinate.y == coord.y);
+    return doors.any(
+      (d) => d.coordinate.x == coord.x && d.coordinate.y == coord.y,
+    );
   }
 }

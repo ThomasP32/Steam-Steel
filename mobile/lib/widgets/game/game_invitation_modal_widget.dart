@@ -46,6 +46,8 @@ class GameInvitationModalWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Material(
       color: Colors.black.withOpacity(0.7),
       child: Center(
@@ -53,16 +55,17 @@ class GameInvitationModalWidget extends StatelessWidget {
           constraints: const BoxConstraints(minWidth: 400, maxWidth: 500),
           margin: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF2c3e50), // #2c3e50
-                Color(0xFF34495e), // #34495e
-              ],
-            ),
+            gradient:
+                isDark
+                    ? const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF2c3e50), Color(0xFF34495e)],
+                    )
+                    : null,
+            color: isDark ? null : Colors.white,
             border: Border.all(
-              color: const Color(0xFF3498db), // Blue border like web
+              color: AppColors.accentHighlight(context),
               width: 2,
             ),
             borderRadius: BorderRadius.circular(12),
@@ -83,10 +86,10 @@ class GameInvitationModalWidget extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Title
-                    const Text(
+                    Text(
                       'Invitation de partie',
                       style: TextStyle(
-                        color: Color(0xFF3498db),
+                        color: AppColors.accentHighlight(context),
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'Press Start 2P',
@@ -97,8 +100,9 @@ class GameInvitationModalWidget extends StatelessWidget {
                     RichText(
                       textAlign: TextAlign.center,
                       text: TextSpan(
-                        style: const TextStyle(
-                          color: Color(0xFFecf0f1), // Light gray
+                        style: TextStyle(
+                          color:
+                              isDark ? const Color(0xFFecf0f1) : Colors.black87,
                           fontSize: 16,
                           height: 1.5,
                           fontFamily: 'Press Start 2P',
@@ -118,8 +122,8 @@ class GameInvitationModalWidget extends StatelessWidget {
 
                     Text(
                       'Partie: ${invitation.gameName}',
-                      style: const TextStyle(
-                        color: AppColors.accentHighlight,
+                      style: TextStyle(
+                        color: AppColors.accentHighlight(context),
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -183,9 +187,9 @@ class GameInvitationModalWidget extends StatelessWidget {
                 top: 10,
                 right: 15,
                 child: IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close,
-                    color: Color(0xFFecf0f1),
+                    color: isDark ? const Color(0xFFecf0f1) : Colors.black,
                     size: 24,
                   ),
                   onPressed: onClose,

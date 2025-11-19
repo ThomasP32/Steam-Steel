@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/models/user_models.dart';
 import 'package:mobile/services/challenge_service.dart';
@@ -13,6 +14,7 @@ import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/friends/friend_button.dart';
+import 'package:mobile/widgets/theme/theme_widget.dart';
 
 class EndgameScreen extends StatefulWidget {
   const EndgameScreen({
@@ -125,33 +127,30 @@ class _EndgameScreenState extends State<EndgameScreen> {
   @override
   Widget build(BuildContext context) {
     final sortedPlayers = _getSortedPlayers();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
 
     return Scaffold(
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Image.asset(
-              'lib/assets/backgrounds/backgroundcombat.png',
-              fit: BoxFit.cover,
-            ),
-          ),
+          const Positioned.fill(child: ThemeBackground(pageId: 'endgame')),
           SafeArea(
             child: Column(
               children: [
-                const Padding(
-                  padding: EdgeInsets.all(16),
+                Padding(
+                  padding: const EdgeInsets.all(16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         'FIN DE PARTIE',
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: textColor,
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Row(
+                      const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [FriendButton(), ChatWidget()],
                       ),
@@ -164,23 +163,23 @@ class _EndgameScreenState extends State<EndgameScreen> {
                     child: Column(
                       children: [
                         _buildStatsTable(sortedPlayers),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 12),
                         _buildGlobalStats(),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 12),
                         _buildMoneyReward(),
                         const SizedBox(height: 24),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF34495E),
+                            backgroundColor: AppColors.accentHighlight(context),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 48,
-                              vertical: 16,
+                              horizontal: 32,
+                              vertical: 12,
                             ),
                           ),
                           onPressed: _navigateToMainMenu,
                           child: const Text(
                             'Menu principal',
-                            style: TextStyle(fontSize: 18, color: Colors.white),
+                            style: TextStyle(fontSize: 16, color: Colors.white),
                           ),
                         ),
                       ],
@@ -197,6 +196,11 @@ class _EndgameScreenState extends State<EndgameScreen> {
   }
 
   Widget _buildLevelUpModal() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF2C3E50) : Colors.white;
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
+    final accentColor = AppColors.accentHighlight(context);
+
     return Container(
       color: Colors.black.withValues(alpha: 0.7),
       child: Center(
@@ -204,17 +208,17 @@ class _EndgameScreenState extends State<EndgameScreen> {
           margin: const EdgeInsets.symmetric(horizontal: 32),
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: const Color(0xFF2C3E50),
+            color: backgroundColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.orange, width: 3),
+            border: Border.all(color: accentColor, width: 3),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'Félicitations ! 🎉',
                 style: TextStyle(
-                  color: Colors.orange,
+                  color: accentColor,
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                 ),
@@ -223,7 +227,7 @@ class _EndgameScreenState extends State<EndgameScreen> {
               const SizedBox(height: 20),
               Text(
                 'Tu viens de passer au niveau $_newLevel !',
-                style: const TextStyle(color: Colors.white, fontSize: 18),
+                style: TextStyle(color: textColor, fontSize: 18),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -231,13 +235,16 @@ class _EndgameScreenState extends State<EndgameScreen> {
                 _bannerUnlocked
                     ? 'Tu as débloqué une nouvelle bannière. Va voir la boutique pour la découvrir !'
                     : "Continue de jouer, une nouvelle bannière t'attend tous les 5 niveaux.",
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black54,
+                  fontSize: 14,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
+                  backgroundColor: accentColor,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 48,
                     vertical: 12,
@@ -294,12 +301,19 @@ class _EndgameScreenState extends State<EndgameScreen> {
   }
 
   Widget _buildStatsTable(List<Player> players) {
-    return DecoratedBox(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor =
+        isDark
+            ? const Color(0xFF2C3E50).withValues(alpha: 0.95)
+            : Colors.white.withValues(alpha: 0.95);
+
+    return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF2C3E50).withValues(alpha: 0.95),
-        border: Border.all(color: Colors.orange, width: 2),
+        color: backgroundColor,
+        border: Border.all(color: AppColors.accentHighlight(context), width: 2),
         borderRadius: BorderRadius.circular(8),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [_buildTableHeader(), ...players.map(_buildPlayerRow)],
       ),
@@ -307,13 +321,16 @@ class _EndgameScreenState extends State<EndgameScreen> {
   }
 
   Widget _buildTableHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final headerColor = isDark ? const Color(0xFF34495E) : Colors.grey.shade300;
+
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: const BoxDecoration(
-        color: Color(0xFF34495E),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(6),
-          topRight: Radius.circular(6),
+      decoration: BoxDecoration(
+        color: headerColor,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(8),
+          topRight: Radius.circular(8),
         ),
       ),
       child: Row(
@@ -323,8 +340,8 @@ class _EndgameScreenState extends State<EndgameScreen> {
           _buildHeaderCell('Évasions', 'evasions'),
           _buildHeaderCell('Victoires', 'victories'),
           _buildHeaderCell('Défaites', 'defeats'),
-          _buildHeaderCell('Vie perdue', 'lifeLost'),
-          _buildHeaderCell('Vie infligée', 'lifeTaken'),
+          _buildHeaderCell('Vie\nperdue', 'lifeLost'),
+          _buildHeaderCell('Vie\ninfligée', 'lifeTaken'),
           _buildHeaderCell('Objets', 'items'),
           _buildHeaderCell('Tuiles %', 'tiles'),
         ],
@@ -334,41 +351,50 @@ class _EndgameScreenState extends State<EndgameScreen> {
 
   Widget _buildHeaderCell(String label, String sortKey, {int flex = 1}) {
     final isActive = _sortBy == sortKey;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeColor = AppColors.accentHighlight(context);
+    final inactiveColor = isDark ? Colors.white : Colors.black87;
+    final isPlayerColumn = sortKey == 'name';
 
     return Expanded(
       flex: flex,
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            if (_sortBy == sortKey) {
-              _sortAscending = !_sortAscending;
-            } else {
-              _sortBy = sortKey;
-              _sortAscending = false;
-            }
-          });
-        },
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: isActive ? Colors.orange : Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+      child: Padding(
+        padding: EdgeInsets.only(left: isPlayerColumn ? 0 : 8),
+        child: GestureDetector(
+          onTap: () {
+            setState(() {
+              if (_sortBy == sortKey) {
+                _sortAscending = !_sortAscending;
+              } else {
+                _sortBy = sortKey;
+                _sortAscending = false;
+              }
+            });
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: isActive ? activeColor : inactiveColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            if (isActive)
-              Icon(
-                _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                color: Colors.orange,
-                size: 16,
-              ),
-          ],
+              if (isActive)
+                Icon(
+                  _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                  color: activeColor,
+                  size: 14,
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -416,7 +442,13 @@ class _EndgameScreenState extends State<EndgameScreen> {
                 Expanded(
                   child: Text(
                     player.name,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: TextStyle(
+                      color:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87,
+                      fontSize: 14,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -437,10 +469,15 @@ class _EndgameScreenState extends State<EndgameScreen> {
   }
 
   Widget _buildStatCell(String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Expanded(
       child: Text(
         value,
-        style: const TextStyle(color: Colors.white70, fontSize: 14),
+        style: TextStyle(
+          color: isDark ? Colors.white70 : Colors.black54,
+          fontSize: 14,
+        ),
         textAlign: TextAlign.center,
       ),
     );
@@ -453,13 +490,9 @@ class _EndgameScreenState extends State<EndgameScreen> {
     final totalReward = widget.moneyReward + challengeReward;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFD700), Color(0xFFFFED4E)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: const Color(0xFFFFD700),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFFFC107), width: 3),
         boxShadow: [
@@ -489,12 +522,12 @@ class _EndgameScreenState extends State<EndgameScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Récompenses',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: Color(0xFF7D4F00),
                 ),
               ),
               Text(
@@ -502,7 +535,7 @@ class _EndgameScreenState extends State<EndgameScreen> {
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: Color(0xFF7D4F00),
                   shadows: [
                     Shadow(
                       color: Colors.white54,
@@ -562,17 +595,23 @@ class _EndgameScreenState extends State<EndgameScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF2C3E50).withValues(alpha: 0.95),
-        border: Border.all(color: Colors.orange, width: 2),
+        color:
+            Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF2C3E50).withValues(alpha: 0.95)
+                : Colors.white.withValues(alpha: 0.95),
+        border: Border.all(color: AppColors.accentHighlight(context), width: 2),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Statistiques globales de la partie',
             style: TextStyle(
-              color: Colors.white70,
+              color:
+                  Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.textDark
+                      : AppColors.textLight,
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
@@ -602,18 +641,20 @@ class _EndgameScreenState extends State<EndgameScreen> {
   }
 
   Widget _buildGlobalStatRow(String label, String value) {
+    final textColor =
+        Theme.of(context).brightness == Brightness.dark
+            ? AppColors.textDark
+            : AppColors.textLight;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Text(
-            '$label : ',
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-          ),
+          Text('$label : ', style: TextStyle(color: textColor, fontSize: 14)),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: textColor,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),

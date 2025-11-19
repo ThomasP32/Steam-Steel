@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/user.dart';
 import 'package:mobile/models/user_models.dart' hide User;
 import 'package:mobile/services/auth_service.dart';
@@ -509,13 +510,15 @@ class _FriendListModalState extends State<FriendListModal>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
         height: MediaQuery.of(context).size.height * 0.8,
         width: MediaQuery.of(context).size.width * 0.9,
         decoration: BoxDecoration(
-          color: const Color(0xFF2E3136),
+          color: isDark ? const Color(0xFF2E3136) : Colors.white,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -534,18 +537,31 @@ class _FriendListModalState extends State<FriendListModal>
   }
 
   Widget _buildTabBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.only(top: 8),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E2124),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(bottom: BorderSide(color: Color(0xFF3B3F46), width: 2)),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2124) : Colors.grey.shade200,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? const Color(0xFF3B3F46) : Colors.grey.shade300,
+            width: 2,
+          ),
+        ),
       ),
       child: Row(
         children: [
           Expanded(
             child: TabBar(
               controller: _tabController,
+              labelColor: isDark ? Colors.white : Colors.black,
+              unselectedLabelColor:
+                  isDark
+                      ? Colors.white.withValues(alpha: 1)
+                      : Colors.black.withValues(alpha: 1),
+              indicatorColor: AppColors.accentHighlight(context),
               tabs: [
                 Tab(text: 'Amis (${_friends.length})'),
                 Tab(text: 'Demandes (${_friendRequests.length})'),
@@ -553,7 +569,10 @@ class _FriendListModalState extends State<FriendListModal>
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close, color: Colors.white),
+            icon: Icon(
+              Icons.close,
+              color: isDark ? Colors.white : Colors.black,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -562,6 +581,8 @@ class _FriendListModalState extends State<FriendListModal>
   }
 
   Widget _buildFriendsTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -575,14 +596,28 @@ class _FriendListModalState extends State<FriendListModal>
           child: TextField(
             controller: _searchController,
             focusNode: _searchFocusNode,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Rechercher un utilisateur...',
-              hintStyle: TextStyle(fontSize: 12),
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(),
+              hintStyle: TextStyle(
+                fontSize: 12,
+                color:
+                    isDark
+                        ? Colors.white.withValues(alpha: 0.5)
+                        : Colors.black.withValues(alpha: 0.5),
+              ),
+              prefixIcon: Icon(
+                Icons.search,
+                color: AppColors.accentHighlight(context),
+              ),
+              border: const OutlineInputBorder(),
               filled: true,
+              fillColor:
+                  isDark ? const Color(0xFF1E2124) : Colors.grey.shade100,
             ),
-            style: const TextStyle(fontSize: 12),
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? Colors.white : Colors.black,
+            ),
             onTap: () {
               setState(() {
                 _isFriendsSectionExpanded = false;
@@ -620,10 +655,17 @@ class _FriendListModalState extends State<FriendListModal>
                     horizontal: 16,
                     vertical: 8,
                   ),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1E2124),
+                  decoration: BoxDecoration(
+                    color:
+                        isDark ? const Color(0xFF1E2124) : Colors.grey.shade200,
                     border: Border(
-                      bottom: BorderSide(color: Color(0xFF3B3F46), width: 1),
+                      bottom: BorderSide(
+                        color:
+                            isDark
+                                ? const Color(0xFF3B3F46)
+                                : Colors.grey.shade300,
+                        width: 1,
+                      ),
                     ),
                   ),
                   child: Row(
@@ -632,15 +674,16 @@ class _FriendListModalState extends State<FriendListModal>
                         _isFriendsSectionExpanded
                             ? Icons.keyboard_arrow_down
                             : Icons.keyboard_arrow_right,
-                        color: Colors.white,
+                        color: isDark ? Colors.white : Colors.black,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         'Mes Amis (${getFilteredFriends().length})',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
                       ),
                     ],
@@ -668,11 +711,24 @@ class _FriendListModalState extends State<FriendListModal>
                     horizontal: 16,
                     vertical: 8,
                   ),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1E2124),
+                  decoration: BoxDecoration(
+                    color:
+                        isDark ? const Color(0xFF1E2124) : Colors.grey.shade200,
                     border: Border(
-                      top: BorderSide(color: Color(0xFF3B3F46), width: 1),
-                      bottom: BorderSide(color: Color(0xFF3B3F46), width: 1),
+                      top: BorderSide(
+                        color:
+                            isDark
+                                ? const Color(0xFF3B3F46)
+                                : Colors.grey.shade300,
+                        width: 1,
+                      ),
+                      bottom: BorderSide(
+                        color:
+                            isDark
+                                ? const Color(0xFF3B3F46)
+                                : Colors.grey.shade300,
+                        width: 1,
+                      ),
                     ),
                   ),
                   child: Row(
@@ -681,15 +737,16 @@ class _FriendListModalState extends State<FriendListModal>
                         _isOtherUsersSectionExpanded
                             ? Icons.keyboard_arrow_down
                             : Icons.keyboard_arrow_right,
-                        color: Colors.white,
+                        color: isDark ? Colors.white : Colors.black,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         'Autres Utilisateurs (${otherUsers.length})',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
                       ),
                     ],
@@ -724,21 +781,28 @@ class _FriendListModalState extends State<FriendListModal>
   }
 
   Widget _buildEmptyState(String message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Center(child: Text(message, style: const TextStyle(fontSize: 10))),
+      child: Center(
+        child: Text(
+          message,
+          style: TextStyle(
+            fontSize: 10,
+            color: isDark ? Colors.white54 : Colors.black54,
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildFriendItem(Friend friend) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final user = _allUsers.firstWhere(
       (u) => u.username == friend.username,
-      orElse:
-          () => User(
-            id: '',
-            username: friend.username,
-            email: '',
-          ),
+      orElse: () => User(id: '', username: friend.username, email: ''),
     );
 
     return ListTile(
@@ -755,7 +819,10 @@ class _FriendListModalState extends State<FriendListModal>
           Flexible(
             child: Text(
               friend.username,
-              style: const TextStyle(fontSize: 12),
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.white : Colors.black,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -786,10 +853,15 @@ class _FriendListModalState extends State<FriendListModal>
   }
 
   Widget _buildOtherUserItem(User user) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Color(0xFF3B3F46), width: 0.5),
+          bottom: BorderSide(
+            color: isDark ? const Color(0xFF3B3F46) : Colors.grey.shade300,
+            width: 0.5,
+          ),
         ),
       ),
       child: ListTile(
@@ -798,7 +870,10 @@ class _FriendListModalState extends State<FriendListModal>
             Flexible(
               child: Text(
                 user.username,
-                style: const TextStyle(fontSize: 12),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -826,6 +901,8 @@ class _FriendListModalState extends State<FriendListModal>
   }
 
   Widget _buildRequestItem(FriendRequest request) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return ListTile(
       leading: ProfilePictureWidget(
         size: 40,
@@ -834,10 +911,19 @@ class _FriendListModalState extends State<FriendListModal>
         showStatusIndicator: false,
         username: request.from,
       ),
-      title: Text(request.from, style: const TextStyle(fontSize: 12)),
-      subtitle: const Text(
+      title: Text(
+        request.from,
+        style: TextStyle(
+          fontSize: 12,
+          color: isDark ? Colors.white : Colors.black,
+        ),
+      ),
+      subtitle: Text(
         'Souhaite être votre ami',
-        style: TextStyle(fontSize: 10),
+        style: TextStyle(
+          fontSize: 10,
+          color: isDark ? Colors.white70 : Colors.black54,
+        ),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -875,7 +961,7 @@ class _FriendListModalState extends State<FriendListModal>
       case UserStatus.offline:
         return Colors.grey;
       case UserStatus.inGame:
-        return Colors.orange;
+        return AppColors.accentHighlight(context);
       default:
         return Colors.grey;
     }

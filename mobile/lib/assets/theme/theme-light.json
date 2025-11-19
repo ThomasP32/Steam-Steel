@@ -1,0 +1,13 @@
+{
+    "name": "mobile-theme-light",
+    "pages": {
+        "home": { "default": "origbig", "light": "light-homepage" },
+        "gamecreation": { "default": "backgroundcombat", "light": "citybackground" },
+        "account": { "default": "backgroundcombat", "light": "citybackground" },
+        "waitingroom": { "default": "backgroundcombat", "light": "citybackground" },
+        "charactercreation": { "default": "backgroundcombat", "light": "citybackground" },
+        "game": { "default": "backgroundcombat", "light": "citybackground" },
+        "combat": { "default": "backgroundcombat", "light": "citybackground" },
+        "endgame": { "default": "backgroundcombat", "light": "citybackground" }
+    }
+}

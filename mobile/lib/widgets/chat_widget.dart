@@ -509,6 +509,7 @@ class _ChatWidgetState extends State<ChatWidget>
   Widget _buildOverlayContent() {
     return Builder(
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         final mediaQuery = MediaQuery.of(context);
         final keyboardHeight = mediaQuery.viewInsets.bottom;
 
@@ -545,7 +546,10 @@ class _ChatWidgetState extends State<ChatWidget>
                 width: mediaQuery.size.width / 3,
                 child: Material(
                   elevation: 24,
-                  color: const Color(0xFF2E3136),
+                  color:
+                      isDark
+                          ? const Color(0xFF2E3136)
+                          : Colors.white.withValues(alpha: 0.95),
                   child: _buildChatPanel(context),
                 ),
               ),
@@ -559,6 +563,7 @@ class _ChatWidgetState extends State<ChatWidget>
   @override
   Widget build(BuildContext context) {
     if (widget.showToggleButton) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
       return Align(
         alignment: Alignment.topRight,
         child: Padding(
@@ -568,16 +573,22 @@ class _ChatWidgetState extends State<ChatWidget>
             height: 44,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2C3E50),
+                backgroundColor:
+                    isDark
+                        ? AppColors.buttonBackgroundDark
+                        : AppColors.buttonBackgroundLight,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
                 padding: EdgeInsets.zero,
               ),
               onPressed: _toggle,
-              child: const Icon(
+              child: Icon(
                 Icons.chat_bubble_outline,
-                color: Color(0xFFC0C0C0),
+                color:
+                    isDark
+                        ? AppColors.buttonTextDark
+                        : AppColors.buttonTextLight,
                 size: 24,
               ),
             ),
@@ -590,30 +601,38 @@ class _ChatWidgetState extends State<ChatWidget>
   }
 
   Widget _buildChatPanel(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            color: Color(0xFF1E2124),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E2124) : Colors.grey.shade200,
             border: Border(
-              bottom: BorderSide(color: Color(0xFF2E3136), width: 2),
+              bottom: BorderSide(
+                color: isDark ? const Color(0xFF2E3136) : Colors.grey.shade300,
+                width: 2,
+              ),
             ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Clavardage',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : Colors.black,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'Press Start 2P',
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
+                icon: Icon(
+                  Icons.close,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
                 onPressed: _toggle,
                 iconSize: 20,
               ),
@@ -639,26 +658,33 @@ class _ChatWidgetState extends State<ChatWidget>
             final activeChannel = snapshot.data;
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1E2124),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E2124) : Colors.grey.shade200,
                 border: Border(
-                  bottom: BorderSide(color: Color(0xFF2E3136), width: 2),
+                  bottom: BorderSide(
+                    color:
+                        isDark ? const Color(0xFF2E3136) : Colors.grey.shade300,
+                    width: 2,
+                  ),
                 ),
               ),
               child: Text(
                 'Salon actuel: ${activeChannel?.name ?? 'global'}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'Press Start 2P',
-                  color: AppColors.accentHighlight,
+                  color: AppColors.accentHighlight(context),
                 ),
               ),
             );
           },
         ),
 
-        const Divider(color: Color(0xFF3B3F46), height: 1),
+        Divider(
+          color: isDark ? const Color(0xFF3B3F46) : Colors.grey.shade300,
+          height: 1,
+        ),
 
         Expanded(
           child: GestureDetector(
@@ -669,11 +695,14 @@ class _ChatWidgetState extends State<ChatWidget>
                   _loading
                       ? const Center(child: CircularProgressIndicator())
                       : (_messages.isEmpty
-                          ? const Center(
+                          ? Center(
                             child: Text(
                               'Aucun message',
                               style: TextStyle(
-                                color: Color(0xFFC0C0C0),
+                                color:
+                                    isDark
+                                        ? const Color(0xFFC0C0C0)
+                                        : Colors.grey.shade600,
                                 fontFamily: 'Press Start 2P',
                                 fontSize: 10,
                               ),
@@ -761,13 +790,17 @@ class _ChatWidgetState extends State<ChatWidget>
                                                 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFF3B3F46),
+                                            color:
+                                                isDark
+                                                    ? const Color(0xFF3B3F46)
+                                                    : Colors.grey.shade300,
                                             border:
                                                 mine
                                                     ? Border.all(
                                                       color:
-                                                          AppColors
-                                                              .accentHighlight,
+                                                          AppColors.accentHighlight(
+                                                            context,
+                                                          ),
                                                       width: 2,
                                                     )
                                                     : null,
@@ -826,8 +859,11 @@ class _ChatWidgetState extends State<ChatWidget>
                                                 children: [
                                                   Text(
                                                     m.author,
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
+                                                    style: TextStyle(
+                                                      color:
+                                                          isDark
+                                                              ? Colors.white
+                                                              : Colors.black,
                                                       fontWeight:
                                                           FontWeight.bold,
                                                       fontSize: 10,
@@ -839,7 +875,9 @@ class _ChatWidgetState extends State<ChatWidget>
                                                   Text(
                                                     time,
                                                     style: TextStyle(
-                                                      color: Colors.white
+                                                      color: (isDark
+                                                              ? Colors.white
+                                                              : Colors.black)
                                                           .withValues(
                                                             alpha: 0.6,
                                                           ),
@@ -853,8 +891,11 @@ class _ChatWidgetState extends State<ChatWidget>
                                               const SizedBox(height: 4),
                                               Text(
                                                 m.text,
-                                                style: const TextStyle(
-                                                  color: Colors.white,
+                                                style: TextStyle(
+                                                  color:
+                                                      isDark
+                                                          ? Colors.white
+                                                          : Colors.black,
                                                   fontSize: 10,
                                                   fontFamily: 'Press Start 2P',
                                                 ),
@@ -875,9 +916,14 @@ class _ChatWidgetState extends State<ChatWidget>
 
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: const BoxDecoration(
-            color: Color(0xFF1E2124),
-            border: Border(top: BorderSide(color: Color(0xFF2E3136), width: 2)),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E2124) : Colors.grey.shade200,
+            border: Border(
+              top: BorderSide(
+                color: isDark ? const Color(0xFF2E3136) : Colors.grey.shade300,
+                width: 2,
+              ),
+            ),
           ),
           child: Row(
             children: [
@@ -888,20 +934,23 @@ class _ChatWidgetState extends State<ChatWidget>
                   enableInteractiveSelection: true,
                   onSubmitted: (_) => _sendMessage(),
                   textInputAction: TextInputAction.send,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black,
                     fontSize: 12,
                     fontFamily: 'Press Start 2P',
                   ),
                   decoration: InputDecoration(
                     hintText: 'Message...',
                     hintStyle: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: (isDark ? Colors.white : Colors.black).withValues(
+                        alpha: 0.5,
+                      ),
                       fontSize: 10,
                       fontFamily: 'Press Start 2P',
                     ),
                     filled: true,
-                    fillColor: const Color(0xFF2E3136),
+                    fillColor:
+                        isDark ? const Color(0xFF2E3136) : Colors.grey.shade100,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
                       borderSide: BorderSide.none,
@@ -917,7 +966,10 @@ class _ChatWidgetState extends State<ChatWidget>
               const SizedBox(width: 8),
               IconButton(
                 onPressed: _sendMessage,
-                icon: const Icon(Icons.send),
+                icon: Icon(
+                  Icons.send,
+                  color: AppColors.accentHighlight(context),
+                ),
                 iconSize: 20,
               ),
             ],

@@ -6,9 +6,16 @@ class AppColors {
   static const Color accent = Color(0xFF565656);
 
   //Buttons colors
-  static const Color buttonBackground = Color(0xFF2c3e50); // Leather Brown
-  static const Color buttonBorder = Color(0xFF202020); // Burnished Gold
-  static const Color buttonText = Color(0xFFC0C0C0); // Button text color
+  static const Color buttonBackgroundDark = Color(0xFF2c3e50);
+  static const Color buttonBorderDark = Color(0xFF202020);
+  static const Color buttonTextDark = Color(0xFFC0C0C0);
+  static const Color buttonBackgroundLight = Color(0xFFC0C0C0);
+  static const Color buttonBorderLight = Color(0xFF2c3e50);
+  static const Color buttonTextLight = Color(0xFF2c3e50);
+
+  //Text colors
+  static const Color textDark = Color(0xFFFFFFFF);
+  static const Color textLight = Color(0xFF2c3e50);
 
   // Neutral Colors
   static const Color black = Color(0xFF000000);
@@ -34,9 +41,16 @@ class AppColors {
   static const Color info = Color(0xFF2196F3);
 
   // Theme Accent Colors
-  static const Color accentHighlight = Color(0xFFFF9800);
+  static const Color accentHighlightDark = Color(0xFFFF9800);
+  static const Color accentHighlightLight = Color.fromARGB(255, 8, 112, 147);
 
-  // Brand Colors
+  static Color accentHighlight(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    return brightness == Brightness.dark
+        ? accentHighlightDark
+        : accentHighlightLight;
+  }
+
   static const Color primaryCyan = Color(0xFF62FBF2);
   static const Color primaryMagenta = Color(0xFFF158FF);
   static const Color secondaryPurple = Color(0xFF845EC2);

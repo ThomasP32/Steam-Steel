@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/challenge.dart';
 import 'package:mobile/services/challenge_service.dart';
 
@@ -27,6 +28,8 @@ class _ChallengesWidgetState extends State<ChallengesWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return RepaintBoundary(
       child: ValueListenableBuilder<PublicChallengeView?>(
         valueListenable: _challengeService.challengeNotifier,
@@ -41,11 +44,14 @@ class _ChallengesWidgetState extends State<ChallengesWidget> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color:
-                    challenge.completed
-                        ? const Color(0xFF2C5E3A).withValues(alpha: 0.95)
-                        : const Color(0xFF2C3E50).withValues(alpha: 0.95),
+                    isDark
+                        ? Colors.black.withValues(alpha: 0.6)
+                        : Colors.white.withValues(alpha: 0.75),
                 border: Border.all(
-                  color: challenge.completed ? Colors.green : Colors.orange,
+                  color:
+                      challenge.completed
+                          ? Colors.green
+                          : AppColors.accentHighlight(context),
                   width: 2,
                 ),
                 borderRadius: BorderRadius.circular(8),
@@ -63,8 +69,8 @@ class _ChallengesWidgetState extends State<ChallengesWidget> {
                             Flexible(
                               child: Text(
                                 challenge.title,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: isDark ? Colors.white : Colors.black,
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -81,8 +87,8 @@ class _ChallengesWidgetState extends State<ChallengesWidget> {
                                 child: Container(
                                   width: 20,
                                   height: 20,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.orange,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentHighlight(context),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Center(
@@ -103,17 +109,64 @@ class _ChallengesWidgetState extends State<ChallengesWidget> {
                       ),
                       Row(
                         children: [
-                          Image.asset(
-                            'lib/assets/icons/money.png',
-                            width: 16,
-                            height: 16,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${challenge.reward}',
-                            style: const TextStyle(
-                              color: Colors.amber,
-                              fontSize: 14,
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFFD700), Color(0xFFFFED4E)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFFFFC107),
+                                width: 2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFFFFD700,
+                                  ).withValues(alpha: 0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Image.asset(
+                                  'lib/assets/icons/money.png',
+                                  width: 16,
+                                  height: 16,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(
+                                      Icons.monetization_on,
+                                      size: 16,
+                                      color: Color(0xFF7D4F00),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${challenge.reward}',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF7D4F00),
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.white54,
+                                        offset: Offset(0, 1),
+                                        blurRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -137,7 +190,10 @@ class _ChallengesWidgetState extends State<ChallengesWidget> {
                   const SizedBox(height: 8),
                   Text(
                     challenge.description,
-                    style: const TextStyle(color: Colors.white70, fontSize: 10),
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                      fontSize: 10,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -167,8 +223,12 @@ class _ChallengesWidgetState extends State<ChallengesWidget> {
                                                 Colors.green.shade600,
                                               ]
                                               : [
-                                                Colors.orange.shade400,
-                                                Colors.orange.shade600,
+                                                AppColors.accentHighlight(
+                                                  context,
+                                                ).withValues(alpha: 0.7),
+                                                AppColors.accentHighlight(
+                                                  context,
+                                                ),
                                               ],
                                     ),
                                     borderRadius: BorderRadius.circular(12),
@@ -182,8 +242,8 @@ class _ChallengesWidgetState extends State<ChallengesWidget> {
                       const SizedBox(width: 8),
                       Text(
                         '${_getProgressPercentage(challenge)}%',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),

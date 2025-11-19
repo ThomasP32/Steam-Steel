@@ -111,6 +111,11 @@ class WaitingRoomService {
 
       players.value = parsed;
 
+      final mySocketId = SocketService().socketId;
+      if (parsed.isNotEmpty && mySocketId != null) {
+        isHost.value = parsed[0].socketId == mySocketId;
+      }
+
       if (selectedPlayerSocketId.value != null &&
           !parsed.any((p) => p.socketId == selectedPlayerSocketId.value)) {
         selectedPlayerSocketId.value = null;

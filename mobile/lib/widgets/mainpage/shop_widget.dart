@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/models/shop_item.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/shop_service.dart';
@@ -165,6 +166,8 @@ class _ShopWidgetState extends State<ShopWidget> {
   }
 
   void _showCategoryInfo(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final title = _selectedCategory == 'avatar' ? '🎭 Avatars' : '✨ Bannières';
     final message =
         _selectedCategory == 'avatar'
@@ -175,27 +178,30 @@ class _ShopWidgetState extends State<ShopWidget> {
       context: context,
       builder:
           (ctx) => AlertDialog(
-            backgroundColor: const Color(0xFF2C3E50),
+            backgroundColor: isDark ? const Color(0xFF2C3E50) : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
             title: Text(
               title,
-              style: const TextStyle(
-                color: Color(0xFFE67E22),
+              style: TextStyle(
+                color: AppColors.accentHighlight(context),
                 fontWeight: FontWeight.bold,
               ),
             ),
             content: Text(
               message,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black,
+                fontSize: 14,
+              ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text(
+                child: Text(
                   'OK',
-                  style: TextStyle(color: Color(0xFFE67E22)),
+                  style: TextStyle(color: AppColors.accentHighlight(context)),
                 ),
               ),
             ],
@@ -323,15 +329,20 @@ class _ShopWidgetState extends State<ShopWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(16),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 1000, maxHeight: 900),
         decoration: BoxDecoration(
-          color: const Color(0xFF2C3E50),
+          color: isDark ? const Color(0xFF2C3E50) : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE67E22), width: 3),
+          border: Border.all(
+            color: AppColors.accentHighlight(context),
+            width: 3,
+          ),
         ),
         child: Column(
           children: [
@@ -351,21 +362,23 @@ class _ShopWidgetState extends State<ShopWidget> {
   }
 
   Widget _buildHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF34495E),
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF34495E) : Colors.grey.shade200,
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(13),
           topRight: Radius.circular(13),
         ),
       ),
       child: Row(
         children: [
-          const Text(
+          Text(
             'Boutique',
             style: TextStyle(
-              color: Color(0xFFE67E22),
+              color: AppColors.accentHighlight(context),
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -374,9 +387,16 @@ class _ShopWidgetState extends State<ShopWidget> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF2C3E50),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE67E22), width: 2),
+              border: Border.all(
+                color: AppColors.accentHighlight(context),
+                width: 2,
+              ),
             ),
             child: Row(
               children: [
@@ -389,7 +409,7 @@ class _ShopWidgetState extends State<ShopWidget> {
                 Text(
                   '$_currentMoney',
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Color(0xFF7D4F00),
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -411,21 +431,23 @@ class _ShopWidgetState extends State<ShopWidget> {
   }
 
   Widget _buildCategorySidebar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: 250,
-      decoration: const BoxDecoration(
-        color: Color(0xFF34495E),
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(13)),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF34495E) : Colors.grey.shade200,
+        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(13)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Text(
               'Catégories',
               style: TextStyle(
-                color: Colors.white,
+                color: isDark ? Colors.white : Colors.black,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -437,7 +459,9 @@ class _ShopWidgetState extends State<ShopWidget> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Material(
                 color:
-                    isSelected ? const Color(0xFFE67E22) : Colors.transparent,
+                    isSelected
+                        ? AppColors.accentHighlight(context)
+                        : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
                 child: InkWell(
                   onTap: () {
@@ -462,7 +486,12 @@ class _ShopWidgetState extends State<ShopWidget> {
                           child: Text(
                             category['name'] as String,
                             style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.white70,
+                              color:
+                                  isSelected
+                                      ? Colors.white
+                                      : (isDark
+                                          ? Colors.white70
+                                          : Colors.black54),
                               fontWeight:
                                   isSelected
                                       ? FontWeight.bold
@@ -485,9 +514,13 @@ class _ShopWidgetState extends State<ShopWidget> {
   }
 
   Widget _buildItemsArea() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFE67E22)),
+      return Center(
+        child: CircularProgressIndicator(
+          color: AppColors.accentHighlight(context),
+        ),
       );
     }
 
@@ -500,10 +533,10 @@ class _ShopWidgetState extends State<ShopWidget> {
           children: [
             const Text('📦', style: TextStyle(fontSize: 64)),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Aucun article disponible',
               style: TextStyle(
-                color: Colors.white,
+                color: isDark ? Colors.white : Colors.black,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -511,7 +544,12 @@ class _ShopWidgetState extends State<ShopWidget> {
             const SizedBox(height: 8),
             Text(
               'Cette catégorie sera bientôt remplie !',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              style: TextStyle(
+                color:
+                    isDark
+                        ? Colors.white.withValues(alpha: 0.7)
+                        : Colors.black.withValues(alpha: 0.7),
+              ),
             ),
           ],
         ),
@@ -530,8 +568,8 @@ class _ShopWidgetState extends State<ShopWidget> {
                       (c) => c['id'] == _selectedCategory,
                     )['name']
                     as String,
-                style: const TextStyle(
-                  color: Color(0xFFE67E22),
+                style: TextStyle(
+                  color: AppColors.accentHighlight(context),
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -542,9 +580,9 @@ class _ShopWidgetState extends State<ShopWidget> {
                   padding: const EdgeInsets.only(left: 8),
                   child: GestureDetector(
                     onTap: () => _showCategoryInfo(context),
-                    child: const Icon(
+                    child: Icon(
                       Icons.info_outline,
-                      color: Color(0xFFE67E22),
+                      color: AppColors.accentHighlight(context),
                       size: 20,
                     ),
                   ),
@@ -552,7 +590,12 @@ class _ShopWidgetState extends State<ShopWidget> {
               const Spacer(),
               Text(
                 '${items.length} article${items.length > 1 ? 's' : ''}',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                style: TextStyle(
+                  color:
+                      isDark
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : Colors.black.withValues(alpha: 0.7),
+                ),
               ),
             ],
           ),
@@ -575,11 +618,12 @@ class _ShopWidgetState extends State<ShopWidget> {
   }
 
   Widget _buildItemCard(ShopItem item) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isLocked = item.levelRequired != null && !item.canPurchase;
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFF34495E),
+        color: isDark ? const Color(0xFF34495E) : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color:
@@ -600,7 +644,8 @@ class _ShopWidgetState extends State<ShopWidget> {
                 Container(
                   margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2C3E50),
+                    color:
+                        isDark ? const Color(0xFF2C3E50) : Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: ClipRRect(
@@ -699,8 +744,8 @@ class _ShopWidgetState extends State<ShopWidget> {
               children: [
                 Text(
                   item.name,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -719,8 +764,8 @@ class _ShopWidgetState extends State<ShopWidget> {
                       const SizedBox(width: 4),
                       Text(
                         '${item.price}',
-                        style: const TextStyle(
-                          color: Color(0xFFE67E22),
+                        style: TextStyle(
+                          color: AppColors.accentHighlight(context),
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -750,7 +795,7 @@ class _ShopWidgetState extends State<ShopWidget> {
                                   ? const Color(0xFF27AE60)
                                   : Colors.grey)
                               : (item.equipped
-                                  ? const Color(0xFFE67E22)
+                                  ? AppColors.accentHighlight(context)
                                   : const Color(0xFF3498DB)),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 8),

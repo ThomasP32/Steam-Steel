@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/game.dart';
 
@@ -141,18 +142,23 @@ class _ProfileButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
           border: Border.all(
-            color: isSelected ? Colors.orange : Colors.grey,
+            color:
+                isSelected ? AppColors.accentHighlight(context) : Colors.grey,
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(8),
-          color: isSelected ? Colors.orange.withValues(alpha: 0.1) : null,
+          color:
+              isSelected
+                  ? AppColors.accentHighlight(context).withValues(alpha: 0.1)
+                  : null,
         ),
         child: Text(
           label,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? Colors.orange : Colors.white,
+            color:
+                isSelected ? AppColors.accentHighlight(context) : Colors.white,
           ),
         ),
       ),

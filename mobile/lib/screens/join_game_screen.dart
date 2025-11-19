@@ -9,6 +9,7 @@ import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/friends/friend_button.dart';
 import 'package:mobile/widgets/money_widget.dart';
+import 'package:mobile/widgets/theme/theme_widget.dart';
 import 'package:mobile/widgets/waiting_room/game_preview_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
@@ -391,48 +392,48 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('lib/assets/backgrounds/backgroundcombat.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 25),
-                _buildCodeEntry(),
-                const SizedBox(height: 24),
-                _buildGamesSection(),
-              ],
-            ),
-            if (_isLoading) _buildLoadingOverlay(),
-            const Positioned(
-              top: 18,
-              right: 12,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: ThemeBackground(pageId: 'gamecreation')),
+          Stack(
+            children: [
+              Column(
                 children: [
-                  Padding(
-                    padding: EdgeInsets.only(top: 7),
-                    child: MoneyWidget(),
-                  ),
-                  SizedBox(width: 8),
-                  FriendButton(),
-                  ChatWidget(),
+                  _buildHeader(),
+                  const SizedBox(height: 25),
+                  _buildCodeEntry(),
+                  const SizedBox(height: 24),
+                  _buildGamesSection(),
                 ],
               ),
-            ),
-          ],
-        ),
+              if (_isLoading) _buildLoadingOverlay(),
+              const Positioned(
+                top: 18,
+                right: 12,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.only(top: 7),
+                      child: MoneyWidget(),
+                    ),
+                    SizedBox(width: 8),
+                    FriendButton(),
+                    ChatWidget(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return SafeArea(
       bottom: false,
       child: Padding(
@@ -448,13 +449,26 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                   child: const Text('Retour'),
                 ),
               ),
-              const Center(
-                child: Text(
-                  'REJOINS UNE PARTIE',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color:
+                        isDark
+                            ? Colors.black45
+                            : Colors.white.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'REJOINS UNE PARTIE',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
                   ),
                 ),
               ),
@@ -466,14 +480,25 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
   }
 
   Widget _buildCodeEntry() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return Column(
       children: [
-        const Text(
-          'Veuillez entrer le code de la partie',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color:
+                isDark ? Colors.black45 : Colors.white.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            'Veuillez entrer le code de la partie',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -530,17 +555,30 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
   }
 
   Widget _buildGamesSection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return Expanded(
       child: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'Parties disponibles',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color:
+                    isDark
+                        ? Colors.black45
+                        : Colors.white.withValues(alpha: 0.75),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                'Parties disponibles',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
               ),
             ),
           ),
@@ -552,15 +590,26 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
   }
 
   Widget _buildGamesList() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white70 : Colors.black54;
+
     if (_loadingGames) {
       return const Center(child: CircularProgressIndicator());
     }
 
     if (_games.isEmpty) {
-      return const Center(
-        child: Text(
-          'Aucune partie disponible',
-          style: TextStyle(color: Colors.white70, fontSize: 16),
+      return Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color:
+                isDark ? Colors.black45 : Colors.white.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            'Aucune partie disponible',
+            style: TextStyle(color: textColor, fontSize: 16),
+          ),
         ),
       );
     }

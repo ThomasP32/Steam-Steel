@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
+import 'package:mobile/widgets/theme/theme_widget.dart';
 
 class CombatModalWidget extends StatefulWidget {
   const CombatModalWidget({
@@ -233,6 +235,7 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
         final isMyTurn = _isYourTurn && !widget.isObserver;
         final evasionsLeft = currentPlayer.specs.evasions;
         final isObserver = widget.isObserver;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return Container(
           width: double.infinity,
@@ -241,123 +244,142 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
           child: Center(
             child: Container(
               width: 900,
-              height: 500,
+              height: 550,
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                image: const DecorationImage(
-                  image: AssetImage(
-                    'lib/assets/backgrounds/backgroundcombat.png',
-                  ),
-                  fit: BoxFit.cover,
-                ),
-                border: Border.all(
-                  color: const Color.fromARGB(255, 19, 19, 19),
-                  width: 5,
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Stack(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildCombatPlayer(_currentChallenger!, true),
-                      Column(
-                        children: [
-                          const Text(
-                            'VS',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 50,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            '$_countdown',
-                            style: const TextStyle(
-                              color: Colors.orange,
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (_attackDice != null || _defenseDice != null) ...[
-                            const SizedBox(height: 40),
-                            Row(
-                              children: [
-                                if (_attackDice != null)
-                                  _buildDice(_attackDice!, _attacking),
-                                const SizedBox(width: 40),
-                                if (_defenseDice != null)
-                                  _buildDice(_defenseDice!, !_attacking),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                      _buildCombatPlayer(_currentOpponent!, false),
-                    ],
+                  const Positioned.fill(
+                    child: ThemeBackground(pageId: 'combat'),
                   ),
-                  const SizedBox(height: 24),
-
-                  Text(
-                    _combatMessage.isEmpty
-                        ? 'Le combat est en cours...'
-                        : _combatMessage,
-                    style: TextStyle(
-                      color:
-                          widget.isObserver
-                              ? Colors.white70
-                              : (isMyTurn
-                                  ? Colors.greenAccent
-                                  : Colors.white70),
-                      fontSize: 16,
-                      fontWeight:
-                          isMyTurn && !widget.isObserver
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 18),
-
-                  Row(
+                  Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      ElevatedButton(
-                        onPressed: (isMyTurn && !isObserver) ? _attack : null,
-                        style: ElevatedButton.styleFrom(
-                          disabledBackgroundColor: Colors.grey,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 30,
-                            vertical: 14,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildCombatPlayer(_currentChallenger!, true),
+                          Column(
+                            children: [
+                              Text(
+                                'VS',
+                                style: TextStyle(
+                                  color:
+                                      isDark
+                                          ? AppColors.textDark
+                                          : AppColors.textLight,
+                                  fontSize: 50,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                '$_countdown',
+                                style: TextStyle(
+                                  color: AppColors.accentHighlight(context),
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              if (_attackDice != null ||
+                                  _defenseDice != null) ...[
+                                const SizedBox(height: 40),
+                                Row(
+                                  children: [
+                                    if (_attackDice != null)
+                                      _buildDice(_attackDice!, _attacking),
+                                    const SizedBox(width: 40),
+                                    if (_defenseDice != null)
+                                      _buildDice(_defenseDice!, !_attacking),
+                                  ],
+                                ),
+                              ],
+                            ],
                           ),
-                        ),
-                        child: const Text(
-                          'Attaquer',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                        ),
+                          _buildCombatPlayer(_currentOpponent!, false),
+                        ],
                       ),
-                      const SizedBox(width: 16),
-                      ElevatedButton(
-                        onPressed:
-                            (isMyTurn && !isObserver && evasionsLeft > 0)
-                                ? _evade
-                                : null,
-                        style: ElevatedButton.styleFrom(
-                          disabledBackgroundColor: Colors.grey,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 30,
-                            vertical: 14,
-                          ),
+                      const SizedBox(height: 24),
+
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              isDark
+                                  ? Colors.black45
+                                  : Colors.white.withValues(alpha: 0.75),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'Évasion ($evasionsLeft)',
-                          style: const TextStyle(
+                          _combatMessage.isEmpty
+                              ? 'Le combat est en cours...'
+                              : _combatMessage,
+                          style: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.black87,
                             fontSize: 16,
-                            color: Colors.white,
+                            fontWeight:
+                                isMyTurn && !widget.isObserver
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                           ),
+                          textAlign: TextAlign.center,
                         ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            onPressed:
+                                (isMyTurn && !isObserver) ? _attack : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  (isMyTurn && !isObserver)
+                                      ? AppColors.accentHighlight(context)
+                                      : Colors.grey,
+                              disabledBackgroundColor: Colors.grey,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 30,
+                                vertical: 14,
+                              ),
+                            ),
+                            child: const Text(
+                              'Attaquer',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          ElevatedButton(
+                            onPressed:
+                                (isMyTurn && !isObserver && evasionsLeft > 0)
+                                    ? _evade
+                                    : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  (isMyTurn && !isObserver && evasionsLeft > 0)
+                                      ? AppColors.accentHighlight(context)
+                                      : Colors.grey,
+                              disabledBackgroundColor: Colors.grey,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 30,
+                                vertical: 14,
+                              ),
+                            ),
+                            child: Text(
+                              'Évasion ($evasionsLeft)',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -371,12 +393,19 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
   }
 
   Widget _buildDice(int value, bool isAttack) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
+
     return Container(
       padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.black45 : Colors.white.withValues(alpha: 0.75),
+        borderRadius: BorderRadius.circular(4),
+      ),
       child: Text(
         value.toString(),
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: textColor,
           fontSize: 24,
           fontWeight: FontWeight.bold,
         ),
@@ -397,18 +426,31 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
     final attack = specs?['attack'] ?? 0;
     final defense = specs?['defense'] ?? 0;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              '$displayLife PV',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color:
+                    isDark
+                        ? Colors.black45
+                        : Colors.white.withValues(alpha: 0.75),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '$displayLife PV',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -423,23 +465,47 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          name,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color:
+                isDark ? Colors.black45 : Colors.white.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(4),
           ),
-          textAlign: TextAlign.center,
+          child: Text(
+            name,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ),
         const SizedBox(height: 8),
-        Text(
-          'Attaque : $attack',
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color:
+                isDark ? Colors.black45 : Colors.white.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            'Attaque : $attack',
+            style: TextStyle(color: textColor, fontSize: 14),
+          ),
         ),
-        Text(
-          'Défense : $defense',
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color:
+                isDark ? Colors.black45 : Colors.white.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            'Défense : $defense',
+            style: TextStyle(color: textColor, fontSize: 14),
+          ),
         ),
       ],
     );

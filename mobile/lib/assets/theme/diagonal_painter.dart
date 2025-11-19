@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 
 class DiagonalStripePainter extends CustomPainter {
+  DiagonalStripePainter({required this.color});
+
+  final Color color;
+
   @override
   void paint(Canvas canvas, Size size) {
     final bgPaint =
         Paint()
-          ..color = const Color(0x33F39C12)
+          ..color = color.withValues(alpha: 0.1)
           ..style = PaintingStyle.fill;
     canvas.drawRect(Offset.zero & size, bgPaint);
 
     final stripePaint =
         Paint()
-          ..color = const Color(0x80F39C12)
+          ..color = color.withValues(alpha: 0.3)
           ..style = PaintingStyle.fill;
 
     const patternSize = 20.0;
@@ -37,7 +41,7 @@ class DiagonalStripePainter extends CustomPainter {
 
     final borderPaint =
         Paint()
-          ..color = const Color(0x80F39C12)
+          ..color = color.withValues(alpha: 0.3)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2;
 
@@ -50,17 +54,21 @@ class DiagonalStripePainter extends CustomPainter {
 }
 
 class PathPreviewPainter extends CustomPainter {
+  PathPreviewPainter({required this.color});
+
+  final Color color;
+
   @override
   void paint(Canvas canvas, Size size) {
     final bgPaint =
         Paint()
-          ..color = const Color(0x66F39C12)
+          ..color = color.withValues(alpha: 0.4)
           ..style = PaintingStyle.fill;
     canvas.drawRect(Offset.zero & size, bgPaint);
 
     final borderPaint =
         Paint()
-          ..color = const Color(0xFFF39C12)
+          ..color = color
           ..style = PaintingStyle.stroke
           ..strokeWidth = 3;
 
