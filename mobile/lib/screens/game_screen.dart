@@ -1963,6 +1963,7 @@ class _GameScreenState extends State<GameScreen> {
                             ),
                           ),
                           const SizedBox(width: 6),
+                          if (!isVirtualPlayer) ...[
                           Opacity(
                             opacity: isNotInGame ? 0.4 : 1.0,
                             child: Image.asset(
@@ -1974,6 +1975,16 @@ class _GameScreenState extends State<GameScreen> {
                                       const SizedBox.shrink(),
                             ),
                           ),
+                        ],
+                        if (isVirtualPlayer) ...[
+                            Image.asset(
+                              'lib/assets/icons/robot.png',
+                              width: 24,
+                              height: 24,
+                              fit: BoxFit.contain,
+                            ),
+                            const SizedBox(width: 8),
+                          ],
                         ],
                       ),
                     ),
@@ -2009,15 +2020,6 @@ class _GameScreenState extends State<GameScreen> {
                             'lib/assets/icons/observer.png',
                             width: 30,
                             height: 30,
-                            fit: BoxFit.contain,
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        if (isVirtualPlayer) ...[
-                          Image.asset(
-                            'lib/assets/icons/robot.png',
-                            width: 24,
-                            height: 24,
                             fit: BoxFit.contain,
                           ),
                           const SizedBox(width: 8),

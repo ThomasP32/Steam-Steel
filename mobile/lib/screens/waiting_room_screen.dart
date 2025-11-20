@@ -326,6 +326,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
         title: Row(
           children: [
             Text(p.name.isNotEmpty ? p.name : 'Joueur'),
+            if (!isAI) ...[
             const SizedBox(width: 8),
             Image.asset(
               'lib/assets/level-badges/level-${p.level}.png',
@@ -334,10 +335,11 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
               errorBuilder:
                   (context, error, stackTrace) => const SizedBox.shrink(),
             ),
-            if (isAI) ...[
+          ],
+          if (isAI) ...[
               const SizedBox(width: 8),
-              Image.asset('lib/assets/icons/robot.png', width: 30, height: 30),
-            ],
+             Image.asset('lib/assets/icons/robot.png', width: 30, height: 30),
+           ],
           ],
         ),
         trailing:

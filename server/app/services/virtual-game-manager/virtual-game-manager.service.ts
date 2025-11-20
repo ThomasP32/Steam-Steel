@@ -48,6 +48,9 @@ export class VirtualGameManagerService extends EventEmitter {
     }
 
     async executeVirtualPlayerBehavior(player: Player, game: Game): Promise<void> {
+        if (player.socketId.includes('virtual') && player.level) {
+            delete player.level;
+        }
         console.log(`[VirtualGameManagerService] ${player.name} (${player.profile}) starting behavior execution`);
         this.checkAndToggleDoor(player, game);
         if (player.profile === ProfileType.AGGRESSIVE) {

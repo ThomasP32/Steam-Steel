@@ -400,7 +400,7 @@ class _EndgameScreenState extends State<EndgameScreen> {
     );
   }
 
-  Widget _buildPlayerRow(Player player) {
+   Widget _buildPlayerRow(Player player) {
     final totalTiles = widget.game.mapSize.x * widget.game.mapSize.y;
     final tilePercentage =
         totalTiles > 0
@@ -409,8 +409,9 @@ class _EndgameScreenState extends State<EndgameScreen> {
             )
             : '0';
     final bannerPath = _playerBanners[player.name];
+    final isVirtual = player.socketId.startsWith('virtualPlayer');
 
-    return Container(
+   return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         border: const Border(top: BorderSide(color: Color(0xFF34495E))),
@@ -440,16 +441,40 @@ class _EndgameScreenState extends State<EndgameScreen> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    player.name,
-                    style: TextStyle(
-                      color:
-                          Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black87,
-                      fontSize: 14,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          player.name,
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black87,
+                            fontSize: 14,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (!isVirtual && player.level != null) ...[
+                        const SizedBox(width: 6),
+                        Image.asset(
+                          'lib/assets/level-badges/level-${player.level}.png',
+                          width: 26,
+                          height: 26,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const SizedBox.shrink(),
+                        ),
+                      ],
+                      if (isVirtual) ...[
+                        const SizedBox(width: 6),
+                        Image.asset(
+                          'lib/assets/icons/robot.png',
+                          width: 26,
+                          height: 26,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],
