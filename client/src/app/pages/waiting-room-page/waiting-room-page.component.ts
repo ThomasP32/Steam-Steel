@@ -65,6 +65,7 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     isStartable: boolean = false;
     isGameLocked: boolean = false;
     counterInitialized: boolean = false;
+    private gameInitializedProcessing: boolean = false;
     gameInitialized: boolean = false;
     hover: boolean = false;
     activePlayers: Player[] = [];
@@ -139,6 +140,9 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     }
 
     exitGame(): void {
+        this.gameInitializedProcessing = false;
+        this.gameInitialized = false;
+        
         this.channelService.removePartyChannel(this.waitingRoomCode);
         this.socketService.sendMessage(GameCreationEvents.LeaveGame, this.waitingRoomCode);
         this.socketService.sendMessage(FriendsEvents.UpdateUserStatus, { status: UserStatus.Online });
@@ -195,6 +199,18 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         }
         this.socketSubscription.add(
             this.socketService.listen<Game>(GameCreationEvents.GameInitialized).subscribe((game) => {
+                if (this.gameInitializedProcessing) {
+                    console.warn('[WaitingRoom] IGNORING GameInitialized - already processing initialization');
+                    return;
+                }
+                
+                if (game.id !== this.waitingRoomCode) {
+                    console.warn('[WaitingRoom] IGNORING GameInitialized for different game. Event:', game.id, 'vs My game:', this.waitingRoomCode);
+                    return;
+                }
+
+                this.gameInitializedProcessing = true;
+
                 this.gameService.setGame(game);
                 game.players.forEach((player) => {
                     if (player.socketId === this.player.socketId) {
@@ -232,11 +248,6 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
 
                 if (this.isHost) {
                     this.socketService.sendMessage(GameCreationEvents.IfStartable, this.waitingRoomCode);
-                    this.socketSubscription.add(
-                        this.socketService.listen(GameCreationEvents.IsStartable).subscribe(() => {
-                            this.isStartable = true;
-                        }),
-                    );
                 }
                 if (this.numberOfPlayers === this.maxPlayers) {
                     const toggleGameLockStateData: ToggleGameLockStateData = { isLocked: true, gameId: this.waitingRoomCode };
@@ -295,6 +306,8 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     }
 
     navigateToGamePage() {
+        console.log('[WaitingRoom] navigateToGamePage called for game:', this.waitingRoomCode);
+        console.log('[WaitingRoom] Player:', this.player.name, 'Socket ID:', this.player.socketId);
         this.router.navigate([`/game/${this.waitingRoomCode}/${this.mapName}`], {
             state: { player: this.player, gameId: this.waitingRoomCode },
         });
@@ -315,8 +328,16 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.gameInitializedProcessing = false;
+        this.gameInitialized = false;
+        
         if (this.socketSubscription) {
             this.socketSubscription.unsubscribe();
         }
+        
+        this.socketService.removeListener(GameCreationEvents.GameInitialized);
+        this.socketService.removeListener(GameCreationEvents.IsStartable);
+        this.socketService.removeListener(GameCreationEvents.PlayerJoined);
+        
     }
 }

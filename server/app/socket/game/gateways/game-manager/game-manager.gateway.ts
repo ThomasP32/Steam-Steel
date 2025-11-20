@@ -1,4 +1,5 @@
 import { DoorTile } from '@app/http/model/schemas/map/tiles.schema';
+import { UserService } from '@app/http/services/user/user.service';
 import { ChallengeService } from '@app/services/challenge/challenge.service';
 import { CombatService } from '@app/services/combat/combat.service';
 import { CombatCountdownService } from '@app/services/countdown/combat/combat-countdown.service';
@@ -25,7 +26,6 @@ import { Inject } from '@nestjs/common';
 import { OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ItemsManagerService } from '../../../../services/items-manager/items-manager.service';
-import { UserService } from '@app/http/services/user/user.service';
 
 @WebSocketGateway({ namespace: '/game', cors: { origin: '*' } })
 export class GameManagerGateway implements OnGatewayInit {
@@ -247,7 +247,7 @@ export class GameManagerGateway implements OnGatewayInit {
         }
     }
 
-    startTurn(gameId: string): void {
+    startTurn(gameId: string, iterationCount: number = 0): void {
         const game = this.gameCreationService.getGameById(gameId);
         if (!game) {
             console.warn(`[GameManagerGateway] startTurn: Game ${gameId} not found (likely already ended)`);
@@ -261,6 +261,17 @@ export class GameManagerGateway implements OnGatewayInit {
             this.combatCountdownService.deleteCountdown(gameId); // Clean up combat timer if exists
             return;
         }
+        
+        if (iterationCount >= game.players.length) {
+            this.gameCreationService.deleteRoom(gameId);
+            this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
+            this.gameCountdownService.resetTimerSubscription(gameId);
+            this.gameCountdownService.deleteCountdown(gameId);
+            this.combatCountdownService.deleteCountdown(gameId);
+            this.server.to(gameId).emit(GameCreationEvents.GameEndedNoActivePlayers);
+            return;
+        }
+        
         const activePlayer = game.players.find((player) => player.turn === game.currentTurn);
         const involvedPlayers = game.players.map((player) => player.name);
         if (!activePlayer?.isActive || activePlayer?.isObservationMode === true || activePlayer.name === game.lastTurnPlayer) {
@@ -268,7 +279,8 @@ export class GameManagerGateway implements OnGatewayInit {
             if (game.currentTurn >= game.players.length) {
                 game.currentTurn = 0;
             }
-            this.startTurn(gameId);
+            console.log(`[GameManagerGateway] startTurn: Skipping to next player (iteration ${iterationCount + 1}/${game.players.length})`);
+            this.startTurn(gameId, iterationCount + 1);
             return;
         }
         game.nTurns++;

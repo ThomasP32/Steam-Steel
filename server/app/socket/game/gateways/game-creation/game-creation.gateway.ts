@@ -281,6 +281,15 @@ export class GameGateway {
             const game = this.gameCreationService.getGameById(roomId);
             if (game && client.id === game.hostSocketId) {
                 this.gameCreationService.initializeGame(roomId);
+                
+                const invalidPlayers = game.players.filter((player) => player.turn === undefined || player.turn === null);
+                if (invalidPlayers.length > 0) {
+                    console.error(`[GameCreationGateway] Game ${roomId} has ${invalidPlayers.length} players with invalid turns:`, 
+                        invalidPlayers.map(p => ({ name: p.name, turn: p.turn, socketId: p.socketId })));
+                    client.emit(GameCreationEvents.GameCreationError, 'Erreur lors de l\'initialisation du jeu. Veuillez réessayer.');
+                    return;
+                }
+                                
                 const sockets = await this.server.in(roomId).fetchSockets();
                 sockets.forEach((socket) => {
                     if (game.players.every((player) => player.socketId !== socket.id)) {
