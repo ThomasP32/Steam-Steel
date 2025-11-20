@@ -1,8 +1,16 @@
 import { Injectable } from '@angular/core';
 import { MAX_CHAR, MINUTE, PERCENTAGE, tableColumns } from '@common/constants';
+import { GameManagerEvents } from '@common/events/game-manager.events';
 import { Game, GameCtf, Player } from '@common/game';
 import { Coordinate } from '@common/map.types';
+import { BehaviorSubject } from 'rxjs';
+import { SocketService } from '../communication-socket/communication-socket.service';
 import { GameService } from '../game/game.service';
+
+export interface LevelUpData {
+    newLevel: number;
+    bannerUnlocked: boolean;
+}
 
 @Injectable({
     providedIn: 'root',
@@ -18,8 +26,26 @@ export class EndgameService {
     isObjectsSortingAsc: boolean = true;
     isTilesSortingAsc: boolean = true;
 
-    constructor(private gameService: GameService) {
+    private levelUpSubject = new BehaviorSubject<LevelUpData | null>(null);
+    levelUp$ = this.levelUpSubject.asObservable();
+
+    constructor(
+        private gameService: GameService,
+        private socketService: SocketService,
+    ) {
         this.gameService = gameService;
+        this.socketService = socketService;
+        this.listenToLevelUp();
+    }
+
+    private listenToLevelUp(): void {
+        this.socketService.listen<LevelUpData>(GameManagerEvents.PlayerLeveledUp).subscribe((data) => {
+            this.levelUpSubject.next(data);
+        });
+    }
+
+    clearLevelUp(): void {
+        this.levelUpSubject.next(null);
     }
 
     getPlayerTilePercentage(player: Player, game: Game): number {

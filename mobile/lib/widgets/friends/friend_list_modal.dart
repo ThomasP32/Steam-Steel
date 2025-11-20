@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/user.dart';
-import 'package:mobile/models/user_models.dart' hide User;
+import 'package:mobile/assets/theme/color_palette.dart';
+import 'package:mobile/models/user_models.dart' hide User hide User;
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/friend_service.dart';
 import 'package:mobile/utils/debug_logger.dart';

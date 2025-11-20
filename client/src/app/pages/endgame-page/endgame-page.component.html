@@ -42,6 +42,12 @@
                         <div class="cell-content player-info">
                             <img [src]="getAvatarPreview(gamePlayer.avatar)" class="player-avatar" alt="avatar" />
                             <span class="player-name">{{ gamePlayer.name }}</span>
+                            @if (!isVirtualPlayer(gamePlayer.socketId)) {
+                            <img class="user-level" [src]="'assets/level-badges/level-' + gamePlayer.level + '.png'" alt="Niveau" />
+                            }
+                            @if (isVirtualPlayer(gamePlayer.socketId)) {
+                            <img src="assets/icons/robot.png" alt="Bot" class="robot-icon" />
+                            }
                         </div>
                     </td>
                     <td class="player-cell">

@@ -159,6 +159,14 @@ tr {
     margin-right: 10px;
 }
 
+.user-level,
+.robot-icon {
+    width: 30px;
+    height: 30px;
+    margin-left: 8px;
+    object-fit: contain;
+}
+
 .player-info {
     display: flex !important;
     align-items: center;
