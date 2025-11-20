@@ -179,6 +179,10 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        if (this.socketSubscription) {
+            this.socketSubscription.unsubscribe();
+        }
+        
         this.unsubscribe$.next();
         this.unsubscribe$.complete();
     }

@@ -8,6 +8,7 @@ import { environment } from 'src/environments/environment';
 })
 export class SocketService {
     public socket: Socket;
+    private activeListeners: Map<string, number> = new Map();
 
     connect() {
         const token = localStorage.getItem('authToken');
@@ -37,10 +38,43 @@ export class SocketService {
             if (!this.socket) {
                 return;
             }
-            this.socket.on(eventName, (data: T) => {
+            
+            // Create a unique handler for this subscription
+            const handler = (data: T) => {
                 subscriber.next(data);
-            });
+            };
+            
+            // Track listener creation
+            const currentCount = this.activeListeners.get(eventName) || 0;
+            this.activeListeners.set(eventName, currentCount + 1);
+            
+            this.socket.on(eventName, handler);
+            
+            return () => {
+                this.socket.off(eventName, handler);
+                
+                const count = this.activeListeners.get(eventName) || 0;
+                if (count > 0) {
+                    this.activeListeners.set(eventName, count - 1);
+                }
+            };
         });
+    }
+
+    removeListener(eventName: string): void {
+        if (!this.socket) {
+            return;
+        }
+        this.socket.off(eventName);
+        this.activeListeners.delete(eventName);
+    }
+
+    removeAllListeners(): void {
+        if (!this.socket) {
+            return;
+        }
+        this.socket.removeAllListeners();
+        this.activeListeners.clear();
     }
 
     disconnect(): void {

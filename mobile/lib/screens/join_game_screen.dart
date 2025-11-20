@@ -187,18 +187,24 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     _cancelTimeout();
     if (!mounted) return;
 
-    setState(() => _isLoading = false);
-    _showError('Partie introuvable');
-    _resetInputs();
+    if (_isLoading || _pendingGameCode != null) {
+      setState(() => _isLoading = false);
+      _showError('Partie introuvable');
+      _resetInputs();
+    }
+    _pendingGameCode = null;
   }
 
   void _onGameLocked(String reason) {
     _cancelTimeout();
     if (!mounted) return;
 
-    setState(() => _isLoading = false);
-    _showError(reason);
-    _resetInputs();
+    if (_isLoading || _pendingGameCode != null) {
+      setState(() => _isLoading = false);
+      _showError(reason);
+      _resetInputs();
+    }
+    _pendingGameCode = null;
   }
 
   void _onGameTap(Map<String, dynamic> game) {
@@ -376,15 +382,19 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
   void dispose() {
     _cancelTimeout();
     _pendingGameCode = null;
+
+    for (final s in _subs) {
+      s.cancel();
+    }
+    _subs.clear();
+
     for (final c in _controllers) {
       c.dispose();
     }
     for (final f in _focusNodes) {
       f.dispose();
     }
-    for (final s in _subs) {
-      s.cancel();
-    }
+
     super.dispose();
   }
 
