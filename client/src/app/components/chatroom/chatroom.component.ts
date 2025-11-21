@@ -28,6 +28,7 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     messageSubscription: Subscription = new Subscription();
     newMessageSubscription: Subscription = new Subscription();
     isChatRetracted: boolean = false;
+    isChannelRetracted: boolean = false;
 
     availableChannels: Channel[] = [];
     joinedChannels: Channel[] = [];
@@ -40,6 +41,8 @@ export class ChatroomComponent implements OnInit, OnDestroy {
 
     notificationMessage: string = '';
     showNotification: boolean = false;
+    channelToDelete: string = '';
+    showDeleteConfirmation: boolean = false;
 
     private messagesCache: Map<string, Message[]> = new Map();
 
@@ -75,10 +78,6 @@ export class ChatroomComponent implements OnInit, OnDestroy {
             this.joinedChannels = channels;
         });
 
-        if (this.isInGame && this.gameId) {
-            this.createAndJoinPartyChannel();
-        }
-
         this.channelService.activeChannel$.subscribe((channel) => {
             this.previousChannel = this.activeChannel;
             this.activeChannel = channel;
@@ -87,20 +86,31 @@ export class ChatroomComponent implements OnInit, OnDestroy {
                     this.messagesCache.set(this.previousChannel, [...this.messages]);
                 }
 
+                this.messages = [];
+
                 const cachedMessages = this.messagesCache.get(channel);
-                if (cachedMessages) {
-                    this.messages = [...cachedMessages];
+                if (cachedMessages && cachedMessages.length > 0) {
+                    if (channel.startsWith('partie-')) {
+                        const validPartyMessages = cachedMessages.filter(
+                            (msg) => !msg.gameId || msg.gameId === this.gameId || msg.text?.includes(this.gameId),
+                        );
+                        if (validPartyMessages.length > 0) {
+                            this.messages = [...validPartyMessages];
+                        } else {
+                            this.loadChannelMessages(channel);
+                        }
+                    } else {
+                        this.messages = [...cachedMessages];
+                    }
                     this.scrollToBottom();
-                    this.loadChannelMessages(channel);
                 } else {
-                    this.messages = [];
                     this.loadChannelMessages(channel);
                 }
             }
         });
 
         this.messageSubscription = this.socketService.listen<Message[]>(ChatEvents.PreviousMessages).subscribe((messages: Message[]) => {
-            this.messages = messages;
+            this.messages = [...messages];
             if (this.activeChannel) {
                 this.messagesCache.set(this.activeChannel, [...messages]);
             }
@@ -124,6 +134,18 @@ export class ChatroomComponent implements OnInit, OnDestroy {
         this.socketService.listen<{ username: string; status: string }>(ChatEvents.MessageAuthorStatusUpdated).subscribe((data) => {
             this.updateMessageAuthorStatus(data.username, data.status as 'online' | 'offline' | 'ingame');
         });
+
+        if (this.isInGame && this.gameId) {
+            setTimeout(() => {
+                this.createAndJoinPartyChannel();
+            }, 100);
+        } else {
+            setTimeout(() => {
+                if (!this.activeChannel) {
+                    this.channelService.setActiveChannel('global');
+                }
+            }, 100);
+        }
     }
 
     sendMessage(): void {
@@ -155,6 +177,7 @@ export class ChatroomComponent implements OnInit, OnDestroy {
             this.socketService.sendMessage(ChatEvents.LeaveChannel, { channelName: this.previousChannel });
         }
 
+        this.messages = [];
         this.socketService.sendMessage(ChatEvents.JoinChatRoom, channelName);
     }
 
@@ -172,6 +195,10 @@ export class ChatroomComponent implements OnInit, OnDestroy {
         }
     }
 
+    toggleChannel(): void {
+        this.isChannelRetracted = !this.isChannelRetracted;
+    }
+
     getFilteredAvailableChannels(): Channel[] {
         if (!this.channelSearchText.trim()) {
             return this.availableChannels;
@@ -182,13 +209,15 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     }
 
     createChannel(): void {
-        if (this.newChannelName.trim() && this.playerName) {
-            this.channelService.createChannel(this.newChannelName.trim(), this.playerName, true).then((result) => {
+        if (this.channelSearchText.trim() && this.playerName) {
+            this.channelService.createChannel(this.channelSearchText.trim(), this.playerName, true).then((result) => {
                 if (!result.success && result.message) {
                     this.showNotificationMessage(result.message);
+                } else {
+                    this.toggleAvailableChannels();
                 }
             });
-            this.newChannelName = '';
+            this.channelSearchText = '';
         }
     }
 
@@ -203,13 +232,29 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     }
 
     deleteChannel(channelName: string): void {
-        if (confirm(`Êtes-vous sûr de vouloir supprimer le channel "${channelName}" ?`)) {
-            this.channelService.deleteChannel(channelName).then((result) => {
+        this.channelToDelete = channelName;
+        this.notificationMessage = `Supprimer le salon "${channelName}" ?`;
+        this.showDeleteConfirmation = true;
+
+        setTimeout(() => {
+            this.showDeleteConfirmation = false;
+        }, 5000);
+    }
+
+    confirmDeleteChannel(): void {
+        if (this.channelToDelete) {
+            this.channelService.deleteChannel(this.channelToDelete).then((result) => {
                 if (!result.success && result.message) {
                     this.showNotificationMessage(result.message);
                 }
             });
+            this.cancelDeleteChannel();
         }
+    }
+
+    cancelDeleteChannel(): void {
+        this.channelToDelete = '';
+        this.showDeleteConfirmation = false;
     }
 
     selectActiveChannel(channelName: string): void {
@@ -245,7 +290,16 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     }
 
     createAndJoinPartyChannel(): void {
-        this.channelService.createPartyChannel(this.gameId);
+        const partyChannelName = `partie-${this.gameId}`;
+
+        const existingChannel = this.joinedChannels.find((channel) => channel.name === partyChannelName);
+
+        if (!existingChannel) {
+            this.channelService.createPartyChannel(this.gameId);
+
+            this.messagesCache.clear();
+            this.messages = [];
+        }
     }
 
     ngOnDestroy(): void {

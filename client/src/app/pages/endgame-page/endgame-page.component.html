@@ -82,11 +82,9 @@
     <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
         <i class="fas fa-comments" aria-hidden="true"></i>
     </button>
-    @if (isChatVisible) {
-    <div class="global-chat-wrapper">
+    <div class="global-chat-wrapper" [hidden]="!isChatVisible">
         <app-chatroom [gameId]="this.game.id" [isInGame]="true" (closed)="isChatVisible = false"></app-chatroom>
     </div>
-    }
     <div class="global-stats-container">
         <h1>Statistiques globales de la partie</h1>
         <p>Durée de la partie : {{ endgameService.gameDurationInMinutes(game.duration) }}</p>

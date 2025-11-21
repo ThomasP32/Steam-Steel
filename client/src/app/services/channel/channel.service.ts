@@ -18,7 +18,7 @@ export interface Channel {
 export class ChannelService {
     private availableChannelsSubject = new BehaviorSubject<Channel[]>([]);
     private joinedChannelsSubject = new BehaviorSubject<Channel[]>([]);
-    private activeChannelSubject = new BehaviorSubject<string | null>('global');
+    private activeChannelSubject = new BehaviorSubject<string | null>(null);
 
     public availableChannels$ = this.availableChannelsSubject.asObservable();
     public joinedChannels$ = this.joinedChannelsSubject.asObservable();
@@ -73,7 +73,11 @@ export class ChannelService {
         this.joinedChannelsSubject.next(joined);
 
         if (this.activeChannelSubject.value === channelName) {
-            this.setActiveChannel('global');
+            if (!channelName.startsWith('partie-')) {
+                this.setActiveChannel('global');
+            } else {
+                this.clearActiveChannel();
+            }
         }
     }
 
@@ -108,7 +112,18 @@ export class ChannelService {
             const body = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
             if (body && body.success) {
                 this.socketService.sendMessage(ChatEvents.CreateChannel, { name, creator, isPublic });
+
+                const newChannel: Channel = { name, creator, isPublic };
+                const currentAvailable = this.availableChannelsSubject.value;
+                if (!currentAvailable.find((c) => c.name === name)) {
+                    this.availableChannelsSubject.next([...currentAvailable, newChannel]);
+                }
+
+                this.joinChannel(name);
+                this.setActiveChannel(name);
+
                 this.loadChannels();
+
                 return { success: true, message: body.message };
             } else {
                 return { success: false, message: body?.message || 'Erreur lors de la création du channel' };
@@ -143,6 +158,11 @@ export class ChannelService {
     }
 
     joinChannel(channelName: string): void {
+        this.joinChannelWithoutActivation(channelName);
+        this.setActiveChannel(channelName);
+    }
+
+    private joinChannelWithoutActivation(channelName: string): void {
         const available = this.availableChannelsSubject.value;
         const channelToJoin =
             available.find((c) => c.name === channelName) ||
@@ -164,8 +184,6 @@ export class ChannelService {
 
         this.availableChannelsSubject.next(newAvailable);
         this.joinedChannelsSubject.next(newJoined);
-
-        this.setActiveChannel(channelName);
     }
 
     leaveChannel(channelName: string): void {
@@ -183,7 +201,11 @@ export class ChannelService {
         }
 
         if (this.activeChannelSubject.value === channelName) {
-            this.setActiveChannel('global');
+            if (!channelName.startsWith('partie-')) {
+                this.setActiveChannel('global');
+            } else {
+                this.clearActiveChannel();
+            }
         }
     }
 
@@ -192,6 +214,10 @@ export class ChannelService {
         if (joined.find((c) => c.name === channelName)) {
             this.activeChannelSubject.next(channelName);
         }
+    }
+
+    clearActiveChannel(): void {
+        this.activeChannelSubject.next(null);
     }
 
     getActiveChannel(): string | null {
@@ -214,29 +240,30 @@ export class ChannelService {
             isPublic: false,
         };
 
-        const currentJoined = this.joinedChannelsSubject.value;
-        if (!currentJoined.find((c) => c.name === partyChannelName)) {
-            const newJoined = [...currentJoined, partyChannel];
-            this.joinedChannelsSubject.next(newJoined);
+        const currentAvailable = this.availableChannelsSubject.value;
+        if (!currentAvailable.find((c) => c.name === partyChannelName)) {
+            const newAvailable = [...currentAvailable, partyChannel];
+            this.availableChannelsSubject.next(newAvailable);
 
-            this.socketService.sendMessage(ChatEvents.JoinChannel, { channelName: partyChannelName });
-
-            this.setActiveChannel(partyChannelName);
+            this.joinChannelWithoutActivation(partyChannelName);
         }
     }
 
     removePartyChannel(gameId: string): void {
         const partyChannelName = `partie-${gameId}`;
 
-        const currentJoined = this.joinedChannelsSubject.value;
-        const newJoined = currentJoined.filter((c) => c.name !== partyChannelName);
-        this.joinedChannelsSubject.next(newJoined);
+        this.leaveChannel(partyChannelName);
 
-        if (this.activeChannelSubject.value === partyChannelName) {
-            this.setActiveChannel('global');
-        }
+        const currentAvailable = this.availableChannelsSubject.value;
+        const newAvailable = currentAvailable.filter((c) => c.name !== partyChannelName);
+        this.availableChannelsSubject.next(newAvailable);
+    }
 
-        this.socketService.sendMessage(ChatEvents.LeaveChannel, { channelName: partyChannelName });
+    resetChannelState(): void {
+        this.availableChannelsSubject.next([]);
+        this.joinedChannelsSubject.next([{ name: 'global', creator: 'system', isPublic: true }]);
+        this.activeChannelSubject.next('global');
+        this.loadChannels();
     }
 
     isPartyChannel(channelName: string): boolean {

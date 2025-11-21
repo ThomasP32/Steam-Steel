@@ -1,7 +1,15 @@
 <div class="chat-container" [class.retracted]="isChatRetracted">
-    @if (showNotification) {
+    @if (showNotification && !showDeleteConfirmation) {
     <div class="notification-toast">
         {{ notificationMessage }}
+    </div>
+    } @if (showDeleteConfirmation) {
+    <div class="delete-confirmation-toast">
+        <div class="confirmation-message">{{ notificationMessage }}</div>
+        <div class="confirmation-buttons">
+            <button class="confirm-btn" (click)="confirmDeleteChannel()">Oui</button>
+            <button class="cancel-btn" (click)="cancelDeleteChannel()">Non</button>
+        </div>
     </div>
     }
 
@@ -9,12 +17,12 @@
         <div class="header-left">
             <strong>Clavardage</strong>
             <span class="toggle-icon">
-                <i [ngClass]="isChatRetracted ? 'fas fa-comments' : 'fas fa-comment-dots'"></i>
+                <i [ngClass]="isChannelRetracted ? 'fas fa-comments' : 'fas fa-comment-dots'" (click)="toggleChannel()"></i>
             </span>
         </div>
         <button class="close-button" (click)="closeChat(); $event.stopPropagation()">×</button>
     </div>
-    @if (!isChatRetracted) {
+    @if (!isChannelRetracted) {
     <div class="channel-controls">
         <button class="channel-button" (click)="toggleAvailableChannels()">
             Salons disponibles
@@ -30,17 +38,14 @@
     <div class="channel-panel">
         <div class="create-channel">
             <input
-                [(ngModel)]="newChannelName"
-                placeholder="Nom du nouveau salon"
+                [(ngModel)]="channelSearchText"
                 maxlength="20"
-                pattern="[a-zA-Z0-9_-]+"
-                title="Seules les lettres, chiffres, tirets et underscores sont autorisés"
+                placeholder="Rechercher un salon..."
+                maxlength="20"
+                class="search-input"
                 (keydown.enter)="createChannel()"
             />
-            <button class="create-btn" (click)="createChannel()">Créer</button>
-        </div>
-        <div class="search-channel">
-            <input [(ngModel)]="channelSearchText" placeholder="Rechercher un salon..." maxlength="50" class="search-input" />
+            <button class="create-btn" (click)="createChannel()">+</button>
         </div>
         <div class="channel-list">
             @for (channel of getFilteredAvailableChannels(); track channel.name) {
@@ -89,13 +94,13 @@
                                     <img [src]="getMessageAuthorAvatarUrl(message)" [alt]="message.author + ' avatar'" class="avatar-image" />
                                     } @else {
                                     <i class="fas fa-user"></i>
-                                    } @if (isAuthorFriend(message.author) && message.authorStatus) {
+                                    } @if ((isAuthorFriend(message.author) || message.author === playerName) && message.authorStatus) {
                                     <div class="status-indicator" [class]="'status-' + message.authorStatus"></div>
                                     }
                                 </div>
                                 <div class="author-details">
                                     <span class="author">{{ message.author }}</span>
-                                    @if (isAuthorFriend(message.author) && message.authorStatus) {
+                                    @if ((isAuthorFriend(message.author) || message.author === playerName) && message.authorStatus) {
                                     <span class="author-status" [class]="'status-text-' + message.authorStatus">{{
                                         getStatusText(message.authorStatus)
                                     }}</span>
@@ -114,6 +119,7 @@
 
         <div class="input-container">
             <input
+                #messageInput
                 id="messageInput"
                 placeholder="Votre message"
                 [(ngModel)]="messageText"
@@ -121,7 +127,9 @@
                 maxlength="200"
                 type="text"
             />
-            <div class="send-message-button" (click)="sendMessage()"><img src="assets/icons/arrow.png" alt="Trophée" class="icon" /></div>
+            <div class="send-message-button" (click)="sendMessage(); messageInput.focus()">
+                <img src="assets/icons/arrow.png" alt="Trophée" class="icon" />
+            </div>
         </div>
     </section>
 </div>

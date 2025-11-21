@@ -81,7 +81,8 @@ export class ChatroomService {
                 authorStatus: (doc as any).authorStatus,
             }));
         } else {
-            return this.roomMessages[roomId] || [];
+            const messages = this.roomMessages[roomId] || [];
+            return messages;
         }
     }
 

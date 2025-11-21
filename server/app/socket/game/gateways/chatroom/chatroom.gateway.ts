@@ -13,11 +13,26 @@ export class ChatRoomGateway {
     @Inject(ChatroomService) private readonly chatroomService: ChatroomService;
     @Inject(ChannelService) private readonly channelService: ChannelService;
 
+    // Track recent message emissions to prevent duplicates
+    private recentMessageEmissions = new Map<string, number>();
+
     @SubscribeMessage(ChatEvents.JoinChatRoom)
     async handleJoinRoom(client: Socket, roomId: string) {
+        const clientRoomKey = `${client.id}-${roomId}`;
+        const now = Date.now();
+
+        // Prevent duplicate message emission within 500ms
+        const lastEmission = this.recentMessageEmissions.get(clientRoomKey);
+        if (lastEmission && now - lastEmission < 500) {
+            return;
+        }
+
         client.join(roomId);
         const existingMessages = await this.chatroomService.getMessages(roomId);
         client.emit(ChatEvents.PreviousMessages, existingMessages);
+
+        this.recentMessageEmissions.set(clientRoomKey, now);
+        setTimeout(() => this.recentMessageEmissions.delete(clientRoomKey), 1000);
     }
 
     @SubscribeMessage(ChatEvents.Message)
@@ -84,10 +99,21 @@ export class ChatRoomGateway {
     async handleJoinChannel(client: Socket, data: { channelName: string }) {
         const { channelName } = data;
 
+        const clientRoomKey = `${client.id}-${channelName}`;
+        const now = Date.now();
+
+        const lastEmission = this.recentMessageEmissions.get(clientRoomKey);
+        if (lastEmission && now - lastEmission < 500) {
+            return;
+        }
+
         client.join(channelName);
 
         const existingMessages = await this.chatroomService.getMessages(channelName);
         client.emit(ChatEvents.PreviousMessages, existingMessages);
+
+        this.recentMessageEmissions.set(clientRoomKey, now);
+        setTimeout(() => this.recentMessageEmissions.delete(clientRoomKey), 1000);
     }
 
     @SubscribeMessage(ChatEvents.LeaveChannel)
