@@ -14,8 +14,8 @@
 }
 <div class="game-page-container">
     <div class="game-info-panel">
-        <app-player-infos 
-            [player]="player" 
+        <app-player-infos
+            [player]="player"
             [currentPlayerTurn]="currentPlayerTurn"
             (showExitModalChange)="onShowExitModalChange($event)"
         ></app-player-infos>
@@ -59,11 +59,10 @@
 <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
     <i class="fas fa-comments" aria-hidden="true"></i>
 </button>
-@if (isChatVisible) {
-<div class="global-chat-wrapper">
+<div class="global-chat-wrapper" [hidden]="!isChatVisible">
     <app-chatroom [gameId]="this.game.id" [isInGame]="true" (closed)="isChatVisible = false"></app-chatroom>
 </div>
-} @if(showExitModal) {
+@if(showExitModal) {
 <div class="open-exit-confirmation-modal">
     <div class="popup-overlay">
         <div class="modal">

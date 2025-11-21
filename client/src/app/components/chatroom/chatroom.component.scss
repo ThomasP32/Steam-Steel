@@ -38,6 +38,65 @@
     }
 }
 
+.delete-confirmation-toast {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #34495e;
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    z-index: 1600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    animation: slideInDown 0.3s ease-out;
+    max-width: 80%;
+    text-align: center;
+    border: 2px solid #e74c3c;
+}
+
+.confirmation-message {
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.confirmation-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.confirm-btn {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.2s;
+
+    &:hover {
+        background-color: #c0392b;
+    }
+}
+
+.cancel-btn {
+    background-color: #7f8c8d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.2s;
+
+    &:hover {
+        background-color: #6c7b7d;
+    }
+}
+
 .chat-header {
     font-size: 1.2em;
     font-weight: bold;
@@ -407,6 +466,7 @@
     color: #888;
     font-style: italic;
     white-space: nowrap;
+    margin-right: 10px;
 }
 
 .input-container {

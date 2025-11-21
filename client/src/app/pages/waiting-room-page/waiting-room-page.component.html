@@ -8,13 +8,12 @@
                 <h1>{{ playerName }}</h1>
             </div>
             <div class="virtual-money-display">
-                <p>Mon argent: </p>
-                 <app-virtual-money [compact]="true"></app-virtual-money>
+                <p>Mon argent:</p>
+                <app-virtual-money [compact]="true"></app-virtual-money>
             </div>
             <div class="player-challenge">
                 <app-challenge></app-challenge>
             </div>
-    
         </div>
 
         <div class="exit-button">
@@ -109,11 +108,10 @@
         <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
             <i class="fas fa-comments" aria-hidden="true"></i>
         </button>
-        @if (isChatVisible) {
-        <div class="global-chat-wrapper">
+        <div class="global-chat-wrapper" [hidden]="!isChatVisible">
             <app-chatroom [gameId]="waitingRoomCode" [isInGame]="true" (closed)="isChatVisible = false"></app-chatroom>
         </div>
-        } @if(showExitModal) {
+        @if(showExitModal) {
         <div class="exit-modal">
             <div class="modal">
                 <h2>{{ dialogBoxMessage }}</h2>

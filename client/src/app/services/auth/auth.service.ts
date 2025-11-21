@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ChallengeService } from '@app/services/challenge/challenge.service';
+import { ChannelService } from '@app/services/channel/channel.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { Avatar } from '@common/game';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
@@ -14,10 +15,12 @@ export class AuthService {
         private readonly communicationService: CommunicationMapService,
         private readonly socketService: SocketService,
         private readonly challengeService: ChallengeService,
+        private readonly channelService: ChannelService,
     ) {
         this.communicationService = communicationService;
         this.socketService = socketService;
         this.challengeService = challengeService;
+        this.channelService = channelService;
         this.setupAutoLogout();
     }
 
@@ -78,15 +81,18 @@ export class AuthService {
         }
 
         localStorage.setItem('authToken', body.token);
+
+        this.channelService.resetChannelState();
+
         this.authStateSubject.next(true);
         this.socketService.disconnect();
         this.socketService.connect();
-        
+
         // Reinitialize challenge listeners for the new socket connection
         setTimeout(() => {
             this.challengeService.reinitializeListeners();
         }, 100);
-        
+
         return response;
     }
 
@@ -138,6 +144,8 @@ export class AuthService {
         localStorage.removeItem('authToken');
         this.socketService.disconnect();
 
+        this.channelService.resetChannelState();
+
         this.authStateSubject.next(false);
     }
 
@@ -145,6 +153,8 @@ export class AuthService {
         const token = localStorage.getItem('authToken');
 
         this.socketService.disconnect();
+
+        this.channelService.resetChannelState();
 
         if (token) {
             try {
