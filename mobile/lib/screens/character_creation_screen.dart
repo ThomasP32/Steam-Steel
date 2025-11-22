@@ -814,7 +814,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black87;
-    final pct = (value / 10).clamp(0.0, 1.0);
+    final pct = (value / 6).clamp(0.0, 1.0);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),

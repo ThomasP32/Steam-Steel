@@ -21,7 +21,7 @@
                     <div class="stat">
                         <label class="stat-label" data-title="Le nombre de points de vie du personnage."> Vie : {{ life }} PV </label>
                         <div class="stat-bar">
-                            <div class="stat-bar-fill" [style.width.%]="(life / 10) * 100"></div>
+                            <div class="stat-bar-fill" [style.width.%]="(life / 6) * 100"></div>
                         </div>
                     </div>
                     <div class="stat">
@@ -29,7 +29,7 @@
                             >Rapidité : {{ speed }} PTS</label
                         >
                         <div class="stat-bar">
-                            <div class="stat-bar-fill" [style.width.%]="(speed / 10) * 100"></div>
+                            <div class="stat-bar-fill" [style.width.%]="(speed / 6) * 100"></div>
                         </div>
                     </div>
                     <div class="stat">
@@ -37,7 +37,7 @@
                             >Attaque : {{ attack }} PTS</label
                         >
                         <div class="stat-bar">
-                            <div class="stat-bar-fill" [style.width.%]="(attack / 10) * 100"></div>
+                            <div class="stat-bar-fill" [style.width.%]="(attack / 6) * 100"></div>
                         </div>
                     </div>
                     <div class="stat"></div>
@@ -45,7 +45,7 @@
                         >Défense : {{ defense }} PTS</label
                     >
                     <div class="stat-bar">
-                        <div class="stat-bar-fill" [style.width.%]="(defense / 10) * 100"></div>
+                        <div class="stat-bar-fill" [style.width.%]="(defense / 6) * 100"></div>
                     </div>
                 </div>
                 <div class="bonus-text">
