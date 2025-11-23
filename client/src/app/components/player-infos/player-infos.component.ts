@@ -32,4 +32,20 @@ export class PlayerInfosComponent implements OnInit {
     onShowExitModalChange(value: boolean): void {
         this.showExitModalChange.emit(value);
     }
+
+    getMaxLife(): number {
+        return this.player.specs.life;
+    }
+
+    getMaxSpeed(): number {
+        return this.player.specs.speed;
+    }
+
+    getMaxAttack(): number {
+        return this.player.specs.attack;
+    }
+
+    getMaxDefense(): number {
+        return this.player.specs.defense;
+    }
 }
