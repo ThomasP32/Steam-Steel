@@ -237,6 +237,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       children: [
                         TextField(
                           controller: usernameEditCtrl,
+                          maxLength: 10,
                           decoration: const InputDecoration(
                             labelText: 'Pseudonyme',
                             border: OutlineInputBorder(),
@@ -905,6 +906,7 @@ class _AuthScreenState extends State<AuthScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _usernameCtrl,
+              maxLength: 10,
               decoration: InputDecoration(
                 labelText: 'Pseudonyme',
                 labelStyle: TextStyle(color: labelColor),

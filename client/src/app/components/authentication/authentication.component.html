@@ -23,10 +23,11 @@
             name="registerUsername"
             [(ngModel)]="registerUsername"
             placeholder="Pseudonyme"
-            maxlength="20"
+            maxlength="10"
             (keydown.enter)="register()"
             (input)="onInput($event, 'registerUsername')"
         />
+        <span class="char-counter">{{ registerUsername.length }}/10</span>
         <div class="avatar-selection">
             <label>Choisissez un avatar :</label>
             <app-profile-picture

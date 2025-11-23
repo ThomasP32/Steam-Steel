@@ -73,7 +73,7 @@ export class UserService {
         if (isWin) {
             user.stats[mode].gamesWon += 1;
             const totalGamesWon = user.stats.classique.gamesWon + user.stats.ctf.gamesWon;
-           if (totalGamesWon % N_WINS_PER_LEVEL === 0) {
+            if (totalGamesWon % N_WINS_PER_LEVEL === 0) {
                 if (!user.stats.level) {
                     user.stats.level = 1;
                 }
@@ -218,8 +218,8 @@ export class UserService {
         if (password.length > 30) {
             return 'Le mot de passe ne peut pas dépasser 30 caractères';
         }
-        if (username.length > 20) {
-            return 'Le pseudonyme ne peut pas dépasser 20 caractères';
+        if (username.length > 10) {
+            return 'Le pseudonyme ne peut pas dépasser 10 caractères';
         }
 
         if (password.length < 6) {
@@ -256,8 +256,8 @@ export class UserService {
         if (email.length > 50) {
             return "L'email ne peut pas dépasser 50 caractères";
         }
-        if (username.length > 20) {
-            return 'Le pseudonyme ne peut pas dépasser 20 caractères';
+        if (username.length > 10) {
+            return 'Le pseudonyme ne peut pas dépasser 10 caractères';
         }
 
         if (username.length < 3) {
@@ -311,7 +311,7 @@ export class UserService {
         return this.userModel.find({ friends: friendUser._id.toString() }).exec();
     }
 
-    async searchUsersByUsername(query: string): Promise<{ username: string, level: number }[]> {
+    async searchUsersByUsername(query: string): Promise<{ username: string; level: number }[]> {
         let searchQuery: any = {};
 
         if (query && query.length > 0) {
@@ -327,7 +327,7 @@ export class UserService {
 
         return users.map((user) => ({
             username: user.username,
-            level: user.stats.level ?? 1 ,
+            level: user.stats.level ?? 1,
         }));
     }
 

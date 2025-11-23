@@ -1,9 +1,9 @@
 <div *ngIf="userInfo" class="account-card">
     <div class="title-section">
         <h2 class="account-title">Mon Compte</h2>
-        <img class="user-level" [src]="'assets/level-badges/level-' + (userInfo.user.stats.level ?? 1) + '.png'" alt="Niveau"/>
+        <img class="user-level" [src]="'assets/level-badges/level-' + (userInfo.user.stats.level ?? 1) + '.png'" alt="Niveau" />
     </div>
-    
+
     <ng-container *ngIf="!editMode; else editForm">
         <div class="account-main-row">
             <div class="avatar-square">
@@ -28,13 +28,13 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="button-row">
             <button class="button modify-button" (click)="enableEdit()">Modifier</button>
             <button class="button delete-button" (click)="deleteAccount()">Supprimer le compte</button>
         </div>
     </ng-container>
-    
+
     <ng-template #editForm>
         <div class="edit-form">
             <div class="form-field">
@@ -43,7 +43,8 @@
             </div>
             <div class="form-field">
                 <label class="form-label">Pseudonyme:</label>
-                <input class="form-input" type="text" [(ngModel)]="editUsername" />
+                <input class="form-input" type="text" [(ngModel)]="editUsername" maxlength="10" />
+                <span class="char-counter">{{ editUsername.length }}/10</span>
             </div>
             <div class="avatar-selection">
                 <label class="form-label">Choisissez un avatar:</label>
@@ -61,7 +62,7 @@
             </div>
         </div>
     </ng-template>
-    
+
     <div *ngIf="userInfo?.user?.stats && !editMode" class="stats-section">
         <div class="status-block">
             <span class="status-label">Statut:</span>
@@ -71,11 +72,15 @@
         <div class="stats-grid">
             <div class="stat-item">
                 <span class="stat-label">Classique:</span>
-                <span class="stat-value">{{ userInfo.user.stats.classique.gamesPlayed }} parties jouées, {{ userInfo.user.stats.classique.gamesWon }} gagnées</span>
+                <span class="stat-value"
+                    >{{ userInfo.user.stats.classique.gamesPlayed }} parties jouées, {{ userInfo.user.stats.classique.gamesWon }} gagnées</span
+                >
             </div>
             <div class="stat-item">
                 <span class="stat-label">CTF:</span>
-                <span class="stat-value">{{ userInfo.user.stats.ctf.gamesPlayed }} parties jouées, {{ userInfo.user.stats.ctf.gamesWon }} gagnées</span>
+                <span class="stat-value"
+                    >{{ userInfo.user.stats.ctf.gamesPlayed }} parties jouées, {{ userInfo.user.stats.ctf.gamesWon }} gagnées</span
+                >
             </div>
             <div class="stat-item">
                 <span class="stat-label">Temps moyen:</span>
