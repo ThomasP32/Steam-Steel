@@ -221,6 +221,8 @@ class _ChatWidgetState extends State<ChatWidget>
         final u = AuthService().notifier.value;
         if (!mounted) return;
         setState(() => _userName = u?.username ?? 'Guest');
+
+        _overlayEntry?.markNeedsBuild();
       };
       AuthService().notifier.addListener(_authListener!);
     } on Object catch (_) {}
@@ -228,19 +230,12 @@ class _ChatWidgetState extends State<ChatWidget>
     _loadFriends();
     _statusUpdateListener = (username, status) {
       if (!mounted) return;
-      setState(() {
-        final friendIndex = _friends.indexWhere((f) => f.username == username);
-        if (friendIndex != -1) {
-          _friends[friendIndex] = _friends[friendIndex].copyWith(
-            status: status,
-          );
-        }
+
+      _loadFriends().then((_) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _overlayEntry?.markNeedsBuild();
+        });
       });
-      _overlayEntry?.markNeedsBuild();
-      DebugLogger.log(
-        'Status updated for $username to $status, overlay refreshed',
-        tag: 'ChatWidget',
-      );
     };
     _friendService.addOnFriendStatusUpdateListener(_statusUpdateListener!);
 

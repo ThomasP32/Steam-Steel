@@ -47,8 +47,6 @@ class _EndgameScreenState extends State<EndgameScreen> {
   void initState() {
     super.initState();
 
-    FriendService().updateUserStatus(UserStatus.online);
-
     _endgameService.initialize();
 
     final socketService = SocketService();
@@ -400,7 +398,7 @@ class _EndgameScreenState extends State<EndgameScreen> {
     );
   }
 
-   Widget _buildPlayerRow(Player player) {
+  Widget _buildPlayerRow(Player player) {
     final totalTiles = widget.game.mapSize.x * widget.game.mapSize.y;
     final tilePercentage =
         totalTiles > 0
@@ -411,7 +409,7 @@ class _EndgameScreenState extends State<EndgameScreen> {
     final bannerPath = _playerBanners[player.name];
     final isVirtual = player.socketId.startsWith('virtualPlayer');
 
-   return Container(
+    return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         border: const Border(top: BorderSide(color: Color(0xFF34495E))),
@@ -462,8 +460,9 @@ class _EndgameScreenState extends State<EndgameScreen> {
                           'lib/assets/level-badges/level-${player.level}.png',
                           width: 26,
                           height: 26,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const SizedBox.shrink(),
+                          errorBuilder:
+                              (context, error, stackTrace) =>
+                                  const SizedBox.shrink(),
                         ),
                       ],
                       if (isVirtual) ...[

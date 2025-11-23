@@ -49,6 +49,8 @@ class AuthService {
           await SocketService().connect();
           // join global chat room by default
           SocketService().send('joinChatRoom', 'global');
+
+          FriendService().updateUserStatus(UserStatus.online);
         } on Object catch (e) {
           DebugLogger.log(
             'SocketService.connect after login failed: $e',

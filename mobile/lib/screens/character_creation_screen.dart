@@ -61,8 +61,6 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   void initState() {
     super.initState();
 
-    FriendService().updateUserStatus(UserStatus.inGame);
-
     _loadUserName();
     _listenToGameLocked();
     _listenToYouJoined();
@@ -385,8 +383,6 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
 
   @override
   void dispose() {
-    FriendService().updateUserStatus(UserStatus.online);
-
     _gameLockedSub?.cancel();
     _youJoinedSub?.cancel();
     _currentGameSub?.cancel();
@@ -438,6 +434,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
                 ),
                 child: TextButton(
                   onPressed: () {
+                    FriendService().updateUserStatus(UserStatus.online);
                     if (mounted) context.go('/');
                   },
                   child: const Text('Retour'),

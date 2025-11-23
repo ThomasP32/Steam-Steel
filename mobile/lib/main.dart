@@ -4,9 +4,11 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/assets/theme/app_theme.dart';
+import 'package:mobile/models/user_models.dart' show UserStatus;
 import 'package:mobile/router/app_router.dart';
 import 'package:mobile/services/api_client.dart';
 import 'package:mobile/services/auth_service.dart';
+import 'package:mobile/services/friend_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/services/theme_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
@@ -50,6 +52,8 @@ Future<void> main() async {
       DebugLogger.log('SocketService connected', tag: 'main');
       try {
         SocketService().send('joinChatRoom', 'global');
+
+        FriendService().updateUserStatus(UserStatus.online);
       } on Object catch (e) {
         DebugLogger.log(
           'Failed to send joinChatRoom after connect: $e',
