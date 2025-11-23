@@ -183,20 +183,6 @@ class GameInvitationModalWidget extends StatelessWidget {
                   ],
                 ),
               ),
-              Positioned(
-                top: 10,
-                right: 15,
-                child: IconButton(
-                  icon: Icon(
-                    Icons.close,
-                    color: isDark ? const Color(0xFFecf0f1) : Colors.black,
-                    size: 24,
-                  ),
-                  onPressed: onClose,
-                  splashColor: const Color(0xFFe74c3c).withOpacity(0.3),
-                  highlightColor: const Color(0xFFe74c3c).withOpacity(0.1),
-                ),
-              ),
             ],
           ),
         ),
