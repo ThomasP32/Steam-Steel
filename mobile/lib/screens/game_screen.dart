@@ -691,8 +691,6 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
-    FriendService().updateUserStatus(UserStatus.online);
-
     _combatNotificationOverlay?.remove();
     _combatNotificationOverlay = null;
     _deleteSubs();
@@ -1964,19 +1962,19 @@ class _GameScreenState extends State<GameScreen> {
                           ),
                           const SizedBox(width: 6),
                           if (!isVirtualPlayer) ...[
-                          Opacity(
-                            opacity: isNotInGame ? 0.4 : 1.0,
-                            child: Image.asset(
-                              'lib/assets/level-badges/level-${player.level}.png',
-                              width: 28,
-                              height: 28,
-                              errorBuilder:
-                                  (context, error, stackTrace) =>
-                                      const SizedBox.shrink(),
+                            Opacity(
+                              opacity: isNotInGame ? 0.4 : 1.0,
+                              child: Image.asset(
+                                'lib/assets/level-badges/level-${player.level}.png',
+                                width: 28,
+                                height: 28,
+                                errorBuilder:
+                                    (context, error, stackTrace) =>
+                                        const SizedBox.shrink(),
+                              ),
                             ),
-                          ),
-                        ],
-                        if (isVirtualPlayer) ...[
+                          ],
+                          if (isVirtualPlayer) ...[
                             Image.asset(
                               'lib/assets/icons/robot.png',
                               width: 24,

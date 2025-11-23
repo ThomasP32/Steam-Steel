@@ -3,8 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:mobile/common/user.dart';
 import 'package:mobile/assets/theme/color_palette.dart';
+import 'package:mobile/common/user.dart';
 import 'package:mobile/models/user_models.dart' hide User;
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/friend_service.dart';
@@ -450,11 +450,30 @@ class _FriendListModalState extends State<FriendListModal>
   void _handleFriendStatusUpdate(String username, UserStatus status) {
     if (!mounted) return;
 
+    var needsUpdate = false;
+
     final friendIndex = _friends.indexWhere((f) => f.username == username);
     if (friendIndex != -1) {
-      setState(() {
-        _friends[friendIndex] = _friends[friendIndex].copyWith(status: status);
-      });
+      final updatedFriends = List<Friend>.from(_friends);
+      updatedFriends[friendIndex] = updatedFriends[friendIndex].copyWith(
+        status: status,
+      );
+      _friends = updatedFriends;
+      needsUpdate = true;
+    }
+
+    final userIndex = _allUsers.indexWhere((u) => u.username == username);
+    if (userIndex != -1) {
+      final updatedUsers = List<User>.from(_allUsers);
+      updatedUsers[userIndex] = updatedUsers[userIndex].copyWith(
+        status: status.toString().split('.').last,
+      );
+      _allUsers = updatedUsers;
+      needsUpdate = true;
+    }
+
+    if (needsUpdate) {
+      setState(() {});
     }
   }
 
@@ -904,10 +923,7 @@ class _FriendListModalState extends State<FriendListModal>
         ),
         subtitle: Text(
           _getStatusText(friend.status),
-          style: TextStyle(
-            color: _getStatusColor(friend.status),
-            fontSize: 10,
-          ),
+          style: TextStyle(color: _getStatusColor(friend.status), fontSize: 10),
         ),
         trailing: IconButton(
           icon: const Icon(Icons.person_remove, color: Colors.red),
