@@ -1,12 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/common/user.dart';
 import 'package:mobile/assets/theme/color_palette.dart';
-import 'package:mobile/models/user_models.dart' hide User hide User;
+import 'package:mobile/models/user_models.dart' hide User;
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/friend_service.dart';
+import 'package:mobile/services/shop_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/profile_picture_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
@@ -25,6 +27,7 @@ class _FriendListModalState extends State<FriendListModal>
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final FriendService _friendService = FriendService();
+  final ShopService _shopService = ShopService();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   String _searchQuery = '';
@@ -34,6 +37,7 @@ class _FriendListModalState extends State<FriendListModal>
   bool _isOtherUsersSectionExpanded = true;
   Set<String> _sentRequests = {};
   Map<String, DateTime> _recentlySentRequests = {};
+  Map<String, String> _friendBanners = {};
 
   List<Friend> _friends = [];
   List<FriendRequest> _friendRequests = [];
@@ -53,6 +57,7 @@ class _FriendListModalState extends State<FriendListModal>
     await _loadAllUsers();
     await _loadFriends();
     await _loadFriendRequests();
+    await _loadFriendsBanners();
   }
 
   Future<void> _cleanupOldTimestamps() async {
@@ -247,6 +252,7 @@ class _FriendListModalState extends State<FriendListModal>
       final friends = await _friendService.getFriends();
       if (mounted) {
         setState(() => _friends = friends);
+        await _loadFriendsBanners();
       }
     } catch (e) {
       if (mounted) {
@@ -260,6 +266,40 @@ class _FriendListModalState extends State<FriendListModal>
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _loadFriendsBanners() async {
+    if (_friends.isEmpty) return;
+
+    for (final friend in _friends) {
+      try {
+        final userItems = await _shopService.getUserItemsByUsername(
+          friend.username,
+        );
+        final equippedBanner = userItems.firstWhere(
+          (item) =>
+              item['equipped'] == true &&
+              (item['itemId'] as String).startsWith('banner_'),
+          orElse: () => {},
+        );
+
+        if (equippedBanner.isNotEmpty) {
+          final bannerId = equippedBanner['itemId'] as String;
+          final bannerNumber = bannerId.replaceAll('banner_', '');
+          final bannerPath = 'lib/assets/banner/$bannerNumber.png';
+          if (mounted) {
+            setState(() {
+              _friendBanners[friend.username] = bannerPath;
+            });
+          }
+        }
+      } catch (e) {
+        DebugLogger.log(
+          'Error loading banner for ${friend.username}: $e',
+          tag: 'FriendList',
+        );
       }
     }
   }
@@ -422,6 +462,7 @@ class _FriendListModalState extends State<FriendListModal>
     if (!mounted) return;
     if (!_friends.any((f) => f.username == friend.username)) {
       setState(() => _friends = [..._friends, friend]);
+      _loadFriendsBanners();
     }
   }
 
@@ -468,6 +509,7 @@ class _FriendListModalState extends State<FriendListModal>
     final removedFriends = oldFriendUsernames.difference(friendUsernames);
     for (final username in removedFriends) {
       _sentRequests.remove(username);
+      _friendBanners.remove(username);
     }
 
     setState(() {
@@ -475,6 +517,7 @@ class _FriendListModalState extends State<FriendListModal>
     });
 
     _saveSentRequests();
+    _loadFriendsBanners();
   }
 
   void _handleFriendRequestsListUpdated(List<FriendRequest> requests) {
@@ -805,49 +848,71 @@ class _FriendListModalState extends State<FriendListModal>
       orElse: () => User(id: '', username: friend.username, email: ''),
     );
 
-    return ListTile(
-      leading: ProfilePictureWidget(
-        size: 40,
-        avatar: friend.avatar,
-        avatarCustom: friend.avatarCustom,
-        status: friend.status,
-        showStatusIndicator: true,
-        username: friend.username,
+    final bannerPath = _friendBanners[friend.username];
+
+    return Container(
+      decoration: BoxDecoration(
+        image:
+            bannerPath != null
+                ? DecorationImage(
+                  image: AssetImage(bannerPath),
+                  fit: BoxFit.cover,
+                )
+                : null,
       ),
-      title: Row(
-        children: [
-          Flexible(
-            child: Text(
-              friend.username,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? Colors.white : Colors.black,
+      child: ListTile(
+        leading: Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF2E3136) : Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: ProfilePictureWidget(
+            size: 40,
+            avatar: friend.avatar,
+            avatarCustom: friend.avatarCustom,
+            status: friend.status,
+            showStatusIndicator: true,
+            username: friend.username,
+          ),
+        ),
+        title: Row(
+          children: [
+            Flexible(
+              child: Text(
+                friend.username,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
-              overflow: TextOverflow.ellipsis,
             ),
+            const SizedBox(width: 8),
+            Image.asset(
+              'lib/assets/level-badges/level-${user.stats.level}.png',
+              width: 25,
+              height: 25,
+              errorBuilder: (context, error, stackTrace) {
+                DebugLogger.log(
+                  'Failed to load badge level-${user.stats.level}.png: $error',
+                  tag: 'FriendList',
+                );
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
+        ),
+        subtitle: Text(
+          _getStatusText(friend.status),
+          style: TextStyle(
+            color: _getStatusColor(friend.status),
+            fontSize: 10,
           ),
-          const SizedBox(width: 8),
-          Image.asset(
-            'lib/assets/level-badges/level-${user.stats.level}.png',
-            width: 25,
-            height: 25,
-            errorBuilder: (context, error, stackTrace) {
-              DebugLogger.log(
-                'Failed to load badge level-${user.stats.level}.png: $error',
-                tag: 'FriendList',
-              );
-              return const SizedBox.shrink();
-            },
-          ),
-        ],
-      ),
-      subtitle: Text(
-        _getStatusText(friend.status),
-        style: TextStyle(color: _getStatusColor(friend.status), fontSize: 10),
-      ),
-      trailing: IconButton(
-        icon: const Icon(Icons.person_remove, color: Colors.red),
-        onPressed: () => _removeFriend(friend),
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.person_remove, color: Colors.red),
+          onPressed: () => _removeFriend(friend),
+        ),
       ),
     );
   }
