@@ -1436,21 +1436,7 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
 
-            if (player != null)
-              Center(
-                child: CircleAvatar(
-                  radius: tileSize,
-                  backgroundColor: Colors.transparent,
-                  child: Image.asset(
-                    'lib/assets/pixelcharacters/${player.avatar.value}_pixelated.png',
-                    width: tileSize,
-                    height: tileSize,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-
-            if (isPossibleMove && !isInPreviewPath)
+            if (isPossibleMove && !isInPreviewPath && player == null)
               CustomPaint(
                 size: Size(tileSize, tileSize),
                 painter: DiagonalStripePainter(
@@ -1463,6 +1449,20 @@ class _GameScreenState extends State<GameScreen> {
                 size: Size(tileSize, tileSize),
                 painter: PathPreviewPainter(
                   color: AppColors.accentHighlight(context),
+                ),
+              ),
+
+            if (player != null)
+              Center(
+                child: CircleAvatar(
+                  radius: tileSize,
+                  backgroundColor: Colors.transparent,
+                  child: Image.asset(
+                    'lib/assets/pixelcharacters/${player.avatar.value}_pixelated.png',
+                    width: tileSize,
+                    height: tileSize,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
           ],

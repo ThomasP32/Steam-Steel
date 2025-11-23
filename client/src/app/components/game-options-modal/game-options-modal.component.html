@@ -3,48 +3,72 @@
     <p class="modal-title">Options de jeu</p>
     <p class="map-name">Carte: {{ selectedMapName }}</p>
 
-    <div class="options-section">
-        <div class="option-item" (click)="toggleFastElimination()">
+    <div class="options-grid">
+        <div class="option-card" (click)="toggleFastElimination()">
             <div class="checkbox-container">
                 <input type="checkbox" id="fastElimination" [(ngModel)]="isFastElimination" class="custom-checkbox" />
-                <label for="fastElimination" class="checkbox-label"> Mode d'élimination rapide </label>
+                <label for="fastElimination" class="checkbox-label"> Elimination rapide </label>
             </div>
             <p class="option-description">Les joueurs éliminés en combat passent en mode observation.</p>
         </div>
-        <div class="option-item" (click)="toggleDropInOut()">
-            <div class="checkbox-container">
-                <input type="checkbox" [(ngModel)]="isDropInOut" class="custom-checkbox" />
-                <label for="dropInOut" class="checkbox-label"> Mode "Drop In/Drop Out" </label>
-            </div>
-            <p class="option-description">Les joueurs qui quittent une partie en mode classique libèrent leur place pour de nouveaux participants.</p>
-        </div>
-        <div class="option-item" (click)="toggleFriendsOnly()">
-            <div class="checkbox-container">
-                <input type="checkbox" id="friendsOnly" [(ngModel)]="isFriendsOnly" class="custom-checkbox" />
-                <label for="friendsOnly" class="checkbox-label"> Partie amis seulement </label>
-            </div>
-            <p class="option-description">Seuls vos amis peuvent rejoindre cette partie.</p>
-        </div>
 
-        <div class="option-item entry-fee-section">
+        <div class="option-card entry-fee-card">
             <div class="entry-fee-container">
                 <label for="entryFee" class="fee-label">
                     <img src="assets/icons/money.png" alt="Monnaie" class="money-icon" />
                     Frais d'entrée
                 </label>
                 <div class="fee-input-container">
-                    <input type="number" id="entryFee" [(ngModel)]="entryFee" min="0" max="1000" (keydown.enter)="onNext()" class="fee-input" />
+                    <input 
+                        type="number" 
+                        id="entryFee" 
+                        [(ngModel)]="entryFee" 
+                        min="0" 
+                        max="500" 
+                        step="1"
+                        (focus)="onFocus()"
+                        (blur)="onBlur()"
+                        (input)="validateEntryFee()"
+                        (keydown)="onKeyDown($event)"
+                        (keydown.enter)="onNext()" 
+                        [class.invalid]="hasEntryFeeError"
+                        [class.valid]="isEntryFeeValid()"
+                        class="fee-input" 
+                    />
                     <span class="fee-unit">pièces</span>
                 </div>
+                <p class="error-text" *ngIf="hasEntryFeeError">Maximum 500 pièces</p>
             </div>
-            <p class="option-description">
-                Montant que chaque joueur doit payer pour rejoindre la partie. Les gains seront redistribués aux gagnants.
-            </p>
+            <p class="option-description">Montant que chaque joueur doit payer pour rejoindre.</p>
+        </div>
+
+        <div class="option-card" (click)="toggleDropInOut()">
+            <div class="checkbox-container">
+                <input type="checkbox" id="dropInOut" [(ngModel)]="isDropInOut" class="custom-checkbox" />
+                <label for="dropInOut" class="checkbox-label"> Drop In/Drop Out </label>
+            </div>
+            <p class="option-description">Les joueurs peuvent rejoindre ou quitter la partie à tout moment.</p>
+        </div>
+
+        <div class="option-card" (click)="toggleFriendsOnly()">
+            <div class="checkbox-container">
+                <input type="checkbox" id="friendsOnly" [(ngModel)]="isFriendsOnly" class="custom-checkbox" />
+                <label for="friendsOnly" class="checkbox-label"> Amis seulement </label>
+            </div>
+            <p class="option-description">Seuls vos amis peuvent rejoindre cette partie.</p>
         </div>
     </div>
 
     <div class="button-group">
         <button class="action-button back-button" (click)="onClose()">Retour</button>
         <button class="action-button next-button" (click)="onNext()">Suivant</button>
+    </div>
+</div>
+
+<div class="custom-alert-overlay" *ngIf="showAlert" (click)="closeAlert()">
+    <div class="custom-alert" (click)="$event.stopPropagation()">
+        <p class="alert-title">Frais d'entrée invalide</p>
+        <p class="alert-message">Le montant des frais d'entrée doit être inférieur ou égal à 500 pièces.</p>
+        <button class="alert-button" (click)="closeAlert()">OK</button>
     </div>
 </div>
