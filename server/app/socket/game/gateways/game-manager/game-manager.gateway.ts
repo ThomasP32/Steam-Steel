@@ -63,6 +63,7 @@ export class GameManagerGateway implements OnGatewayInit {
         this.journalService.initializeServer(server);
         this.challengeService.setServer(this.server);
         this.userService.setServer(this.server);
+        this.itemsManagerService.setServer(this.server);
     }
 
     @SubscribeMessage('getMovements')
@@ -193,6 +194,7 @@ export class GameManagerGateway implements OnGatewayInit {
             const host = game.players.find((p) => p.socketId === game.hostSocketId);
             if (host) game.participants.push(host);
         }
+
         this.gameCountdownService.initCountdown(gameId, TURN_DURATION);
         this.startTurn(gameId);
     }
@@ -261,7 +263,7 @@ export class GameManagerGateway implements OnGatewayInit {
             this.combatCountdownService.deleteCountdown(gameId); // Clean up combat timer if exists
             return;
         }
-        
+
         if (iterationCount >= game.players.length) {
             this.gameCreationService.deleteRoom(gameId);
             this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
@@ -271,7 +273,7 @@ export class GameManagerGateway implements OnGatewayInit {
             this.server.to(gameId).emit(GameCreationEvents.GameEndedNoActivePlayers);
             return;
         }
-        
+
         const activePlayer = game.players.find((player) => player.turn === game.currentTurn);
         const involvedPlayers = game.players.map((player) => player.name);
         if (!activePlayer?.isActive || activePlayer?.isObservationMode === true || activePlayer.name === game.lastTurnPlayer) {

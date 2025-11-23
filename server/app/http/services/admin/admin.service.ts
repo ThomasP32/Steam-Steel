@@ -49,7 +49,7 @@ export class AdminService {
             );
         } else if (!this.areItemsPlaced(mapDto.items, mapDto.mapSize)) {
             throw new ForbiddenException(
-                'Des items sont manquants (au moins 2 pour une petite carte, 4 pour une moyenne carte et 6 pour une grande carte',
+                'Des items sont manquants (au moins 2 pour une petite carte, 4 pour une moyenne carte et 6 pour une grande carte). Pour les cartes CTF, le drapeau ne compte pas dans ce nombre.',
             );
         } else if (!this.isFlagPlaced(mapDto.items, mapDto.mode)) {
             throw new ForbiddenException('Le drapeau doit être placé pour un jeu en mode CTF.');
@@ -200,7 +200,7 @@ export class AdminService {
             );
         } else if (!this.areItemsPlaced(mapDto.items, mapDto.mapSize)) {
             throw new ForbiddenException(
-                'Des items sont manquants (au moins 2 pour une petite carte, 4 pour une moyenne carte et 6 pour une grande carte)',
+                'Des items sont manquants (au moins 2 pour une petite carte, 4 pour une moyenne carte et 6 pour une grande carte). Pour les cartes CTF, le drapeau ne compte pas dans ce nombre.',
             );
         } else if (!this.isFlagPlaced(mapDto.items, mapDto.mode)) {
             throw new ForbiddenException('Le drapeau doit être placé pour un jeu en mode CTF.');
@@ -338,9 +338,12 @@ export class AdminService {
     }
 
     private areItemsPlaced(items: ItemDto[], mapSize: CoordinateDto): boolean {
-        const isSmallMapTilesPlaced = mapSize.x === MapConfig[MapSize.SMALL].size && items.length >= MapConfig[MapSize.SMALL].nbItems;
-        const isMediumMapTilesPlaced = mapSize.x === MapConfig[MapSize.MEDIUM].size && items.length >= MapConfig[MapSize.MEDIUM].nbItems;
-        const isLargeMapTilesPlaced = mapSize.x === MapConfig[MapSize.LARGE].size && items.length >= MapConfig[MapSize.LARGE].nbItems;
+        // Count only non-flag items for the minimum requirement
+        const nonFlagItems = items.filter((item) => item.category !== ItemCategory.Flag);
+
+        const isSmallMapTilesPlaced = mapSize.x === MapConfig[MapSize.SMALL].size && nonFlagItems.length >= MapConfig[MapSize.SMALL].nbItems;
+        const isMediumMapTilesPlaced = mapSize.x === MapConfig[MapSize.MEDIUM].size && nonFlagItems.length >= MapConfig[MapSize.MEDIUM].nbItems;
+        const isLargeMapTilesPlaced = mapSize.x === MapConfig[MapSize.LARGE].size && nonFlagItems.length >= MapConfig[MapSize.LARGE].nbItems;
         return isSmallMapTilesPlaced || isMediumMapTilesPlaced || isLargeMapTilesPlaced;
     }
 

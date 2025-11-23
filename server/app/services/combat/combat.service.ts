@@ -17,6 +17,7 @@ import { JournalService } from '../journal/journal.service';
 @Injectable()
 export class CombatService {
     @Inject(ChallengeService) private readonly challengeService: ChallengeService;
+    @Inject(GameManagerService) private readonly gameManagerService: GameManagerService;
 
     private combatRooms: Record<string, Combat> = {};
     server: Server;
@@ -212,6 +213,8 @@ export class CombatService {
                 combat.challenger.specs.nCombats++;
                 combat.challenger.isObservationMode = player.isObservationMode;
                 game.players[index] = combat.challenger;
+
+                this.gameManagerService.resetIceAttributes(combat.challenger, game.id);
             } else if (player.socketId === combat.opponent.socketId) {
                 combat.opponent.specs.life = combat.opponentLife;
                 combat.opponent.specs.attack = combat.opponentAttack;
@@ -219,6 +222,8 @@ export class CombatService {
                 combat.opponent.specs.nCombats++;
                 combat.opponent.isObservationMode = player.isObservationMode;
                 game.players[index] = combat.opponent;
+
+                this.gameManagerService.resetIceAttributes(combat.opponent, game.id);
             }
         });
     }

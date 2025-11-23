@@ -5,6 +5,7 @@
             *ngFor="let cell of row; let colIndex = index; trackBy: cellByIndex"
             [class.highlight]="isMove(rowIndex, colIndex)"
             [class.preview-highlight]="isPreview(rowIndex, colIndex)"
+            [class.player-start-tile]="isPlayerStartTile(rowIndex, colIndex)"
             (mouseover)="onTileHover({ x: rowIndex, y: colIndex })"
             (mouseleave)="clearPreview()"
             (click)="onTileClick({ x: rowIndex, y: colIndex })"

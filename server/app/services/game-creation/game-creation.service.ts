@@ -94,11 +94,10 @@ export class GameCreationService {
         }
 
         const existingPlayer = game.players.find((plyr) => plyr.name === player.name);
-        if(existingPlayer){
-            if(game.settings.isFastElimination && existingPlayer.specs.nDefeats === 1){
+        if (existingPlayer) {
+            if (game.settings.isFastElimination && existingPlayer.specs.nDefeats === 1) {
                 existingPlayer.isActive = false;
                 existingPlayer.isObservationMode = true;
-
             } else {
                 existingPlayer.isActive = true;
                 existingPlayer.isObservationMode = false;
@@ -277,17 +276,34 @@ export class GameCreationService {
             game.startTiles.splice(randomIndex, 1);
         }
         let startTilesLeft = [...game.startTiles];
+
+        if (game.mode === Mode.Ctf) {
+            const ctfGame = game as GameCtf;
+            ctfGame.playerStartTiles = [];
+        }
+
         game.players.forEach((player) => {
             const randomIndex = Math.floor(Math.random() * startTilesLeft.length);
-            player.position.x = startTilesLeft[randomIndex].coordinate.x;
-            player.position.y = startTilesLeft[randomIndex].coordinate.y;
-            player.initialPosition.x = startTilesLeft[randomIndex].coordinate.x;
-            player.initialPosition.y = startTilesLeft[randomIndex].coordinate.y;
+            const assignedTile = startTilesLeft[randomIndex];
+
+            player.position.x = assignedTile.coordinate.x;
+            player.position.y = assignedTile.coordinate.y;
+            player.initialPosition.x = assignedTile.coordinate.x;
+            player.initialPosition.y = assignedTile.coordinate.y;
+
+            if (game.mode === Mode.Ctf) {
+                const ctfGame = game as GameCtf;
+                ctfGame.playerStartTiles.push({
+                    socketId: player.socketId,
+                    coordinate: { x: assignedTile.coordinate.x, y: assignedTile.coordinate.y },
+                });
+            }
+
             if (
                 game.tiles.some(
                     (tile) =>
-                        tile.coordinate.x === startTilesLeft[randomIndex].coordinate.x &&
-                        tile.coordinate.y === startTilesLeft[randomIndex].coordinate.y &&
+                        tile.coordinate.x === assignedTile.coordinate.x &&
+                        tile.coordinate.y === assignedTile.coordinate.y &&
                         tile.category === TileCategory.Ice,
                 )
             ) {
@@ -332,7 +348,7 @@ export class GameCreationService {
         console.log(`[endGameAndDistributeRewards] Game ${gameId} ending. Winners: ${winners.length}, Active players: ${activePlayers.length}`);
 
         let rewardsMap = new Map<string, number>();
-        
+
         if (winners.length > 0 || activePlayers.length > 0) {
             rewardsMap = await this.distributeGameRewards(gameId, winners, activePlayers);
         }
@@ -343,7 +359,7 @@ export class GameCreationService {
             rewardsMap.set(winnerId, currentReward + 50);
         }
 
-        const otherActivePlayers = activePlayers.filter(playerId => !winners.includes(playerId));
+        const otherActivePlayers = activePlayers.filter((playerId) => !winners.includes(playerId));
         for (const playerId of otherActivePlayers) {
             await this.shopService.addMoney(playerId, 30);
             const currentReward = rewardsMap.get(playerId) || 0;
@@ -475,13 +491,13 @@ export class GameCreationService {
         });
 
         const orderedPlayers = [...orderedActivePlayers, ...inactivePlayers];
-    
+
         orderedPlayers.forEach((player, index) => {
             player.turn = index;
         });
-    
+
         game.players = orderedPlayers;
-    
+
         if (currentPlayer) {
             const newIndex = game.players.findIndex((p) => p.socketId === currentPlayer.socketId);
             if (newIndex !== -1) {
@@ -493,5 +509,4 @@ export class GameCreationService {
             game.currentTurn = 0;
         }
     }
-    
 }

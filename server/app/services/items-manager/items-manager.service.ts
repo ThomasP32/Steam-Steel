@@ -6,9 +6,11 @@ import {
     SWORD_ATTACK_BONUS,
     SWORD_SPEED_BONUS,
 } from '@common/constants';
+import { GameManagerEvents } from '@common/events/game-manager.events';
 import { GameCtf, Player } from '@common/game';
 import { Coordinate, ItemCategory, Mode } from '@common/map.types';
 import { Inject, Injectable } from '@nestjs/common';
+import { Server } from 'socket.io';
 import { ChallengeService } from '../challenge/challenge.service';
 import { GameCreationService } from '../game-creation/game-creation.service';
 import { GameManagerService } from '../game-manager/game-manager.service';
@@ -20,6 +22,11 @@ export class ItemsManagerService {
     @Inject(GameManagerService) private readonly gameManagerService: GameManagerService;
     @Inject(JournalService) private readonly journalService: JournalService;
     @Inject(ChallengeService) private readonly challengeService: ChallengeService;
+    private server: Server;
+
+    setServer(server: Server): void {
+        this.server = server;
+    }
 
     dropInventory(player: Player, gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
@@ -62,6 +69,10 @@ export class ItemsManagerService {
             }
             game.items.splice(itemIndex, 1);
 
+            if (item === ItemCategory.Flag && game.mode === Mode.Ctf && this.server) {
+                this.handleCtfPlayerStartTile(game, player.socketId, true);
+            }
+
             // Track challenge progress
             this.challengeService.onItemCollected(game, player);
 
@@ -84,6 +95,11 @@ export class ItemsManagerService {
             const item = player.inventory[itemIndex];
             player.inventory.splice(itemIndex, 1);
             game.items.push({ coordinate: coordinates, category: item });
+
+            if (item === ItemCategory.Flag && game.mode === Mode.Ctf && this.server) {
+                this.handleCtfPlayerStartTile(game, player.socketId, false);
+            }
+
             if (item === ItemCategory.Sword || item === ItemCategory.Armor) this.desactivateItem(item, player);
         }
     }
@@ -139,6 +155,22 @@ export class ItemsManagerService {
         }
         if (opponent.inventory.includes(ItemCategory.Amulet) && challenger.specs.life > opponent.specs.life) {
             this.activateItem(ItemCategory.Amulet, opponent);
+        }
+    }
+
+    private handleCtfPlayerStartTile(game: any, playerSocketId: string, hasFlag: boolean): void {
+        if (game.mode === Mode.Ctf) {
+            const ctfGame = game as GameCtf;
+            if (ctfGame.playerStartTiles) {
+                const playerStartTile = ctfGame.playerStartTiles.find((entry) => entry.socketId === playerSocketId);
+                if (playerStartTile) {
+                    if (hasFlag) {
+                        this.server.to(playerSocketId).emit(GameManagerEvents.PlayerStartTile, playerStartTile.coordinate);
+                    } else {
+                        this.server.to(playerSocketId).emit(GameManagerEvents.PlayerStartTile, null);
+                    }
+                }
+            }
         }
     }
 }

@@ -101,6 +101,7 @@ interface GameSettings {
 export interface GameCtf extends GameClassic {
     mode: Mode.Ctf;
     nPlayersCtf: Player[];
+    playerStartTiles?: { socketId: string; coordinate: Coordinate }[];
 }
 
 export type Game = GameClassic | GameCtf;
