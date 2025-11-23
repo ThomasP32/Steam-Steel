@@ -14,4 +14,5 @@ export enum GameManagerEvents {
     GetMovements = 'getMovements',
     MoveToPosition = 'moveToPosition',
     PlayerLeveledUp = 'playerLeveledUp',
+    PlayerStartTile = 'playerStartTile',
 }

@@ -1,13 +1,16 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, HostListener, Input, OnChanges, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnChanges, OnDestroy, OnInit, Output } from '@angular/core';
+import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { GameDataService } from '@app/services/game-data/game-data.service';
 import { GameInfosService } from '@app/services/game-infos/game-infos.service';
 import { ImageService } from '@app/services/image/image.service';
 import { ALTERNATIVE_COORDINATES, RIGHT_CLICK, TOOLTIP_DIRECTION_CHANGE } from '@common/constants';
 import { MovesMap } from '@common/directions';
+import { GameManagerEvents } from '@common/events/game-manager.events';
 import { Avatar, Game, Player } from '@common/game';
 import { Cell } from '@common/map-cell';
-import { Coordinate, ItemCategory, TileCategory } from '@common/map.types';
+import { Coordinate, ItemCategory, Mode, TileCategory } from '@common/map.types';
+import { Subscription } from 'rxjs';
 
 @Component({
     selector: 'app-game-map',
@@ -16,7 +19,7 @@ import { Coordinate, ItemCategory, TileCategory } from '@common/map.types';
     templateUrl: './game-map.component.html',
     styleUrl: './game-map.component.scss',
 })
-export class GameMapComponent implements OnInit, OnChanges {
+export class GameMapComponent implements OnInit, OnChanges, OnDestroy {
     @Input() loadedMap: Game;
     @Input() player: Player;
     @Input() moves: MovesMap;
@@ -28,15 +31,19 @@ export class GameMapComponent implements OnInit, OnChanges {
     explanationIsVisible: boolean = false;
     tooltipX: number = 0;
     tooltipY: number = 0;
+    playerStartTile: Coordinate | null = null;
+    private playerStartTileSubscription: Subscription;
 
     constructor(
         private readonly imageService: ImageService,
         private readonly gameInfosService: GameInfosService,
         private readonly gameDataService: GameDataService,
+        private readonly socketService: SocketService,
     ) {
         this.gameInfosService = gameInfosService;
         this.gameDataService = gameDataService;
         this.imageService = imageService;
+        this.socketService = socketService;
     }
 
     onTileClick(position: Coordinate) {
@@ -48,12 +55,17 @@ export class GameMapComponent implements OnInit, OnChanges {
 
     ngOnInit() {
         this.loadMap(this.loadedMap);
+        this.setupPlayerStartTileListener();
     }
 
     ngOnChanges() {
         this.clearPreview();
         this.loadMap(this.loadedMap);
         this.updateSurroundingMap(this.player);
+
+        if (this.loadedMap?.mode === Mode.Ctf && !this.playerStartTileSubscription) {
+            this.setupPlayerStartTileListener();
+        }
     }
 
     onTileHover(position: Coordinate) {
@@ -210,6 +222,27 @@ export class GameMapComponent implements OnInit, OnChanges {
 
         return surroundingCells;
     }
+    ngOnDestroy() {
+        if (this.playerStartTileSubscription) {
+            this.playerStartTileSubscription.unsubscribe();
+        }
+    }
+
+    private setupPlayerStartTileListener() {
+        this.playerStartTileSubscription = this.socketService
+            .listen<Coordinate | null>(GameManagerEvents.PlayerStartTile)
+            .subscribe((coordinate: Coordinate | null) => {
+                if (this.loadedMap?.mode === Mode.Ctf) {
+                    this.playerStartTile = coordinate;
+                }
+            });
+    }
+
+    isPlayerStartTile(rowIndex: number, colIndex: number): boolean {
+        const isStartTile = this.playerStartTile !== null && this.playerStartTile.x === rowIndex && this.playerStartTile.y === colIndex;
+        return isStartTile;
+    }
+
     updateSurroundingMap(player: Player) {
         const surroundingMap = this.getSurroundingMap(player);
         this.gameDataService.setSurroundingMap(surroundingMap);

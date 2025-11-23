@@ -8,14 +8,13 @@ import { ChallengeEvent } from '@common/events/challenge.events';
 import { CountdownEvents } from '@common/events/countdown.events';
 import { GameCreationEvents, JoinGameData, KickPlayerData, ToggleGameLockStateData } from '@common/events/game-creation.events';
 import { GameTurnEvents } from '@common/events/game-turn.events';
-import { Game, GameEndReason } from '@common/game';
+import { Game, GameCtf, GameEndReason } from '@common/game';
 import { Mode } from '@common/map.types';
 import { Inject } from '@nestjs/common';
 import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { FriendsService } from '../../../../http/services/friends/friends.service';
 import { UserService } from '../../../../http/services/user/user.service';
-import { GameManagerService } from '../../../../services/game-manager/game-manager.service';
 import { UserSocketService } from '../../../../services/user-socket/user-socket.service';
 import { ShopGateway } from '../shop/shop.gateway';
 
@@ -25,7 +24,6 @@ export class GameGateway {
     server: Server;
 
     @Inject(GameCreationService) private readonly gameCreationService: GameCreationService;
-    @Inject(GameManagerService) private readonly gameManagerService: GameManagerService;
     @Inject(GameCountdownService) private readonly gameCountdownService: GameCountdownService;
     @Inject(CombatCountdownService) private readonly combatCountdownService: CombatCountdownService;
     @Inject(CombatService) private readonly combatService: CombatService;
@@ -121,6 +119,7 @@ export class GameGateway {
                         newPlayer.initialPosition = tile.coordinate;
                         newPlayer.position = tile.coordinate;
                         positionInitialized = true;
+                        this.handleCtfPlayerStartTile(game, client, tile.coordinate);
                         break;
                     }
                 }
@@ -128,15 +127,18 @@ export class GameGateway {
                     for (const player of activePlayers) {
                         const closestInitialPosition = this.combatService.findClosestAvailablePosition(player.initialPosition, game);
                         if (closestInitialPosition) {
-                            newPlayer.initialPosition = closestInitialPosition;
+                            newPlayer.initialPosition = player.initialPosition;
                             newPlayer.position = closestInitialPosition;
                             positionInitialized = true;
+                            this.handleCtfPlayerStartTile(game, client, player.initialPosition);
                             break;
                         }
                     }
                 }
             }
-            if(game.hasStarted) {this.gameCreationService.recalculateTurnOrder(game);}
+            if (game.hasStarted) {
+                this.gameCreationService.recalculateTurnOrder(game);
+            }
             client.emit(GameCreationEvents.YouJoined, { updatedPlayer: newPlayer, updatedGame: game });
             this.server.to(data.gameId).emit(GameCreationEvents.PlayerJoined, game.players);
             this.server.to(data.gameId).emit(GameCreationEvents.CurrentPlayers, game.players);
@@ -281,15 +283,17 @@ export class GameGateway {
             const game = this.gameCreationService.getGameById(roomId);
             if (game && client.id === game.hostSocketId) {
                 this.gameCreationService.initializeGame(roomId);
-                
+
                 const invalidPlayers = game.players.filter((player) => player.turn === undefined || player.turn === null);
                 if (invalidPlayers.length > 0) {
-                    console.error(`[GameCreationGateway] Game ${roomId} has ${invalidPlayers.length} players with invalid turns:`, 
-                        invalidPlayers.map(p => ({ name: p.name, turn: p.turn, socketId: p.socketId })));
-                    client.emit(GameCreationEvents.GameCreationError, 'Erreur lors de l\'initialisation du jeu. Veuillez réessayer.');
+                    console.error(
+                        `[GameCreationGateway] Game ${roomId} has ${invalidPlayers.length} players with invalid turns:`,
+                        invalidPlayers.map((p) => ({ name: p.name, turn: p.turn, socketId: p.socketId })),
+                    );
+                    client.emit(GameCreationEvents.GameCreationError, "Erreur lors de l'initialisation du jeu. Veuillez réessayer.");
                     return;
                 }
-                                
+
                 const sockets = await this.server.in(roomId).fetchSockets();
                 sockets.forEach((socket) => {
                     if (game.players.every((player) => player.socketId !== socket.id)) {
@@ -437,12 +441,12 @@ export class GameGateway {
                 existingPlayer.isActive = true;
                 client.join(data.gameId);
                 client.emit(GameCreationEvents.GameResumed, game);
-                
+
                 client.emit(GameCreationEvents.YouJoined, { updatedPlayer: existingPlayer, updatedGame: game });
                 this.server.to(data.gameId).emit(GameCreationEvents.PlayerJoined, game.players);
                 this.server.to(data.gameId).emit(GameCreationEvents.CurrentPlayers, game.players);
                 this.syncTimerState(client, data.gameId);
-                
+
                 const existingChallenge = this.challengeService.getPlayerChallenge(game.id, existingPlayer.name);
                 if (existingChallenge) {
                     client.emit(ChallengeEvent.Updated, existingChallenge);
@@ -534,6 +538,21 @@ export class GameGateway {
             const currentCombatCountdown = this.combatCountdownService.getCurrentCountdown(gameId);
             if (currentCombatCountdown !== undefined) {
                 client.emit(CountdownEvents.CombatSecondPassed, currentCombatCountdown);
+            }
+        }
+    }
+
+    private handleCtfPlayerStartTile(game: Game, player: Socket, coordinate: { x: number; y: number }): void {
+        if (game.mode === Mode.Ctf) {
+            const ctfGame = game as GameCtf;
+            if (ctfGame.playerStartTiles) {
+                const existingEntry = ctfGame.playerStartTiles.find((entry) => entry.socketId === player.id);
+                if (!existingEntry) {
+                    ctfGame.playerStartTiles.push({
+                        socketId: player.id,
+                        coordinate: coordinate,
+                    });
+                }
             }
         }
     }

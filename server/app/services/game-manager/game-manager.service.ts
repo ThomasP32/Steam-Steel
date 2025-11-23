@@ -271,6 +271,28 @@ export class GameManagerService {
             );
     }
 
+    shouldHaveIcePenalties(player: Player, gameId: string): boolean {
+        const isOnIce = this.onIceTile(player, gameId);
+        const hasSkates = player.inventory.includes(ItemCategory.IceSkates);
+        return isOnIce && !hasSkates;
+    }
+
+    resetIceAttributes(player: Player, gameId: string): void {
+        const shouldHavePenalties = this.shouldHaveIcePenalties(player, gameId);
+
+        if (shouldHavePenalties) {
+            if (player.specs.attack > 4 - ICE_ATTACK_PENALTY || player.specs.defense > 4 - ICE_DEFENSE_PENALTY) {
+                player.specs.attack -= ICE_ATTACK_PENALTY;
+                player.specs.defense -= ICE_DEFENSE_PENALTY;
+            }
+        } else {
+            if (player.specs.attack < 4 && player.specs.defense < 4) {
+                player.specs.attack += ICE_ATTACK_PENALTY;
+                player.specs.defense += ICE_DEFENSE_PENALTY;
+            }
+        }
+    }
+
     hasPickedUpFlag(oldInventory: ItemCategory[], newInventory: ItemCategory[]): boolean {
         return !oldInventory.some((item) => item === ItemCategory.Flag) && newInventory.some((item) => item === ItemCategory.Flag);
     }
@@ -363,18 +385,32 @@ export class GameManagerService {
 
         return adjacentWalls;
     }
-    adaptSpecsForIceTileMove(player: Player, gameId: string, wasOnIceTile: boolean) {
+    adaptSpecsForIceTileMove(player: Player, gameId: string, wasOnIceTile: boolean): boolean {
         const isOnIceTile = this.onIceTile(player, gameId);
         const hasSkates = player.inventory.includes(ItemCategory.IceSkates);
-        if (isOnIceTile && !wasOnIceTile && !hasSkates) {
-            player.specs.attack -= ICE_ATTACK_PENALTY;
-            player.specs.defense -= ICE_DEFENSE_PENALTY;
-            wasOnIceTile = true;
-        } else if (!isOnIceTile && wasOnIceTile && !hasSkates) {
-            player.specs.attack += ICE_ATTACK_PENALTY;
-            player.specs.defense += ICE_DEFENSE_PENALTY;
-            wasOnIceTile = false;
+
+        if (!hasSkates) {
+            if (isOnIceTile && !wasOnIceTile) {
+                if (player.specs.attack >= 4 && player.specs.defense >= 4) {
+                    player.specs.attack -= ICE_ATTACK_PENALTY;
+                    player.specs.defense -= ICE_DEFENSE_PENALTY;
+                }
+                wasOnIceTile = true;
+            } else if (!isOnIceTile && wasOnIceTile) {
+                if (player.specs.attack < 4 && player.specs.defense < 4) {
+                    player.specs.attack += ICE_ATTACK_PENALTY;
+                    player.specs.defense += ICE_DEFENSE_PENALTY;
+                }
+                wasOnIceTile = false;
+            }
+        } else {
+            if (player.specs.attack < 4 && player.specs.defense < 4) {
+                player.specs.attack += ICE_ATTACK_PENALTY;
+                player.specs.defense += ICE_DEFENSE_PENALTY;
+            }
+            wasOnIceTile = isOnIceTile;
         }
+
         return wasOnIceTile;
     }
 
