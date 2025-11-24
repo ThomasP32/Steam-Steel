@@ -327,19 +327,19 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
           children: [
             Text(p.name.isNotEmpty ? p.name : 'Joueur'),
             if (!isAI) ...[
-            const SizedBox(width: 8),
-            Image.asset(
-              'lib/assets/level-badges/level-${p.level}.png',
-              width: 30,
-              height: 30,
-              errorBuilder:
-                  (context, error, stackTrace) => const SizedBox.shrink(),
-            ),
-          ],
-          if (isAI) ...[
               const SizedBox(width: 8),
-             Image.asset('lib/assets/icons/robot.png', width: 30, height: 30),
-           ],
+              Image.asset(
+                'lib/assets/level-badges/level-${p.level}.png',
+                width: 30,
+                height: 30,
+                errorBuilder:
+                    (context, error, stackTrace) => const SizedBox.shrink(),
+              ),
+            ],
+            if (isAI) ...[
+              const SizedBox(width: 8),
+              Image.asset('lib/assets/icons/robot.png', width: 30, height: 30),
+            ],
           ],
         ),
         trailing:
@@ -361,123 +361,137 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: ThemeBackground(pageId: 'waitingroom')),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  _buildHeader(),
-                  const SizedBox(height: 12),
-                  _buildPlayersList(),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color:
-                              isDark
-                                  ? Colors.black.withValues(alpha: 0.6)
-                                  : Colors.white.withValues(alpha: 0.75),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          children: [
-                            Text(
-                              'Mon argent: ',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+    return WillPopScope(
+      onWillPop: () async {
+        FriendService().updateUserStatus(UserStatus.online);
+        final gameId = widget.gameId ?? _service.gameId.value;
+        if (gameId.isNotEmpty) {
+          await ChannelService().removeGameChannel(gameId);
+        }
+        _service.leaveGame();
+        GoRouter.of(context).go('/');
+        return false;
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        body: Stack(
+          children: [
+            const Positioned.fill(
+              child: ThemeBackground(pageId: 'waitingroom'),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 12),
+                    _buildPlayersList(),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                isDark
+                                    ? Colors.black.withValues(alpha: 0.6)
+                                    : Colors.white.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            children: [
+                              Text(
+                                'Mon argent: ',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 4),
-                            MoneyWidget(),
-                          ],
+                              SizedBox(width: 4),
+                              MoneyWidget(),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      const ChallengesWidget(),
-                      const Spacer(),
-                      ValueListenableBuilder(
-                        valueListenable: _service.entryFee,
-                        builder: (context, entryFee, _) {
-                          if (entryFee <= 0) {
-                            return const SizedBox.shrink();
-                          }
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 12,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.accentHighlight(context),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
+                        const SizedBox(width: 12),
+                        const ChallengesWidget(),
+                        const Spacer(),
+                        ValueListenableBuilder(
+                          valueListenable: _service.entryFee,
+                          builder: (context, entryFee, _) {
+                            if (entryFee <= 0) {
+                              return const SizedBox.shrink();
+                            }
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
                                 color: AppColors.accentHighlight(context),
-                                width: 2,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppColors.accentHighlight(context),
+                                  width: 2,
+                                ),
                               ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Text(
-                                  "Frais d'entrée: ",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF7D4F00),
+                              child: Row(
+                                children: [
+                                  const Text(
+                                    "Frais d'entrée: ",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF7D4F00),
+                                    ),
                                   ),
-                                ),
-                                Image.asset(
-                                  'lib/assets/icons/money.png',
-                                  width: 20,
-                                  height: 20,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const Icon(
-                                      Icons.monetization_on,
-                                      size: 16,
-                                      color: Colors.white,
-                                    );
-                                  },
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '$entryFee',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF7D4F00),
+                                  Image.asset(
+                                    'lib/assets/icons/money.png',
+                                    width: 20,
+                                    height: 20,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(
+                                        Icons.monetization_on,
+                                        size: 16,
+                                        color: Colors.white,
+                                      );
+                                    },
                                   ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildFooter(),
-                ],
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$entryFee',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF7D4F00),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFooter(),
+                  ],
+                ),
               ),
             ),
-          ),
-          const Positioned(
-            top: 28,
-            right: 12,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [FriendButton(), ChatWidget()],
+            const Positioned(
+              top: 28,
+              right: 12,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [FriendButton(), ChatWidget()],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

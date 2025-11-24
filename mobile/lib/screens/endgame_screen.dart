@@ -113,7 +113,7 @@ class _EndgameScreenState extends State<EndgameScreen> {
             });
           }
         }
-      } catch (e) {
+      } on Exception catch (e) {
         DebugLogger.log(
           'Error loading banner for ${player.name}: $e',
           tag: 'EndgameScreen',
@@ -128,67 +128,78 @@ class _EndgameScreenState extends State<EndgameScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? AppColors.textDark : AppColors.textLight;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          const Positioned.fill(child: ThemeBackground(pageId: 'endgame')),
-          SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'FIN DE PARTIE',
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [FriendButton(), ChatWidget()],
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
+    return WillPopScope(
+      onWillPop: () async {
+        _navigateToMainMenu();
+        return false;
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            const Positioned.fill(child: ThemeBackground(pageId: 'endgame')),
+            SafeArea(
+              child: Column(
+                children: [
+                  Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Column(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildStatsTable(sortedPlayers),
-                        const SizedBox(height: 12),
-                        _buildGlobalStats(),
-                        const SizedBox(height: 12),
-                        _buildMoneyReward(),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accentHighlight(context),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 12,
-                            ),
+                        Text(
+                          'FIN DE PARTIE',
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
                           ),
-                          onPressed: _navigateToMainMenu,
-                          child: const Text(
-                            'Menu principal',
-                            style: TextStyle(fontSize: 16, color: Colors.white),
-                          ),
+                        ),
+                        const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [FriendButton(), ChatWidget()],
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          _buildStatsTable(sortedPlayers),
+                          const SizedBox(height: 12),
+                          _buildGlobalStats(),
+                          const SizedBox(height: 12),
+                          _buildMoneyReward(),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.accentHighlight(
+                                context,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 12,
+                              ),
+                            ),
+                            onPressed: _navigateToMainMenu,
+                            child: const Text(
+                              'Menu principal',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          if (_showLevelModal) _buildLevelUpModal(),
-        ],
+            if (_showLevelModal) _buildLevelUpModal(),
+          ],
+        ),
       ),
     );
   }
@@ -199,7 +210,7 @@ class _EndgameScreenState extends State<EndgameScreen> {
     final textColor = isDark ? AppColors.textDark : AppColors.textLight;
     final accentColor = AppColors.accentHighlight(context);
 
-    return Container(
+    return ColoredBox(
       color: Colors.black.withValues(alpha: 0.7),
       child: Center(
         child: Container(
@@ -546,9 +557,9 @@ class _EndgameScreenState extends State<EndgameScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Récompenses',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF7D4F00),

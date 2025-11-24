@@ -231,497 +231,531 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : Colors.black87;
 
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: ThemeBackground(pageId: 'gamecreation')),
-          Stack(
-            children: [
-              Column(
-                children: [
-                  SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 8,
-                      ),
-                      child: SizedBox(
-                        height: kToolbarHeight,
-                        child: Stack(
-                          children: [
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: TextButton(
-                                onPressed: () => context.go('/'),
-                                child: const Text('Retour'),
-                              ),
-                            ),
-                            Center(
-                              child: Text(
-                                'CHOISIS TON JEU',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: titleColor,
+    return WillPopScope(
+      onWillPop: () async {
+        if (mounted) {
+          context.go('/');
+        }
+        return false;
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        body: Stack(
+          children: [
+            const Positioned.fill(
+              child: ThemeBackground(pageId: 'gamecreation'),
+            ),
+            Stack(
+              children: [
+                Column(
+                  children: [
+                    SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        child: SizedBox(
+                          height: kToolbarHeight,
+                          child: Stack(
+                            children: [
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: TextButton(
+                                  onPressed: () => context.go('/'),
+                                  child: const Text('Retour'),
                                 ),
                               ),
-                            ),
-                          ],
+                              Center(
+                                child: Text(
+                                  'CHOISIS TON JEU',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: titleColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    child:
-                        loading
-                            ? const Center(child: CircularProgressIndicator())
-                            : RefreshIndicator(
-                              onRefresh: _loadMaps,
-                              child: SingleChildScrollView(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    // Section Filtrer par
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 10,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.3,
+                    Expanded(
+                      child:
+                          loading
+                              ? const Center(child: CircularProgressIndicator())
+                              : RefreshIndicator(
+                                onRefresh: _loadMaps,
+                                child: SingleChildScrollView(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      // Section Filtrer par
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 10,
                                         ),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            'Filtrer par :',
-                                            style: TextStyle(
-                                              color:
-                                                  isDark
-                                                      ? Colors.white
-                                                      : Colors.black87,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.3,
                                           ),
-                                          const SizedBox(width: 12),
-                                          _buildFilterButton('Nom', 'name'),
-                                          const SizedBox(width: 8),
-                                          _buildFilterButton(
-                                            'Nombre de joueurs',
-                                            'players',
+                                          borderRadius: BorderRadius.circular(
+                                            8,
                                           ),
-                                          const SizedBox(width: 8),
-                                          _buildFilterButton('Mode', 'mode'),
-                                          const SizedBox(width: 8),
-                                          DecoratedBox(
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  sortBy != null
-                                                      ? AppColors.accentHighlight(
-                                                        context,
-                                                      ).withValues(alpha: 0.8)
-                                                      : Colors.grey.withValues(
-                                                        alpha: 0.3,
-                                                      ),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              'Filtrer par :',
+                                              style: TextStyle(
+                                                color:
+                                                    isDark
+                                                        ? Colors.white
+                                                        : Colors.black87,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
-                                            child: IconButton(
-                                              onPressed:
-                                                  sortBy != null
-                                                      ? toggleOrder
-                                                      : null,
-                                              icon: Image.asset(
-                                                sortOrder == 'asc'
-                                                    ? 'lib/assets/icons/sort-asc.png'
-                                                    : 'lib/assets/icons/sort-desc.png',
-                                                width: 18,
-                                                height: 18,
+                                            const SizedBox(width: 12),
+                                            _buildFilterButton('Nom', 'name'),
+                                            const SizedBox(width: 8),
+                                            _buildFilterButton(
+                                              'Nombre de joueurs',
+                                              'players',
+                                            ),
+                                            const SizedBox(width: 8),
+                                            _buildFilterButton('Mode', 'mode'),
+                                            const SizedBox(width: 8),
+                                            DecoratedBox(
+                                              decoration: BoxDecoration(
                                                 color:
                                                     sortBy != null
-                                                        ? Colors.white
-                                                        : (isDark
-                                                            ? Colors.white
-                                                                .withValues(
-                                                                  alpha: 0.3,
-                                                                )
-                                                            : Colors.black
-                                                                .withValues(
-                                                                  alpha: 0.3,
-                                                                )),
+                                                        ? AppColors.accentHighlight(
+                                                          context,
+                                                        ).withValues(alpha: 0.8)
+                                                        : Colors.grey
+                                                            .withValues(
+                                                              alpha: 0.3,
+                                                            ),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                               ),
-                                              padding: const EdgeInsets.all(8),
-                                              constraints: const BoxConstraints(
-                                                minWidth: 36,
-                                                minHeight: 36,
+                                              child: IconButton(
+                                                onPressed:
+                                                    sortBy != null
+                                                        ? toggleOrder
+                                                        : null,
+                                                icon: Image.asset(
+                                                  sortOrder == 'asc'
+                                                      ? 'lib/assets/icons/sort-asc.png'
+                                                      : 'lib/assets/icons/sort-desc.png',
+                                                  width: 18,
+                                                  height: 18,
+                                                  color:
+                                                      sortBy != null
+                                                          ? Colors.white
+                                                          : (isDark
+                                                              ? Colors.white
+                                                                  .withValues(
+                                                                    alpha: 0.3,
+                                                                  )
+                                                              : Colors.black
+                                                                  .withValues(
+                                                                    alpha: 0.3,
+                                                                  )),
+                                                ),
+                                                padding: const EdgeInsets.all(
+                                                  8,
+                                                ),
+                                                constraints:
+                                                    const BoxConstraints(
+                                                      minWidth: 36,
+                                                      minHeight: 36,
+                                                    ),
                                               ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    // Liste des cartes
-                                    Wrap(
-                                      spacing: 12,
-                                      runSpacing: 12,
-                                      children:
-                                          sortedMaps.map<Widget>((map) {
-                                            final name =
-                                                map['name'] as String? ??
-                                                'Unknown';
-                                            final desc =
-                                                map['description'] as String? ??
-                                                '';
-                                            final image =
-                                                map['imagePreview'] as String?;
-                                            final size =
-                                                (map['mapSize'] ?? 0)
-                                                    as Map<String, dynamic>?;
-                                            final width =
-                                                (size != null &&
-                                                        size['x'] != null)
-                                                    ? (size['x'] as int)
-                                                    : 0;
-                                            final players = getMapPlayers(
-                                              width,
-                                            );
-                                            final isSelected =
-                                                selectedMap == name;
+                                      const SizedBox(height: 12),
+                                      // Liste des cartes
+                                      Wrap(
+                                        spacing: 12,
+                                        runSpacing: 12,
+                                        children:
+                                            sortedMaps.map<Widget>((map) {
+                                              final name =
+                                                  map['name'] as String? ??
+                                                  'Unknown';
+                                              final desc =
+                                                  map['description']
+                                                      as String? ??
+                                                  '';
+                                              final image =
+                                                  map['imagePreview']
+                                                      as String?;
+                                              final size =
+                                                  (map['mapSize'] ?? 0)
+                                                      as Map<String, dynamic>?;
+                                              final width =
+                                                  (size != null &&
+                                                          size['x'] != null)
+                                                      ? (size['x'] as int)
+                                                      : 0;
+                                              final players = getMapPlayers(
+                                                width,
+                                              );
+                                              final isSelected =
+                                                  selectedMap == name;
 
-                                            final cardTextColor =
-                                                isDark
-                                                    ? AppColors.textDark
-                                                    : AppColors.textLight;
-                                            final cardTextSecondary =
-                                                isDark
-                                                    ? AppColors.textDark
-                                                        .withValues(alpha: 0.7)
-                                                    : AppColors.textLight
-                                                        .withValues(
-                                                          alpha: 0.54,
-                                                        );
+                                              final cardTextColor =
+                                                  isDark
+                                                      ? AppColors.textDark
+                                                      : AppColors.textLight;
+                                              final cardTextSecondary =
+                                                  isDark
+                                                      ? AppColors.textDark
+                                                          .withValues(
+                                                            alpha: 0.7,
+                                                          )
+                                                      : AppColors.textLight
+                                                          .withValues(
+                                                            alpha: 0.54,
+                                                          );
 
-                                            return GestureDetector(
-                                              onTap: () => selectMap(name),
-                                              child: Container(
-                                                width:
-                                                    (() {
-                                                      final screenW =
-                                                          MediaQuery.of(
-                                                            context,
-                                                          ).size.width;
-                                                      return screenW > 800
-                                                          ? 240.0
-                                                          : screenW / 2 - 24.0;
-                                                    })(),
-                                                height:
-                                                    (() {
-                                                      final screenW =
-                                                          MediaQuery.of(
-                                                            context,
-                                                          ).size.width;
-                                                      return screenW > 800
-                                                          ? 240.0
-                                                          : screenW / 2 - 24.0;
-                                                    })(),
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                    color:
-                                                        isSelected
-                                                            ? AppColors.accentHighlight(
+                                              return GestureDetector(
+                                                onTap: () => selectMap(name),
+                                                child: Container(
+                                                  width:
+                                                      (() {
+                                                        final screenW =
+                                                            MediaQuery.of(
                                                               context,
-                                                            )
-                                                            : Colors
-                                                                .transparent,
-                                                    width: 3,
-                                                  ),
-                                                  boxShadow: const [
-                                                    BoxShadow(
-                                                      color: Colors.black12,
-                                                      blurRadius: 4,
-                                                      offset: Offset(0, 2),
-                                                    ),
-                                                  ],
-                                                  color: Colors.white,
-                                                ),
-                                                child: Stack(
-                                                  children: [
-                                                    Positioned.fill(
-                                                      child: ClipRRect(
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              8,
-                                                            ),
-                                                        child: _buildImage(
-                                                          image,
+                                                            ).size.width;
+                                                        return screenW > 800
+                                                            ? 240.0
+                                                            : screenW / 2 -
+                                                                24.0;
+                                                      })(),
+                                                  height:
+                                                      (() {
+                                                        final screenW =
+                                                            MediaQuery.of(
+                                                              context,
+                                                            ).size.width;
+                                                        return screenW > 800
+                                                            ? 240.0
+                                                            : screenW / 2 -
+                                                                24.0;
+                                                      })(),
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
                                                         ),
-                                                      ),
+                                                    border: Border.all(
+                                                      color:
+                                                          isSelected
+                                                              ? AppColors.accentHighlight(
+                                                                context,
+                                                              )
+                                                              : Colors
+                                                                  .transparent,
+                                                      width: 3,
                                                     ),
-                                                    Positioned(
-                                                      right: 8,
-                                                      top: 8,
-                                                      child: Container(
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                              horizontal: 8,
-                                                              vertical: 4,
-                                                            ),
-                                                        decoration: BoxDecoration(
-                                                          color:
-                                                              isDark
-                                                                  ? Colors
-                                                                      .black45
-                                                                  : Colors.white
-                                                                      .withValues(
-                                                                        alpha:
-                                                                            0.75,
-                                                                      ),
+                                                    boxShadow: const [
+                                                      BoxShadow(
+                                                        color: Colors.black12,
+                                                        blurRadius: 4,
+                                                        offset: Offset(0, 2),
+                                                      ),
+                                                    ],
+                                                    color: Colors.white,
+                                                  ),
+                                                  child: Stack(
+                                                    children: [
+                                                      Positioned.fill(
+                                                        child: ClipRRect(
                                                           borderRadius:
                                                               BorderRadius.circular(
-                                                                4,
+                                                                8,
                                                               ),
-                                                        ),
-                                                        child: Text(
-                                                          players == 2
-                                                              ? '$players joueurs'
-                                                              : '2 à $players joueurs',
-                                                          style: TextStyle(
-                                                            color:
-                                                                cardTextColor,
-                                                            fontSize: 12,
+                                                          child: _buildImage(
+                                                            image,
                                                           ),
                                                         ),
                                                       ),
-                                                    ),
-                                                    Positioned(
-                                                      bottom: 0,
-                                                      left: 0,
-                                                      right: 0,
-                                                      child: Padding(
-                                                        padding:
-                                                            const EdgeInsets.all(
-                                                              8,
-                                                            ),
-                                                        child: Column(
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .start,
-                                                          mainAxisSize:
-                                                              MainAxisSize.min,
-                                                          children: [
-                                                            Container(
-                                                              padding:
-                                                                  const EdgeInsets.symmetric(
-                                                                    horizontal:
-                                                                        6,
-                                                                    vertical: 2,
-                                                                  ),
-                                                              decoration: BoxDecoration(
-                                                                color:
-                                                                    isDark
-                                                                        ? Colors
-                                                                            .black45
-                                                                        : Colors.white.withValues(
+                                                      Positioned(
+                                                        right: 8,
+                                                        top: 8,
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 4,
+                                                              ),
+                                                          decoration: BoxDecoration(
+                                                            color:
+                                                                isDark
+                                                                    ? Colors
+                                                                        .black45
+                                                                    : Colors
+                                                                        .white
+                                                                        .withValues(
                                                                           alpha:
                                                                               0.75,
                                                                         ),
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      4,
-                                                                    ),
-                                                              ),
-                                                              child: Text(
-                                                                name,
-                                                                style: TextStyle(
-                                                                  color:
-                                                                      cardTextColor,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  fontSize: 14,
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  4,
                                                                 ),
-                                                              ),
+                                                          ),
+                                                          child: Text(
+                                                            players == 2
+                                                                ? '$players joueurs'
+                                                                : '2 à $players joueurs',
+                                                            style: TextStyle(
+                                                              color:
+                                                                  cardTextColor,
+                                                              fontSize: 12,
                                                             ),
-                                                            const SizedBox(
-                                                              height: 4,
-                                                            ),
-                                                            Container(
-                                                              padding:
-                                                                  const EdgeInsets.symmetric(
-                                                                    horizontal:
-                                                                        6,
-                                                                    vertical: 2,
-                                                                  ),
-                                                              decoration: BoxDecoration(
-                                                                color:
-                                                                    isDark
-                                                                        ? Colors
-                                                                            .black45
-                                                                        : Colors.white.withValues(
-                                                                          alpha:
-                                                                              0.75,
-                                                                        ),
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      4,
-                                                                    ),
-                                                              ),
-                                                              child: Text(
-                                                                'Taille: ${width}x${size?['y'] ?? width}',
-                                                                style: TextStyle(
-                                                                  color:
-                                                                      cardTextSecondary,
-                                                                  fontSize: 12,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            const SizedBox(
-                                                              height: 2,
-                                                            ),
-                                                            Container(
-                                                              padding:
-                                                                  const EdgeInsets.symmetric(
-                                                                    horizontal:
-                                                                        6,
-                                                                    vertical: 2,
-                                                                  ),
-                                                              decoration: BoxDecoration(
-                                                                color:
-                                                                    isDark
-                                                                        ? Colors
-                                                                            .black45
-                                                                        : Colors.white.withValues(
-                                                                          alpha:
-                                                                              0.75,
-                                                                        ),
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      4,
-                                                                    ),
-                                                              ),
-                                                              child: Text(
-                                                                'Mode: ${map['mode'] ?? ''}',
-                                                                style: TextStyle(
-                                                                  color:
-                                                                      cardTextSecondary,
-                                                                  fontSize: 12,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            if (desc.isNotEmpty)
-                                                              Padding(
-                                                                padding:
-                                                                    const EdgeInsets.only(
-                                                                      top: 4,
-                                                                    ),
-                                                                child: Container(
-                                                                  padding:
-                                                                      const EdgeInsets.symmetric(
-                                                                        horizontal:
-                                                                            6,
-                                                                        vertical:
-                                                                            2,
-                                                                      ),
-                                                                  decoration: BoxDecoration(
-                                                                    color:
-                                                                        isDark
-                                                                            ? Colors.black45
-                                                                            : Colors.white.withValues(
-                                                                              alpha:
-                                                                                  0.75,
-                                                                            ),
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
-                                                                          4,
-                                                                        ),
-                                                                  ),
-                                                                  child: Text(
-                                                                    desc,
-                                                                    maxLines: 2,
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                    style: TextStyle(
-                                                                      color:
-                                                                          cardTextColor,
-                                                                      fontSize:
-                                                                          12,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                          ],
+                                                          ),
                                                         ),
                                                       ),
-                                                    ),
-                                                  ],
+                                                      Positioned(
+                                                        bottom: 0,
+                                                        left: 0,
+                                                        right: 0,
+                                                        child: Padding(
+                                                          padding:
+                                                              const EdgeInsets.all(
+                                                                8,
+                                                              ),
+                                                          child: Column(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
+                                                            children: [
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      horizontal:
+                                                                          6,
+                                                                      vertical:
+                                                                          2,
+                                                                    ),
+                                                                decoration: BoxDecoration(
+                                                                  color:
+                                                                      isDark
+                                                                          ? Colors
+                                                                              .black45
+                                                                          : Colors.white.withValues(
+                                                                            alpha:
+                                                                                0.75,
+                                                                          ),
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        4,
+                                                                      ),
+                                                                ),
+                                                                child: Text(
+                                                                  name,
+                                                                  style: TextStyle(
+                                                                    color:
+                                                                        cardTextColor,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    fontSize:
+                                                                        14,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                height: 4,
+                                                              ),
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      horizontal:
+                                                                          6,
+                                                                      vertical:
+                                                                          2,
+                                                                    ),
+                                                                decoration: BoxDecoration(
+                                                                  color:
+                                                                      isDark
+                                                                          ? Colors
+                                                                              .black45
+                                                                          : Colors.white.withValues(
+                                                                            alpha:
+                                                                                0.75,
+                                                                          ),
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        4,
+                                                                      ),
+                                                                ),
+                                                                child: Text(
+                                                                  'Taille: ${width}x${size?['y'] ?? width}',
+                                                                  style: TextStyle(
+                                                                    color:
+                                                                        cardTextSecondary,
+                                                                    fontSize:
+                                                                        12,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                height: 2,
+                                                              ),
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      horizontal:
+                                                                          6,
+                                                                      vertical:
+                                                                          2,
+                                                                    ),
+                                                                decoration: BoxDecoration(
+                                                                  color:
+                                                                      isDark
+                                                                          ? Colors
+                                                                              .black45
+                                                                          : Colors.white.withValues(
+                                                                            alpha:
+                                                                                0.75,
+                                                                          ),
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        4,
+                                                                      ),
+                                                                ),
+                                                                child: Text(
+                                                                  'Mode: ${map['mode'] ?? ''}',
+                                                                  style: TextStyle(
+                                                                    color:
+                                                                        cardTextSecondary,
+                                                                    fontSize:
+                                                                        12,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              if (desc
+                                                                  .isNotEmpty)
+                                                                Padding(
+                                                                  padding:
+                                                                      const EdgeInsets.only(
+                                                                        top: 4,
+                                                                      ),
+                                                                  child: Container(
+                                                                    padding: const EdgeInsets.symmetric(
+                                                                      horizontal:
+                                                                          6,
+                                                                      vertical:
+                                                                          2,
+                                                                    ),
+                                                                    decoration: BoxDecoration(
+                                                                      color:
+                                                                          isDark
+                                                                              ? Colors.black45
+                                                                              : Colors.white.withValues(
+                                                                                alpha:
+                                                                                    0.75,
+                                                                              ),
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                            4,
+                                                                          ),
+                                                                    ),
+                                                                    child: Text(
+                                                                      desc,
+                                                                      maxLines:
+                                                                          2,
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                      style: TextStyle(
+                                                                        color:
+                                                                            cardTextColor,
+                                                                        fontSize:
+                                                                            12,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
-                                              ),
-                                            );
-                                          }).toList(),
-                                    ),
-                                  ],
+                                              );
+                                            }).toList(),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
+                          if (userError)
+                            const Text(
+                              'Aucun jeu selectionné. Sélectionnez un jeu.',
+                              style: TextStyle(color: Colors.red),
                             ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
-                        if (userError)
-                          const Text(
-                            'Aucun jeu selectionné. Sélectionnez un jeu.',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        if (gameChoiceError)
-                          const Text(
-                            "Le jeu n'est plus disponible.",
-                            style: TextStyle(color: Colors.red),
-                          ),
-                      ],
+                          if (gameChoiceError)
+                            const Text(
+                              "Le jeu n'est plus disponible.",
+                              style: TextStyle(color: Colors.red),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              if (showGameOptionsModal && selectedMap != null)
-                GameOptionsModalWidget(
-                  selectedMapName: selectedMap!,
-                  onClose: closeGameOptionsModal,
-                  onNext: onGameOptionsNext,
-                ),
-              const Positioned(
-                top: 18,
-                right: 12,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.only(top: 7),
-                      child: MoneyWidget(),
-                    ),
-                    SizedBox(width: 8),
-                    FriendButton(),
-                    ChatWidget(),
                   ],
                 ),
-              ),
-            ],
-          ),
-        ],
+                if (showGameOptionsModal && selectedMap != null)
+                  GameOptionsModalWidget(
+                    selectedMapName: selectedMap!,
+                    onClose: closeGameOptionsModal,
+                    onNext: onGameOptionsNext,
+                  ),
+                const Positioned(
+                  top: 18,
+                  right: 12,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.only(top: 7),
+                        child: MoneyWidget(),
+                      ),
+                      SizedBox(width: 8),
+                      FriendButton(),
+                      ChatWidget(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
