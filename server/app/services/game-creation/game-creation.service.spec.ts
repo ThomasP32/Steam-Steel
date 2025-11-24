@@ -283,34 +283,82 @@ describe('GameCreationService', () => {
     });
 
     describe('isMaxPlayersReached', () => {
-        it('should return true when max players are reached for a small map', () => {
+        it('should return true when max active/eliminated players are reached for a small map', () => {
             gameRoom.mapSize = { x: MapConfig[MapSize.SMALL].size, y: MapConfig[MapSize.SMALL].size };
-            const connections = new Array(MapConfig[MapSize.SMALL].maxPlayers).fill('connection-id');
+            const maxPlayers = MapConfig[MapSize.SMALL].maxPlayers;
+            gameRoom.players = new Array(maxPlayers).fill(null).map((_, i) => ({
+                ...player,
+                name: `Player${i}`,
+                isActive: true,
+                isEliminated: false,
+            }));
 
             service.addGame(gameRoom);
-            const result = service.isMaxPlayersReached(connections, gameRoom.id);
+            const result = service.isMaxPlayersReached(gameRoom.id);
 
             expect(result).toBe(true);
         });
 
-        it('should return false when there are fewer players than the max for a medium map', () => {
+        it('should return false when there are fewer active/eliminated players than the max for a medium map', () => {
             gameRoom.mapSize = { x: MapConfig[MapSize.MEDIUM].size, y: MapConfig[MapSize.MEDIUM].size };
-            const connections = new Array(MapConfig[MapSize.MEDIUM].maxPlayers - 1).fill('connection-id');
+            const fewerPlayers = MapConfig[MapSize.MEDIUM].maxPlayers - 1;
+            gameRoom.players = new Array(fewerPlayers).fill(null).map((_, i) => ({
+                ...player,
+                name: `Player${i}`,
+                isActive: true,
+                isEliminated: false,
+            }));
 
             service.addGame(gameRoom);
-            const result = service.isMaxPlayersReached(connections, gameRoom.id);
+            const result = service.isMaxPlayersReached(gameRoom.id);
 
             expect(result).toBe(false);
         });
 
-        it('should return false for a large map with fewer than the max number of players', () => {
+        it('should return false for a large map with fewer than the max number of active/eliminated players', () => {
             gameRoom.mapSize = { x: MapConfig[MapSize.LARGE].size, y: MapConfig[MapSize.LARGE].size };
-            const connections = new Array(MapConfig[MapSize.LARGE].maxPlayers - 1).fill('connection-id');
+            const fewerPlayers = MapConfig[MapSize.LARGE].maxPlayers - 1;
+            gameRoom.players = new Array(fewerPlayers).fill(null).map((_, i) => ({
+                ...player,
+                name: `Player${i}`,
+                isActive: true,
+                isEliminated: false,
+            }));
 
             service.addGame(gameRoom);
-            const result = service.isMaxPlayersReached(connections, gameRoom.id);
+            const result = service.isMaxPlayersReached(gameRoom.id);
 
             expect(result).toBe(false);
+        });
+
+        it('should count eliminated players towards capacity', () => {
+            gameRoom.mapSize = { x: MapConfig[MapSize.SMALL].size, y: MapConfig[MapSize.SMALL].size };
+            const maxPlayers = MapConfig[MapSize.SMALL].maxPlayers;
+            gameRoom.players = [
+                { ...player, name: 'Player1', isActive: true, isEliminated: false },
+                { ...player, name: 'Player2', isActive: false, isEliminated: true },
+            ];
+            // 2 players count (1 active, 1 eliminated)
+
+            service.addGame(gameRoom);
+            const result = service.isMaxPlayersReached(gameRoom.id);
+
+            expect(result).toBe(2 >= maxPlayers);
+        });
+
+        it('should not count inactive non-eliminated players', () => {
+            gameRoom.mapSize = { x: MapConfig[MapSize.SMALL].size, y: MapConfig[MapSize.SMALL].size };
+            gameRoom.players = [
+                { ...player, name: 'Player1', isActive: true, isEliminated: false },
+                { ...player, name: 'Player2', isActive: false, isEliminated: false }, // Not counted
+                { ...player, name: 'Player3', isActive: false, isEliminated: true }, // Counted
+            ];
+            // Only 2 count (Player1 active, Player3 eliminated)
+
+            service.addGame(gameRoom);
+            const result = service.isMaxPlayersReached(gameRoom.id);
+
+            expect(result).toBe(2 >= MapConfig[MapSize.SMALL].maxPlayers);
         });
     });
 
@@ -326,38 +374,6 @@ describe('GameCreationService', () => {
         service.deleteRoom(gameRoom.id);
 
         expect(service['gameRooms'][gameRoom.id]).toBeUndefined();
-    });
-
-    describe('isMaxPlayersReached', () => {
-        it('should return true when max players are reached for a small map', () => {
-            gameRoom.mapSize = { x: MapConfig[MapSize.SMALL].size, y: MapConfig[MapSize.SMALL].size };
-            const connections = new Array(MapConfig[MapSize.SMALL].maxPlayers).fill('connection-id');
-
-            service.addGame(gameRoom);
-            const result = service.isMaxPlayersReached(connections, gameRoom.id);
-
-            expect(result).toBe(true);
-        });
-
-        it('should return false when there are fewer players than the max for a medium map', () => {
-            gameRoom.mapSize = { x: MapConfig[MapSize.MEDIUM].size, y: MapConfig[MapSize.MEDIUM].size };
-            const connections = new Array(MapConfig[MapSize.MEDIUM].maxPlayers - 1).fill('connection-id');
-
-            service.addGame(gameRoom);
-            const result = service.isMaxPlayersReached(connections, gameRoom.id);
-
-            expect(result).toBe(false);
-        });
-
-        it('should return false for a large map with fewer than the max number of players', () => {
-            gameRoom.mapSize = { x: MapConfig[MapSize.LARGE].size, y: MapConfig[MapSize.LARGE].size };
-            const connections = new Array(MapConfig[MapSize.LARGE].maxPlayers - 1).fill('connection-id');
-
-            service.addGame(gameRoom);
-            const result = service.isMaxPlayersReached(connections, gameRoom.id);
-
-            expect(result).toBe(false);
-        });
     });
 
     it('should decrease attack and defense if starting point is on an Ice tile', () => {

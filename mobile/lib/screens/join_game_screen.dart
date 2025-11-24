@@ -169,11 +169,24 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     try {
       _joinService.handleYouJoined(data);
       final updatedGame = data['updatedGame'] as Map<String, dynamic>?;
+      final updatedPlayer = data['updatedPlayer'] as Map<String, dynamic>?;
 
-      if (updatedGame != null) {
+      if (updatedGame != null && updatedPlayer != null) {
         _pendingGameCode = null;
-        final route = _joinService.buildGameRoute(updatedGame);
-        context.go(route);
+
+        final isObserver = updatedPlayer['isObserver'] as bool? ?? false;
+        final gameId = updatedGame['id'] as String;
+
+        if (isObserver) {
+          DebugLogger.log(
+            'Player is observer, navigating to game view',
+            tag: 'JoinGameScreen',
+          );
+          context.go('/game/$gameId/${updatedGame['name']}');
+        } else {
+          final route = _joinService.buildGameRoute(updatedGame);
+          context.go(route);
+        }
       }
     } on Exception catch (e) {
       DebugLogger.log(
@@ -214,7 +227,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     final hasStarted = game['hasStarted'] as bool? ?? false;
 
     if (hasStarted) {
-      _handleObserverFlow(game, gameId);
+      _onJoinGame(game);
     } else {
       _handleJoinFlow(gameId);
     }
@@ -226,13 +239,29 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     if (existingPlayer != null) {
       _observeWithExistingPlayer(gameId, existingPlayer);
     } else {
-      _navigateToObserverCharacterCreation(game, gameId);
+      _observeAsNewObserver(gameId);
     }
+  }
+
+  void _observeAsNewObserver(String gameId) {
+    DebugLogger.log(
+      'Creating minimal observer and joining directly',
+      tag: 'JoinGameScreen',
+    );
+
+    setState(() {
+      _isLoading = true;
+      _pendingGameCode = gameId;
+    });
+
+    final minimalObserver = _joinService.createMinimalObserverPlayer();
+    _joinService.observeGame(gameId: gameId, player: minimalObserver);
+    _startTimeout();
   }
 
   void _observeWithExistingPlayer(String gameId, Map<String, dynamic> player) {
     DebugLogger.log(
-      'Existing player found: ${player['name']}',
+      'Observing with existing player: ${player['name']}',
       tag: 'JoinGameScreen',
     );
 
@@ -243,24 +272,6 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
 
     _joinService.observeGame(gameId: gameId, player: player);
     _startTimeout();
-  }
-
-  void _navigateToObserverCharacterCreation(
-    Map<String, dynamic> game,
-    String gameId,
-  ) {
-    DebugLogger.log(
-      'No existing player, creating character',
-      tag: 'JoinGameScreen',
-    );
-
-    final mapName = _joinService.extractMapName(game);
-    final settings = _joinService.extractGameSettings(game);
-
-    context.go(
-      '/$gameId/choose-character',
-      extra: {'isObserver': true, 'mapName': mapName, 'settings': settings},
-    );
   }
 
   void _handleJoinFlow(String gameId) {
@@ -278,19 +289,19 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     if (gameId == null) return;
 
     final hasStarted = game['hasStarted'] as bool? ?? false;
-    final existingParticipant = _joinService.getExistingParticipant(game);
+    final existingPlayer = _joinService.getExistingPlayer(game);
+    final isEliminated = _joinService.isPlayerEliminated(game);
 
-    if (existingParticipant != null) {
-      setState(() {
-        _isLoading = true;
-        _pendingGameCode = gameId;
-      });
-      _joinService.resumeGame(gameId, existingParticipant);
-      _startTimeout();
+    if (hasStarted && existingPlayer != null) {
+      if (isEliminated) {
+        _handleEliminatedPlayerRejoin(game, gameId);
+      } else {
+        _handleActivePlayerRejoin(game, gameId);
+      }
       return;
     }
 
-    if (hasStarted) {
+    if (hasStarted && existingPlayer == null) {
       setState(() {
         _isLoading = true;
         _pendingGameCode = gameId;
@@ -307,6 +318,36 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
       '/$gameId/choose-character',
       extra: {'isObserver': false, 'mapName': mapName, 'settings': settings},
     );
+  }
+
+  void _handleEliminatedPlayerRejoin(Map<String, dynamic> game, String gameId) {
+    DebugLogger.log('Rejoining as eliminated player', tag: 'JoinGameScreen');
+
+    final existingPlayer = _joinService.getExistingPlayer(game);
+    if (existingPlayer != null) {
+      setState(() {
+        _isLoading = true;
+        _pendingGameCode = gameId;
+      });
+
+      _joinService.resumeGame(gameId: gameId, player: existingPlayer);
+      _startTimeout();
+    }
+  }
+
+  void _handleActivePlayerRejoin(Map<String, dynamic> game, String gameId) {
+    DebugLogger.log('Rejoining as active player', tag: 'JoinGameScreen');
+
+    final existingPlayer = _joinService.getExistingPlayer(game);
+    if (existingPlayer != null) {
+      setState(() {
+        _isLoading = true;
+        _pendingGameCode = gameId;
+      });
+
+      _joinService.resumeGame(gameId: gameId, player: existingPlayer);
+      _startTimeout();
+    }
   }
 
   void _navigateToCharacterCreation(String code) {
@@ -647,6 +688,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
           game: game,
           onTap: () => _onGameTap(game),
           onJoinGame: () => _onJoinGame(game),
+          onObserve: () => _handleObserverFlow(game, game['id'] as String),
           currentUsername: _joinService.currentUsername,
         );
       },
@@ -669,24 +711,16 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
 
     try {
       final existingPlayer = _joinService.getExistingPlayer(game);
-      final existingParticipant = _joinService.getExistingParticipant(game);
+      final gameId = game['id'] as String;
 
       if (existingPlayer != null) {
-        _joinService.joinGame(
-          gameId: game['id'] as String,
-          player: existingPlayer,
-        );
-      } else if (existingParticipant != null) {
-        _joinService.joinGame(
-          gameId: game['id'] as String,
-          player: existingParticipant,
-        );
+        _joinService.joinGame(gameId: gameId, player: existingPlayer);
       } else {
         final mapName = _joinService.extractMapName(game);
         final settings = _joinService.extractGameSettings(game);
 
         context.go(
-          '/${game['id']}/choose-character',
+          '/$gameId/choose-character',
           extra: {
             'isObserver': false,
             'mapName': mapName,

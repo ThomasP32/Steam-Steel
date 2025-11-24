@@ -4,8 +4,9 @@
         class="player"
         [ngClass]="{
             'active-player': player.name === currentPlayerTurn,
-            'player-left': !isPlayerActive(player),
-            'observation-mode': player.isObservationMode
+            'player-left': !isPlayerActive(player) && !player.isObserver,
+            'observation-mode': player.isEliminated,
+            'pure-observer': player.isObserver && !player.isEliminated
         }"
     >
         <div class="turn-arrow" *ngIf="player.name === currentPlayerTurn"><img src="assets/icons/arrow.png" alt="Trophée" class="icon" /></div>
@@ -16,13 +17,16 @@
                 <span class="host-icon"> <img src="assets/icons/crown.png" alt="Host" class="icon" /></span>
                 } @if (isPlayerFlagDetentor(player)) {
                 <span class="flag-icon"> <img src="assets/icons/flag_player.png" alt="Flag" class="icon" /></span>
-                } @if (isObserver(player)){
+                } @if (player.isObserver){
                 <span class="observer-icon"> <img src="assets/icons/observer.png" alt="Observer" class="icon" /></span>
                 }
             </span>
+            @if (!isObserver(player)) {
             <span class="victories"> {{ player.specs.nVictories }} <img src="assets/icons/trophy_icon.png" alt="Trophy" class="icon" /></span>
+            }
             <span class="player-name">{{ player.name }}</span>
         </div>
+        @if (!isObserver(player)) {
         <div class="avatar-container">
             <img [src]="getAvatarPreview(player.avatar)" alt="{{ player.name }}" class="avatar" />
         </div>
@@ -31,6 +35,7 @@
         }
         @if (isVirtualPlayerSocketId(player.socketId)) {
         <span class="virtual-player-icon"> <img src="assets/icons/robot.png" alt="Bot" class="icon" /></span>
+        }
         }
     </div>
     }

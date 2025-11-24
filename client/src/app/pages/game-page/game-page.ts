@@ -76,13 +76,14 @@ export class GamePageComponent implements OnInit, OnDestroy {
     startTurnCountdown: number = 3;
 
     showExitModal: boolean = false;
+    showExitDescription: boolean = false;
     showKickedModal: boolean = false;
     showEndGameModal: boolean = false;
     showNoActivePlayersModal: boolean = false;
     gameOverMessage: boolean = false;
     isCombatModalOpen: boolean = false;
     isInventoryModalOpen = false;
-    isObservationModeModalOpen = false;
+    isEliminatedModalOpen = false;
     observationModeMessage = '';
 
     youFell: boolean = false;
@@ -208,7 +209,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
     }
 
     areModalsOpen(): boolean {
-        return this.showExitModal || this.showKickedModal || this.isCombatModalOpen || this.isObservationModeModalOpen || this.showNoActivePlayersModal;
+        return this.showExitModal || this.showKickedModal || this.isCombatModalOpen || this.isEliminatedModalOpen || this.showNoActivePlayersModal;
     }
 
     navigateToEndOfGame(): void {
@@ -279,7 +280,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
 
     listenForObservationModeModal() {
         this.combatService.showObservationModeModal$.subscribe((showModal) => {
-            this.isObservationModeModalOpen = showModal;
+            this.isEliminatedModalOpen = showModal;
         });
 
         this.combatService.observationModeMessage$.subscribe((message) => {
@@ -347,8 +348,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
                 this.gameService.game.players = players;
                 this.game.players = players;
                 this.activePlayers = players.filter((player) => player.isActive);
-                const allVirtual = this.activePlayers.length > 0 && this.activePlayers.every((player) => player.socketId.includes('virtualPlayer'));
-                if (this.activePlayers.length <= 1 || allVirtual) {
+                if (this.activePlayers.length <= 1) {
                     this.showExitModal = false;
                     this.showKickedModal = true;
                     setTimeout(() => {
@@ -401,5 +401,9 @@ export class GamePageComponent implements OnInit, OnDestroy {
 
     onShowExitModalChange(newValue: boolean) {
         this.showExitModal = newValue;
+    }
+
+    openExitModal(): void {
+        this.showExitModal = true;
     }
 }

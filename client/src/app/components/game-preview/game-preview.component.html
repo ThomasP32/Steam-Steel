@@ -25,7 +25,7 @@
     <div class="join-actions">
         @if (game.hasStarted) {
         <button class="observe-button" (click)="onObserveClick()">Observer</button>
-        @if (game.settings.isDropInOut){ @if( existingParticipant ){
+        @if (game.settings.isDropInOut){ @if( wasInGameAsPlayer ){
         <button class="join-button" (click)="onResumeClick()">Reprendre</button>
         } @else if (isFull) {
         <button class="full-button">Verrouillée</button>

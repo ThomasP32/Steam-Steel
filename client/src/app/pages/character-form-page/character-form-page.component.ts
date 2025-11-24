@@ -229,7 +229,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
                 .listen<{ updatedPlayer: Player; updatedGame: Game }>(GameCreationEvents.YouJoined)
                 .subscribe(({ updatedPlayer, updatedGame }) => {
                     this.playerService.setPlayer(updatedPlayer);
-                    if (updatedPlayer.isObservationMode || (this.gameSettings.isDropInOut && this.gameHasStarted)) {
+                    if (updatedPlayer.isEliminated || (this.gameSettings.isDropInOut && this.gameHasStarted)) {
                         if (updatedGame) {
                             this.gameService.setGame(updatedGame);
                             this.router.navigate([`/game/${updatedGame.id}/${updatedGame.name}`], {
@@ -349,7 +349,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
                 }
             } else if (window.history.state?.isObserver) {
                 this.playerService.player.isActive = false;
-                this.playerService.player.isObservationMode = true;
+                this.playerService.player.isEliminated = true;
                 const joinGameData: JoinGameData = { player: this.playerService.player, gameId: this.gameId! };
                 this.socketService.sendMessage(GameCreationEvents.ObserveGame, joinGameData);
             } else {

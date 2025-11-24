@@ -193,10 +193,6 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
 
   Future<void> _loadPlayerBanners() async {
     final players = _service.players.value;
-    DebugLogger.log(
-      'Loading banners for ${players.length} players',
-      tag: 'WaitingRoomScreen',
-    );
     if (players.isEmpty) return;
 
     for (final player in players) {
@@ -222,11 +218,6 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
               _playerBanners[player.name] = bannerPath;
             });
           }
-        } else {
-          DebugLogger.log(
-            'No equipped banner found for ${player.name}',
-            tag: 'WaitingRoomScreen',
-          );
         }
       } catch (e) {
         DebugLogger.log(

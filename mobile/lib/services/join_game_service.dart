@@ -101,13 +101,21 @@ class JoinGameService {
   }) async {
     await _ensureSocketConnected();
 
+    final observerPlayer = Map<String, dynamic>.from(player);
+    observerPlayer['isObserver'] = true;
+    observerPlayer['isEliminated'] = false;
+
     DebugLogger.log(
-      'Sending observeGame for player: ${player['name']}',
+      'Sending observeGame with player: ${observerPlayer['name']}, '
+      'isObserver: ${observerPlayer['isObserver']}, '
+      'isEliminated: ${observerPlayer['isEliminated']}',
       tag: 'JoinGameService',
     );
 
-    final payload = {'player': player, 'gameId': gameId};
-    _socketService.send('observeGame', payload);
+    _socketService.send('observeGame', {
+      'player': observerPlayer,
+      'gameId': gameId,
+    });
   }
 
   bool hasExistingPlayer(Map<String, dynamic> game) {
@@ -126,17 +134,6 @@ class JoinGameService {
     }, orElse: () => null);
 
     return player is Map<String, dynamic> ? player : null;
-  }
-
-  Map<String, dynamic>? getExistingParticipant(Map<String, dynamic> game) {
-    final participants = game['participants'] as List<dynamic>? ?? [];
-    final participant = participants.firstWhere((p) {
-      if (p is! Map<String, dynamic>) return false;
-      return (p['name'] as String? ?? p['username'] as String? ?? '') ==
-          (currentUsername ?? '');
-    }, orElse: () => null);
-
-    return participant is Map<String, dynamic> ? participant : null;
   }
 
   String extractMapName(Map<String, dynamic> game) {
@@ -194,14 +191,20 @@ class JoinGameService {
     );
   }
 
-  Future<void> resumeGame(String gameId, Map<String, dynamic> player) async {
+  Future<void> resumeGame({
+    required String gameId,
+    required Map<String, dynamic> player,
+  }) async {
     await _ensureSocketConnected();
+
     DebugLogger.log(
-      'Requesting resumeGame for $gameId',
+      'Resuming game with player: ${player['name']}, '
+      'isEliminated: ${player['isEliminated']}, '
+      'isObserver: ${player['isObserver']}',
       tag: 'JoinGameService',
     );
-    final payload = {'gameId': gameId, 'player': player};
-    _socketService.send('resumeGame', payload);
+
+    _socketService.send('resumeGame', {'player': player, 'gameId': gameId});
   }
 
   Future<void> joinGame({
@@ -227,6 +230,64 @@ class JoinGameService {
       isFriendsOnly: settingsMap['isFriendsOnly'] as bool? ?? false,
       entryFee: settingsMap['entryFee'] as int? ?? 0,
     );
+  }
+
+  Map<String, dynamic> createMinimalObserverPlayer() {
+    final username = currentUsername ?? 'Observer';
+    final socketId = _socketService.socketId ?? '';
+
+    return {
+      'name': username,
+      'socketId': socketId,
+      'level': 1,
+      'isActive': false,
+      'isEliminated': false,
+      'isObserver': true,
+      'avatar': 1,
+      'specs': {
+        'life': 0,
+        'evasions': 0,
+        'speed': 0,
+        'attack': 0,
+        'defense': 0,
+        'attackBonus': 4,
+        'defenseBonus': 6,
+        'movePoints': 0,
+        'actions': 0,
+        'nVictories': 0,
+        'nDefeats': 0,
+        'nCombats': 0,
+        'nEvasions': 0,
+        'nLifeTaken': 0,
+        'nLifeLost': 0,
+        'nItemsUsed': 0,
+      },
+      'inventory': [],
+      'position': {'x': 0, 'y': 0},
+      'initialPosition': {'x': 0, 'y': 0},
+      'turn': 0,
+      'visitedTiles': [],
+      'profile': 'normal',
+    };
+  }
+
+  bool isPlayerEliminated(Map<String, dynamic> game) {
+    final players = game['players'] as List<dynamic>? ?? [];
+    final participant = players.firstWhere((p) {
+      return p['name'] == currentUsername;
+    }, orElse: () => null);
+
+    if (participant is Map<String, dynamic>) {
+      return participant['isEliminated'] as bool? ?? false;
+    }
+    return false;
+  }
+
+  bool isPlayerInGame(Map<String, dynamic> game) {
+    final players = game['players'] as List<dynamic>? ?? [];
+    return players.any((p) {
+      return p['name'] == currentUsername;
+    });
   }
 
   void dispose() {

@@ -211,7 +211,7 @@ export class CombatService {
                 combat.challenger.specs.attack = combat.challengerAttack;
                 combat.challenger.specs.evasions = DEFAULT_EVASIONS;
                 combat.challenger.specs.nCombats++;
-                combat.challenger.isObservationMode = player.isObservationMode;
+                combat.challenger.isEliminated = player.isEliminated;
                 game.players[index] = combat.challenger;
 
                 this.gameManagerService.resetIceAttributes(combat.challenger, game.id);
@@ -220,7 +220,7 @@ export class CombatService {
                 combat.opponent.specs.attack = combat.opponentAttack;
                 combat.opponent.specs.evasions = DEFAULT_EVASIONS;
                 combat.opponent.specs.nCombats++;
-                combat.opponent.isObservationMode = player.isObservationMode;
+                combat.opponent.isEliminated = player.isEliminated;
                 game.players[index] = combat.opponent;
 
                 this.gameManagerService.resetIceAttributes(combat.opponent, game.id);

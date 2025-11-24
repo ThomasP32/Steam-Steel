@@ -151,7 +151,7 @@ class CharacterCreationService {
       'name': name,
       'socketId': socketId,
       'isActive': !isObserver,
-      'isObservationMode': isObserver,
+      'isEliminated': isObserver,
       'avatar': avatar,
       'level': level,
       'specs': {
@@ -199,7 +199,7 @@ class CharacterCreationService {
       visitedTiles: [],
       specs: specs,
       isActive: !isObserver,
-      isObservationMode: isObserver,
+      isEliminated: isObserver,
     );
   }
 
@@ -373,7 +373,9 @@ class CharacterCreationService {
             )],
         level: json['level'] as int? ?? 1,
         isActive: json['isActive'] as bool? ?? true,
-        isObservationMode: json['isObservationMode'] as bool? ?? false,
+        isEliminated: json['isEliminated'] as bool? ?? false,
+        wasActivePlayer: json['wasActivePlayer'] as bool? ?? false,
+        isObserver: json['isObserver'] as bool? ?? false,
         specs: Specs(
           life: specs['life'] as int? ?? DEFAULT_HP,
           speed: specs['speed'] as int? ?? DEFAULT_SPEED,

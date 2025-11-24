@@ -190,11 +190,6 @@ export class GameManagerGateway implements OnGatewayInit {
     startGame(client: Socket, gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
         if (!game) return;
-        if (!game.participants.find((p) => p.socketId === game.hostSocketId)) {
-            const host = game.players.find((p) => p.socketId === game.hostSocketId);
-            if (host) game.participants.push(host);
-        }
-
         this.gameCountdownService.initCountdown(gameId, TURN_DURATION);
         this.startTurn(gameId);
     }
@@ -276,7 +271,7 @@ export class GameManagerGateway implements OnGatewayInit {
 
         const activePlayer = game.players.find((player) => player.turn === game.currentTurn);
         const involvedPlayers = game.players.map((player) => player.name);
-        if (!activePlayer?.isActive || activePlayer?.isObservationMode === true || activePlayer.name === game.lastTurnPlayer) {
+        if (!activePlayer?.isActive || activePlayer?.isEliminated || activePlayer?.isObserver || activePlayer.name === game.lastTurnPlayer) {
             game.currentTurn++;
             if (game.currentTurn >= game.players.length) {
                 game.currentTurn = 0;

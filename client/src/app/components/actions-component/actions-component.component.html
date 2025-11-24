@@ -52,18 +52,6 @@
             }
             <img [src]="imageService.getIconImage('endturn')" alt="Finir le tour" />
         </div>
-
-        <div
-            class="action-button"
-            (mouseenter)="showDescription('Quitter la partie')"
-            (mouseleave)="hideDescription()"
-            (click)="openExitConfirmationModal()"
-        >
-            @if(actionDescription === 'Quitter la partie') {
-            <div class="tooltip">{{ actionDescription }}</div>
-            }
-            <img [src]="imageService.getIconImage('quit')" alt="Quitter la partie" />
-        </div>
     </div>
 </div>
 @if(showCombatModal && thisPlayerTurn()) {

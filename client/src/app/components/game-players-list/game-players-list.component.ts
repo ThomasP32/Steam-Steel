@@ -63,6 +63,6 @@ export class GamePlayersListComponent implements OnInit, OnChanges {
     }
 
     isObserver(player: Player): boolean | undefined {
-        return player.isObservationMode;
+        return player.isObserver && !player.isEliminated;
     }
 }

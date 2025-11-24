@@ -191,8 +191,8 @@ export class GameTurnService {
         this.socketSubscription.add(
             this.socketService.listen<{ game: Game; player: Player }>(GameManagerEvents.PositionToUpdate).subscribe(async (data) => {
                 if (data.player.socketId === this.player.socketId) {
-                    this.playerService.setPlayer(data.player);
-                }
+                        this.playerService.setPlayer(data.player);
+                    }
                 this.gameService.setGame(data.game);
                 this.resumeTurn();
             }),
@@ -293,17 +293,18 @@ export class GameTurnService {
                         this.resumeTurn();
                     }
                 } else {
-                    this.playerService.setPlayer(data.updatedGame.players.filter((player) => (player.socketId = this.player.socketId))[0]);
+                    this.playerService.setPlayer(data.updatedGame.players.filter((player) => (player.socketId === this.player.socketId))[0]);
                 }
                 this.gameService.setGame(data.updatedGame);
             }),
         );
         this.socketSubscription.add(
             this.socketService.listen<CombatFinishedData>(CombatEvents.CombatFinished).subscribe((data) => {
-                if (data.winner.socketId === this.playerService.player.socketId) {
-                    this.playerService.setPlayer(data.winner);
-                } else {
-                    this.playerService.setPlayer(data.loser);
+                const me = data.updatedGame.players.find(
+                    (player) => player.socketId === this.playerService.player.socketId,
+                );
+                if (me) {
+                    this.playerService.setPlayer(me);
                 }
                 this.gameService.setGame(data.updatedGame);
             }),

@@ -54,7 +54,6 @@ export class GameService {
                 isFriendsOnly,
                 entryFee,
             },
-            participants: [],
         };
     }
 
@@ -85,7 +84,6 @@ export class GameService {
                 isFriendsOnly,
                 entryFee,
             },
-            participants: [],
         };
     }
 

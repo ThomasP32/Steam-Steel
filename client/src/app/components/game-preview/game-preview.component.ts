@@ -1,9 +1,9 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { Game, Player } from '@common/game';
-import { AuthService } from '@app/services/auth/auth.service';
-import { MapConfig, MapSize } from '@common/constants';
 import { NgClass } from '@angular/common';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { AuthService } from '@app/services/auth/auth.service';
 import { MapConversionService } from '@app/services/map-conversion/map-conversion.service';
+import { MapConfig, MapSize } from '@common/constants';
+import { Game, Player } from '@common/game';
 
 @Component({
   selector: 'app-game-preview',
@@ -21,7 +21,6 @@ export class GamePreviewComponent implements OnInit {
   errorMessage: string | null = null;
   currentUsername: string = '';
   existingPlayer : Player | undefined = undefined;
-  existingParticipant: Player | undefined = undefined;
 
   constructor(
     private readonly authService: AuthService,
@@ -36,7 +35,7 @@ export class GamePreviewComponent implements OnInit {
   
   get activePlayers(): Player[]{
     if (this.game && this.game.players){
-      return this.game.players.filter((plyr) => plyr.isActive);
+      return this.game.players.filter((plyr) => plyr.isActive || plyr.isEliminated);
     }
     return [];
   }
@@ -51,19 +50,21 @@ export class GamePreviewComponent implements OnInit {
 
   get isFull(): boolean | undefined {
     if(this.game) {
-      if(this.game.settings.isFastElimination){
-        return this.game.participants.length === this.mapMaxPlayers;
-      }
-      return this.activePlayers.length === this.mapMaxPlayers;
+      // Count active + eliminated players to determine capacity
+      const activeOrEliminatedCount = this.game.players.filter((p) => p.isActive || p.isEliminated).length;
+      return activeOrEliminatedCount >= (this.mapMaxPlayers ?? 0);
     }
     return undefined;
+  }
+
+  get wasInGameAsPlayer(): boolean {
+    return this.existingPlayer !== undefined && !this.existingPlayer.isObserver;
   }
 
   private async loadUserInfo(): Promise<void> {
     const userInfo = await this.authService.getUserInfo();
     this.currentUsername = userInfo.user.username;
     this.existingPlayer = this.game.players.find(plyr => plyr.name === this.currentUsername) ;
-    this.existingParticipant = this.game.participants.find(plyr => plyr.name === this.currentUsername) ;
   }
 
   convertMapSize(value: number): string {

@@ -10,9 +10,10 @@ import { SocketService } from '@app/services/communication-socket/communication-
 import { FriendsService } from '@app/services/friends/friends.service';
 import { GameService } from '@app/services/game/game.service';
 import { PlayerService } from '@app/services/player-service/player.service';
+import { DEFAULT_ACTIONS, DEFAULT_ATTACK, DEFAULT_DEFENSE, DEFAULT_EVASIONS, DEFAULT_HP, DEFAULT_SPEED, ProfileType } from '@common/constants';
 import { FriendsEvents } from '@common/events/friends.events';
 import { GameCreationEvents, JoinGameData } from '@common/events/game-creation.events';
-import { Game, Player } from '@common/game';
+import { Avatar, Bonus, Game, Player, Specs } from '@common/game';
 import { Friend } from '@common/user-friends';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 
@@ -58,7 +59,19 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
             console.error('Erreur lors de la récupération des informations utilisateur:', error);
         }
         await this.loadUserInfo();
+        console.log('INIT join game and load games');
+        
+        // Listen for games response
+        this.socketService
+            .listen<Game[]>(GameCreationEvents.GetGames)
+            .pipe(takeUntil(this.unsubscribe$))
+            .subscribe((gameRooms: Game[]) => {
+                this.activeGames = gameRooms.filter((game) => this.canSeeGame(game));
+            });
+        
+        // Request games
         await this.loadGames();
+        
         this.socketService
             .listen<void>(GameCreationEvents.GameListUpdated)
             .pipe(takeUntil(this.unsubscribe$))
@@ -77,16 +90,21 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
     }
 
     private async loadGames(): Promise<void> {
-        this.socketService.sendMessage(GameCreationEvents.GetGames, (gameRooms: Game[]) => {
-            this.activeGames = gameRooms.filter((game) => this.canSeeGame(game));
-        });
+        this.socketService.sendMessage(GameCreationEvents.GetGames);
     }
 
     canSeeGame(game: Game): boolean {
-        if (!game.settings.isFriendsOnly) return true;
+        // If game has no settings or is not friends-only, show it to everyone
+        console.log('GAME object in join game: ', game);
+        if (!game.settings || !game.settings.isFriendsOnly) return true;
+        
         const hostId = game.hostSocketId;
         const hostPlayer = game.players.find((plyr) => plyr.socketId === hostId);
-        if (hostId === this.currentUserId) return true;
+        
+        // Check if current user is the host by comparing usernames
+        if (hostPlayer && hostPlayer.name === this.currentUsername) return true;
+        
+        // Check if current user is a friend of the host
         return this.friendIds.some((friend) => friend.username === hostPlayer?.name);
     }
 
@@ -114,10 +132,48 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
             const joinGameData: JoinGameData = { player: existingPlayer, gameId: game.id! };
             this.socketService.sendMessage(GameCreationEvents.ObserveGame, joinGameData);
         } else {
-            this.router.navigate([`join-game/${game.id}/create-character`], {
-                state: { isObserver: true },
-            });
+            const minimalObserver = this.createMinimalObserverPlayer();
+            const joinGameData: JoinGameData = { player: minimalObserver, gameId: game.id! };
+            this.socketService.sendMessage(GameCreationEvents.ObserveGame, joinGameData);
         }
+    }
+
+    private createMinimalObserverPlayer(): Player {
+        const playerSpecs: Specs = {
+            life: DEFAULT_HP,
+            speed: DEFAULT_SPEED,
+            attack: DEFAULT_ATTACK,
+            defense: DEFAULT_DEFENSE,
+            attackBonus: Bonus.D4,
+            defenseBonus: Bonus.D4,
+            movePoints: DEFAULT_SPEED,
+            evasions: DEFAULT_EVASIONS,
+            actions: DEFAULT_ACTIONS,
+            nVictories: 0,
+            nDefeats: 0,
+            nCombats: 0,
+            nEvasions: 0,
+            nLifeTaken: 0,
+            nLifeLost: 0,
+            nItemsUsed: 0,
+        };
+
+        return {
+            name: this.currentUsername,
+            socketId: this.socketService.socket.id || '',
+            level: 1,
+            isActive: false,
+            isEliminated: false,
+            isObserver: true,
+            avatar: Avatar.Avatar1,
+            specs: playerSpecs,
+            inventory: [],
+            position: { x: 0, y: 0 },
+            initialPosition: { x: 0, y: 0 },
+            turn: 0,
+            visitedTiles: [],
+            profile: ProfileType.NORMAL,
+        };
     }
 
     configureJoinGameSocketFeatures(): void {
