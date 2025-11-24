@@ -72,6 +72,8 @@ class _GameScreenState extends State<GameScreen> {
   VoidCallback? _observationModeListener;
   bool _showObservationModal = false;
   OverlayEntry? _combatNotificationOverlay;
+  Coordinate? _playerStartTile;
+  StreamSubscription<dynamic>? _playerStartTileSub;
 
   @override
   void initState() {
@@ -91,6 +93,7 @@ class _GameScreenState extends State<GameScreen> {
     _listenToWallUpdates();
     _listenToGameFinished();
     _listenToPlayerLeft();
+    _listenToPlayerStartTile();
     _countdownService.initialize();
     _listenToCountdown();
     _listenToObservationMode();
@@ -666,6 +669,39 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
+  void _listenToPlayerStartTile() {
+    _playerStartTileSub = SocketService()
+        .listen<dynamic>('playerStartTile')
+        .listen((data) {
+          if (!mounted) return;
+
+          final game = _gameService.currentGame;
+          if (game?.mode != Mode.ctf) return;
+
+          if (data == null) {
+            setState(() {
+              _playerStartTile = null;
+            });
+            return;
+          }
+
+          if (data is Map<String, dynamic>) {
+            final x = data['x'] as int?;
+            final y = data['y'] as int?;
+
+            if (x != null && y != null) {
+              setState(() {
+                _playerStartTile = Coordinate(x, y);
+              });
+              DebugLogger.log(
+                'Player start tile set to: ($x, $y)',
+                tag: 'GameScreen',
+              );
+            }
+          }
+        });
+  }
+
   void _listenToObservationMode() {
     _observationModeListener = () {
       if (!mounted) return;
@@ -734,6 +770,7 @@ class _GameScreenState extends State<GameScreen> {
     _combatStartedSub?.cancel();
     _playerLeftSub?.cancel();
     _gameUpdatedSub?.cancel();
+    _playerStartTileSub?.cancel();
   }
 
   void _toggleGameInfo() {
@@ -1372,6 +1409,11 @@ class _GameScreenState extends State<GameScreen> {
             }) ??
             false);
 
+    final isPlayerStartTile =
+        _playerStartTile != null &&
+        _playerStartTile!.x == row &&
+        _playerStartTile!.y == col;
+
     String? tileAsset;
     if (door != null) {
       final isOpened = door.isOpened as bool? ?? false;
@@ -1460,6 +1502,19 @@ class _GameScreenState extends State<GameScreen> {
                     width: tileSize,
                     height: tileSize,
                     fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+
+            if (isPlayerStartTile)
+              Center(
+                child: Container(
+                  width: tileSize * 0.8,
+                  height: tileSize * 0.8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.transparent,
+                    border: Border.all(color: Colors.red, width: 3),
                   ),
                 ),
               ),
