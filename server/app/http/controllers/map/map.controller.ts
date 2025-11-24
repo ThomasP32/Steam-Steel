@@ -56,7 +56,7 @@ export class MapController {
                 return response.status(HttpStatus.NOT_FOUND).json({ message: 'Utilisateur non trouvé' });
             }
 
-            const maps = await this.mapService.getVisibleMapsForUser(user.username);
+            const maps = await this.mapService.getVisibleMapsForUser(user._id.toString());
             response.status(HttpStatus.OK).json(maps);
         } catch (error) {
             if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {

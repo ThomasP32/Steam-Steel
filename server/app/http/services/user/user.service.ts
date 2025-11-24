@@ -212,6 +212,11 @@ export class UserService {
             return "Les champs ne peuvent pas contenir d'espaces";
         }
 
+        const emailRegex = /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@(?![a-zA-Z0-9.-]+\.$)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+        if (!emailRegex.test(email)) {
+            return "Format d'email invalide";
+        }
+
         if (email.length > 50) {
             return "L'email ne peut pas dépasser 50 caractères";
         }
@@ -227,11 +232,6 @@ export class UserService {
         }
         if (username.length < 3) {
             return 'Le pseudonyme doit contenir au moins 3 caractères';
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return "Format d'email invalide";
         }
 
         return null;

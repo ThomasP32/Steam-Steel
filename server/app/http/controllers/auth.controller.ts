@@ -104,7 +104,7 @@ export class AuthController {
 
         this.userService.removeUserSession(userId);
 
-        await this.adminService.deleteAllMapsByCreator(user.username);
+        await this.adminService.deleteAllMapsByCreator(userId);
         await this.friendsService.removeUserFromAllFriendLists(user.username);
         await this.userService.deleteById(userId);
         return { success: true, message: 'Compte supprimé avec succès' };

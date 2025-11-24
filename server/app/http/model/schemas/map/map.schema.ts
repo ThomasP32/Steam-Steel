@@ -3,6 +3,7 @@ import { DoorTile, doorTileSchema, Tile, tileSchema } from '@app/http/model/sche
 import { DetailedMap, ItemCategory, Item as ItemType, MapState, Mode } from '@common/map.types';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
+import { ObjectId } from 'mongodb';
 import { Document, Types } from 'mongoose';
 
 export type MapDocument = Map & Document;
@@ -39,7 +40,7 @@ export class Map implements DetailedMap {
     mode: Mode;
 
     @ApiProperty()
-    @Prop({ type: String, required: true })
+    @Prop({ type: ObjectId, ref: 'User', required: true })
     creator: string;
 
     @ApiProperty()

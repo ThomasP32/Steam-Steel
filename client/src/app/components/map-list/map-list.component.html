@@ -12,7 +12,7 @@
             <div class="map-details">
                 <h2 class="name">{{ map.name }}</h2>
                 <p class="size">Taille : {{ map.mapSize.x }} x {{ map.mapSize.y }}</p>
-                <p class="creator">Créateur : {{ map.creator }}</p>
+                <p class="creator">Créateur : {{ mapCreators.get(map._id.toString()) }}</p>
                 <p class="state">État : {{ stateInFrench(map.state) }}</p>
                 <p class="visibility" (click)="onToggleVisibility(map._id!.toString())">
                     @if(map.isVisible) {

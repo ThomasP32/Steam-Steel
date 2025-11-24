@@ -127,7 +127,7 @@ export class MapService {
         try {
             const userInfo = await this.authService.getUserInfo();
 
-            this.map.creator = userInfo.user.username;
+            this.map.creator = userInfo.user._id;
 
             await firstValueFrom(this.communicationMapService.basicPost<any>('admin/creation', this.map));
         } catch (error) {
@@ -142,7 +142,7 @@ export class MapService {
 
             const payload = {
                 mapDto: this.map,
-                username: userInfo.user.username,
+                userId: userInfo.user._id,
             };
 
             await firstValueFrom(this.communicationMapService.basicPut<any>(`admin/edition/${mapId}`, payload));
@@ -156,7 +156,7 @@ export class MapService {
         const userInfo = await this.authService.getUserInfo();
 
         const payload = {
-            username: userInfo.user.username,
+            userId: userInfo.user._id,
         };
 
         await firstValueFrom(this.communicationMapService.basicDeleteWithBody(`admin/${mapId}`, payload));
@@ -166,7 +166,7 @@ export class MapService {
         const userInfo = await this.authService.getUserInfo();
 
         const payload = {
-            username: userInfo.user.username,
+            userId: userInfo.user._id,
         };
 
         await firstValueFrom(this.communicationMapService.basicPost<any>(`admin/duplicate/${mapId}`, payload));
