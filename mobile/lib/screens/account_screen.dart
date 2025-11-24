@@ -715,9 +715,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
     return WillPopScope(
       onWillPop: () async {
-        if (mounted) {
-          context.go('/');
-        }
+        GoRouter.of(context).go('/');
         return false;
       },
       child: Scaffold(

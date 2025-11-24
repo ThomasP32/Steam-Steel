@@ -913,270 +913,203 @@ class _GameScreenState extends State<GameScreen> {
     final isGameFinished = _gameTurnService.gameFinishedNotifier.value;
     final isObserving = PlayerService().player.isObservationMode;
 
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: ThemeBackground(pageId: 'game')),
-          Positioned(
-            top: -40,
-            left: 320,
-            child: ValueListenableBuilder<GameClassic?>(
-              valueListenable: _gameService.notifier,
-              builder: (context, game, _) => _buildMapGrid(),
-            ),
-          ),
-          Positioned(
-            top: 16,
-            left: 880,
-            right: 0,
-            child: Center(child: _buildTimer()),
-          ),
-          Positioned(left: 16, top: 16, child: _buildPlayerPanel()),
-          Positioned(
-            top: 18,
-            right: 16,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Theme.of(context).brightness == Brightness.dark
-                                  ? AppColors.buttonBackgroundDark
-                                  : AppColors.buttonBackgroundLight,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
-                        onPressed: _toggleGameInfo,
-                        child: Icon(
-                          Icons.info_outline,
-                          color:
-                              Theme.of(context).brightness == Brightness.dark
-                                  ? AppColors.buttonTextDark
-                                  : AppColors.buttonTextLight,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const FriendButton(withPadding: false),
-                    const SizedBox(width: 8),
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 18),
-                      child: SizedBox(child: ChatWidget()),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 80),
-                ValueListenableBuilder<GameClassic?>(
-                  valueListenable: _gameService.notifier,
-                  builder: (context, game, _) {
-                    final isDark =
-                        Theme.of(context).brightness == Brightness.dark;
-
-                    return Container(
-                      width: 270,
-                      margin: const EdgeInsets.only(top: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color:
-                            isDark
-                                ? Colors.black.withValues(alpha: 0.6)
-                                : Colors.white.withValues(alpha: 0.75),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: _buildPlayerList(game),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  width: 270,
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  child: const ChallengesWidget(showInfoButton: false),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            left: 16,
-            bottom: 16,
-            child: ValueListenableBuilder<bool>(
-              valueListenable: _gameTurnService.yourTurnNotifier,
-              builder: (context, isYourTurn, _) {
-                return ValueListenableBuilder<List<dynamic>>(
-                  valueListenable: _gameTurnService.possibleOpponentsNotifier,
-                  builder: (context, opponents, _) {
-                    final player = PlayerService().player;
-                    final hasCombat =
-                        opponents.isNotEmpty &&
-                        isYourTurn &&
-                        player.specs.actions > 0;
-                    DebugLogger.log(
-                      'Combat button: opponents=${opponents.length}, isYourTurn=$isYourTurn, enabled=$hasCombat',
-                      tag: 'GameScreen',
-                    );
-                    return ActionButton(
-                      iconPath: 'lib/assets/icons/fighting.png',
-                      onPressed: _handleCombatAction,
-                      isEnabled: hasCombat,
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          if (PlayerService().player.inventory.contains(
-            ItemCategory.wallBreaker,
-          ))
+    return WillPopScope(
+      onWillPop: () async {
+        return false;
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        body: Stack(
+          children: [
+            const Positioned.fill(child: ThemeBackground(pageId: 'game')),
             Positioned(
-              left: 86,
-              bottom: 16,
-              child: ActionButton(
-                iconPath: 'lib/assets/items/wallbreaker.png',
-                onPressed: _handleWallAction,
-                isEnabled:
-                    _gameTurnService.isYourTurn &&
-                    _gameTurnService.possibleWallsNotifier.value.isNotEmpty &&
-                    (_gameTurnService.possibleActions['wall'] ?? false) &&
-                    PlayerService().player.specs.actions > 0,
+              top: -40,
+              left: 320,
+              child: ValueListenableBuilder<GameClassic?>(
+                valueListenable: _gameService.notifier,
+                builder: (context, game, _) => _buildMapGrid(),
               ),
             ),
-          Positioned(
-            left:
-                PlayerService().player.inventory.contains(
-                      ItemCategory.wallBreaker,
-                    )
-                    ? 156
-                    : 86,
-            bottom: 16,
-            child: ActionButton(
-              iconPath: 'lib/assets/icons/door.png',
-              onPressed: _handleDoorAction,
-              isEnabled:
-                  _gameTurnService.isYourTurn &&
-                  _gameTurnService.possibleDoorsNotifier.value.isNotEmpty &&
-                  (_gameTurnService.possibleActions['door'] ?? false) &&
-                  PlayerService().player.specs.actions > 0,
+            Positioned(
+              top: 16,
+              left: 880,
+              right: 0,
+              child: Center(child: _buildTimer()),
             ),
-          ),
-          Positioned(
-            left:
-                PlayerService().player.inventory.contains(
-                      ItemCategory.wallBreaker,
-                    )
-                    ? 226
-                    : 156,
-            bottom: 16,
-            child: ActionButton(
-              iconPath: 'lib/assets/icons/endturn_icon.png',
-              onPressed: () => _gameTurnService.endTurn(widget.gameId),
-              isEnabled: _gameTurnService.isYourTurn,
-            ),
-          ),
-          Positioned(
-            left:
-                PlayerService().player.inventory.contains(
-                      ItemCategory.wallBreaker,
-                    )
-                    ? 296
-                    : 226,
-            bottom: 16,
-            child: ActionButton(
-              iconPath: 'lib/assets/icons/quit_icon.png',
-              onPressed: quitGame,
-              isEnabled: true,
-            ),
-          ),
-          if (!_delayFinished)
-            ColoredBox(
-              color: Colors.black.withValues(alpha: 0.7),
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.all(40),
-                  decoration: BoxDecoration(
-                    color:
-                        Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF2C3E50)
-                            : Colors.white,
-                    border: Border.all(
-                      color: AppColors.accentHighlight(context),
-                      width: 3,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
+            Positioned(left: 16, top: 16, child: _buildPlayerPanel()),
+            Positioned(
+              top: 18,
+              right: 16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        "C'est au tour de $_currentPlayerName",
-                        style: TextStyle(
-                          color:
-                              Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white
-                                  : Colors.black,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+                      SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.buttonBackgroundDark
+                                    : AppColors.buttonBackgroundLight,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                          onPressed: _toggleGameInfo,
+                          child: Icon(
+                            Icons.info_outline,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.buttonTextDark
+                                    : AppColors.buttonTextLight,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 20),
-                      Text(
-                        _startTurnCountdown.toString(),
-                        style: TextStyle(
-                          color: AppColors.accentHighlight(context),
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      const SizedBox(width: 8),
+                      const FriendButton(withPadding: false),
+                      const SizedBox(width: 8),
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 18),
+                        child: SizedBox(child: ChatWidget()),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 80),
+                  ValueListenableBuilder<GameClassic?>(
+                    valueListenable: _gameService.notifier,
+                    builder: (context, game, _) {
+                      final isDark =
+                          Theme.of(context).brightness == Brightness.dark;
+
+                      return Container(
+                        width: 270,
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color:
+                              isDark
+                                  ? Colors.black.withValues(alpha: 0.6)
+                                  : Colors.white.withValues(alpha: 0.75),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: _buildPlayerList(game),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: 270,
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    child: const ChallengesWidget(showInfoButton: false),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: 16,
+              bottom: 16,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _gameTurnService.yourTurnNotifier,
+                builder: (context, isYourTurn, _) {
+                  return ValueListenableBuilder<List<dynamic>>(
+                    valueListenable: _gameTurnService.possibleOpponentsNotifier,
+                    builder: (context, opponents, _) {
+                      final player = PlayerService().player;
+                      final hasCombat =
+                          opponents.isNotEmpty &&
+                          isYourTurn &&
+                          player.specs.actions > 0;
+                      DebugLogger.log(
+                        'Combat button: opponents=${opponents.length}, isYourTurn=$isYourTurn, enabled=$hasCombat',
+                        tag: 'GameScreen',
+                      );
+                      return ActionButton(
+                        iconPath: 'lib/assets/icons/fighting.png',
+                        onPressed: _handleCombatAction,
+                        isEnabled: hasCombat,
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            if (PlayerService().player.inventory.contains(
+              ItemCategory.wallBreaker,
+            ))
+              Positioned(
+                left: 86,
+                bottom: 16,
+                child: ActionButton(
+                  iconPath: 'lib/assets/items/wallbreaker.png',
+                  onPressed: _handleWallAction,
+                  isEnabled:
+                      _gameTurnService.isYourTurn &&
+                      _gameTurnService.possibleWallsNotifier.value.isNotEmpty &&
+                      (_gameTurnService.possibleActions['wall'] ?? false) &&
+                      PlayerService().player.specs.actions > 0,
                 ),
               ),
-            ),
-          if (_showCombatModal &&
-              _combatChallenger != null &&
-              _combatOpponent != null)
-            Positioned.fill(
-              child: CombatModalWidget(
-                challenger: _combatChallenger!,
-                opponent: _combatOpponent!,
-                gameId: widget.gameId,
-                isObserver: PlayerService().player.isObservationMode,
+            Positioned(
+              left:
+                  PlayerService().player.inventory.contains(
+                        ItemCategory.wallBreaker,
+                      )
+                      ? 156
+                      : 86,
+              bottom: 16,
+              child: ActionButton(
+                iconPath: 'lib/assets/icons/door.png',
+                onPressed: _handleDoorAction,
+                isEnabled:
+                    _gameTurnService.isYourTurn &&
+                    _gameTurnService.possibleDoorsNotifier.value.isNotEmpty &&
+                    (_gameTurnService.possibleActions['door'] ?? false) &&
+                    PlayerService().player.specs.actions > 0,
               ),
             ),
-          if (_showPlayerLeftModal) const PlayerLeftModalWidget(),
-          if (isGameFinished)
-            EndGameAlertWidget(game: _gameService.currentGame),
-
-          if (_showObservationModal)
-            ObservationModeModalWidget(
-              message: _gameTurnService.observationMessageNotifier.value,
-            ),
-          if (_showGameInfo)
             Positioned(
-              top: 70,
-              right: 16,
-              child: ValueListenableBuilder<GameClassic?>(
-                valueListenable: _gameService.notifier,
-                builder: (context, game, _) {
-                  final activePlayerCount =
-                      game?.players.where((p) => p.isActive).length ?? 0;
-                  return Container(
-                    width: 400,
-                    padding: const EdgeInsets.all(20),
+              left:
+                  PlayerService().player.inventory.contains(
+                        ItemCategory.wallBreaker,
+                      )
+                      ? 226
+                      : 156,
+              bottom: 16,
+              child: ActionButton(
+                iconPath: 'lib/assets/icons/endturn_icon.png',
+                onPressed: () => _gameTurnService.endTurn(widget.gameId),
+                isEnabled: _gameTurnService.isYourTurn,
+              ),
+            ),
+            Positioned(
+              left:
+                  PlayerService().player.inventory.contains(
+                        ItemCategory.wallBreaker,
+                      )
+                      ? 296
+                      : 226,
+              bottom: 16,
+              child: ActionButton(
+                iconPath: 'lib/assets/icons/quit_icon.png',
+                onPressed: quitGame,
+                isEnabled: true,
+              ),
+            ),
+            if (!_delayFinished)
+              ColoredBox(
+                color: Colors.black.withValues(alpha: 0.7),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(40),
                     decoration: BoxDecoration(
                       color:
                           Theme.of(context).brightness == Brightness.dark
@@ -1184,54 +1117,126 @@ class _GameScreenState extends State<GameScreen> {
                               : Colors.white,
                       border: Border.all(
                         color: AppColors.accentHighlight(context),
-                        width: 2,
+                        width: 3,
                       ),
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          blurRadius: 10,
-                          spreadRadius: 2,
-                        ),
-                      ],
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Center(
-                          child: Text(
-                            'Informations de la partie',
-                            style: TextStyle(
-                              color:
-                                  Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.white
-                                      : Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        Text(
+                          "C'est au tour de $_currentPlayerName",
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          _startTurnCountdown.toString(),
+                          style: TextStyle(
+                            color: AppColors.accentHighlight(context),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        _buildInfoRow(
-                          'Taille de la carte :',
-                          _gameService.getMapSizeLabel(),
-                        ),
-                        const Divider(color: Colors.grey),
-                        _buildInfoRow(
-                          'Nombre de joueurs :',
-                          '$activePlayerCount',
-                        ),
-                        const Divider(color: Colors.grey),
-                        _buildInfoRow('Joueur Actif :', _currentPlayerName),
                       ],
                     ),
-                  );
-                },
+                  ),
+                ),
               ),
-            ),
-        ],
+            if (_showCombatModal &&
+                _combatChallenger != null &&
+                _combatOpponent != null)
+              Positioned.fill(
+                child: CombatModalWidget(
+                  challenger: _combatChallenger!,
+                  opponent: _combatOpponent!,
+                  gameId: widget.gameId,
+                  isObserver: PlayerService().player.isObservationMode,
+                ),
+              ),
+            if (_showPlayerLeftModal) const PlayerLeftModalWidget(),
+            if (isGameFinished)
+              EndGameAlertWidget(game: _gameService.currentGame),
+
+            if (_showObservationModal)
+              ObservationModeModalWidget(
+                message: _gameTurnService.observationMessageNotifier.value,
+              ),
+            if (_showGameInfo)
+              Positioned(
+                top: 70,
+                right: 16,
+                child: ValueListenableBuilder<GameClassic?>(
+                  valueListenable: _gameService.notifier,
+                  builder: (context, game, _) {
+                    final activePlayerCount =
+                        game?.players.where((p) => p.isActive).length ?? 0;
+                    return Container(
+                      width: 400,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF2C3E50)
+                                : Colors.white,
+                        border: Border.all(
+                          color: AppColors.accentHighlight(context),
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Center(
+                            child: Text(
+                              'Informations de la partie',
+                              style: TextStyle(
+                                color:
+                                    Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildInfoRow(
+                            'Taille de la carte :',
+                            _gameService.getMapSizeLabel(),
+                          ),
+                          const Divider(color: Colors.grey),
+                          _buildInfoRow(
+                            'Nombre de joueurs :',
+                            '$activePlayerCount',
+                          ),
+                          const Divider(color: Colors.grey),
+                          _buildInfoRow('Joueur Actif :', _currentPlayerName),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

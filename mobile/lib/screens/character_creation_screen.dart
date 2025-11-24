@@ -397,66 +397,73 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
         attackOrDefenseBonus != null &&
         !_isSubmitting;
 
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: Stack(
-        children: [
-          const Positioned.fill(
-            child: ThemeBackground(pageId: 'charactercreation'),
-          ),
-          SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(flex: 3, child: _buildStatsPanel()),
-                    const SizedBox(width: 16),
-                    Expanded(flex: 4, child: _buildCenterPanel(canSubmit)),
-                    const SizedBox(width: 16),
-                    const Expanded(flex: 3, child: SizedBox()),
-                  ],
+    return WillPopScope(
+      onWillPop: () async {
+        FriendService().updateUserStatus(UserStatus.online);
+        if (mounted) context.go('/');
+        return false;
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        body: Stack(
+          children: [
+            const Positioned.fill(
+              child: ThemeBackground(pageId: 'charactercreation'),
+            ),
+            SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.of(context).size.height,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(flex: 3, child: _buildStatsPanel()),
+                      const SizedBox(width: 16),
+                      Expanded(flex: 4, child: _buildCenterPanel(canSubmit)),
+                      const SizedBox(width: 16),
+                      const Expanded(flex: 3, child: SizedBox()),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0,
-                  vertical: 8.0,
-                ),
-                child: TextButton(
-                  onPressed: () {
-                    FriendService().updateUserStatus(UserStatus.online);
-                    if (mounted) context.go('/');
-                  },
-                  child: const Text('Retour'),
+            Positioned(
+              top: 0,
+              left: 0,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
+                  child: TextButton(
+                    onPressed: () {
+                      FriendService().updateUserStatus(UserStatus.online);
+                      if (mounted) context.go('/');
+                    },
+                    child: const Text('Retour'),
+                  ),
                 ),
               ),
             ),
-          ),
-          const Positioned(
-            top: 18,
-            right: 12,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [FriendButton(), ChatWidget()],
+            const Positioned(
+              top: 18,
+              right: 12,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [FriendButton(), ChatWidget()],
+              ),
             ),
-          ),
-          Positioned(
-            top: 90,
-            right: 12,
-            bottom: 16,
-            child: _buildAvatarScrollableBox(),
-          ),
-        ],
+            Positioned(
+              top: 90,
+              right: 12,
+              bottom: 16,
+              child: _buildAvatarScrollableBox(),
+            ),
+          ],
+        ),
       ),
     );
   }

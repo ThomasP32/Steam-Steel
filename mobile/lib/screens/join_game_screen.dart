@@ -400,29 +400,36 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: ThemeBackground(pageId: 'gamecreation')),
-          Stack(
-            children: [
-              Column(
-                children: [
-                  _buildHeader(),
-                  const SizedBox(height: 25),
-                  _buildCodeEntry(),
-                  const SizedBox(height: 24),
-                  _buildGamesSection(),
-                ],
-              ),
-              if (_isLoading) _buildLoadingOverlay(),
-              const Positioned(
-                top: 18,
-                right: 12,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+    return WillPopScope(
+      onWillPop: () async {
+        if (mounted) {
+          context.go('/');
+        }
+        return false;
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        body: Stack(
+          children: [
+            const Positioned.fill(child: ThemeBackground(pageId: 'gamecreation')),
+            Stack(
+              children: [
+                Column(
                   children: [
+                    _buildHeader(),
+                    const SizedBox(height: 25),
+                    _buildCodeEntry(),
+                    const SizedBox(height: 24),
+                    _buildGamesSection(),
+                  ],
+                ),
+                if (_isLoading) _buildLoadingOverlay(),
+                const Positioned(
+                  top: 18,
+                  right: 12,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
                     Padding(
                       padding: EdgeInsets.only(top: 7),
                       child: MoneyWidget(),
@@ -436,6 +443,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
             ],
           ),
         ],
+      ),
       ),
     );
   }
