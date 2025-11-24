@@ -10,6 +10,7 @@ class GamePreviewWidget extends StatelessWidget {
     required this.game,
     required this.onTap,
     this.onJoinGame,
+    this.onObserve,
     this.currentUsername,
     super.key,
   });
@@ -17,6 +18,7 @@ class GamePreviewWidget extends StatelessWidget {
   final Map<String, dynamic> game;
   final VoidCallback onTap;
   final VoidCallback? onJoinGame;
+  final VoidCallback? onObserve;
   final String? currentUsername;
 
   String get _gameName => game['name'] as String? ?? 'Sans nom';
@@ -300,7 +302,8 @@ class GamePreviewWidget extends StatelessWidget {
       width: double.infinity,
       height: 26,
       child: ElevatedButton(
-        onPressed: isDisabled ? null : onTap,
+        onPressed:
+            isDisabled ? null : (canObserve ? (onObserve ?? onTap) : onTap),
         style: ElevatedButton.styleFrom(
           backgroundColor:
               canObserve
@@ -343,7 +346,7 @@ class GamePreviewWidget extends StatelessWidget {
           child: SizedBox(
             height: 26,
             child: ElevatedButton(
-              onPressed: onTap,
+              onPressed: onObserve ?? onTap,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1c5276),
                 shape: RoundedRectangleBorder(

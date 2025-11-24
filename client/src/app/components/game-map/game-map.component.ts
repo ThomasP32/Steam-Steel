@@ -103,7 +103,7 @@ export class GameMapComponent implements OnInit, OnChanges, OnDestroy {
         });
 
         loadedMap.players.forEach((player) => {
-            if (player.isActive && !player.isObservationMode) {
+            if (player.isActive && !player.isEliminated) {
                 this.map[player.position.x][player.position.y].player = player;
             }
         });

@@ -160,7 +160,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             }
 
             if (game.settings.isFastElimination) {
-                this.setPlayerToObservationMode(defendingPlayer, game);
+                this.setPlayerToEliminated(defendingPlayer, game);
 
                 const endResult = this.gameManagerService.checkAfterCombat(gameId, attackingPlayer, game.settings.isFastElimination);
 
@@ -180,7 +180,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             this.server.to(combatId).emit(CombatEvents.CombatFinishedNormally, attackingPlayer);
             this.journalService.logMessage(gameId, `Fin de combat. ${attackingPlayer.name} est le gagnant.`, [attackingPlayer.name]);
 
-            // Emit updated game state immediately so all players see the observation mode change right away
+            // Emit updated game state immediately so all players see the elimination change right away
             const combatFinishedData: CombatFinishedData = { updatedGame: game, winner: attackingPlayer, loser: defendingPlayer };
             this.server.to(gameId).emit(CombatEvents.CombatFinished, combatFinishedData);
 
@@ -259,19 +259,21 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     }
 
     /**
-     * Sets a player to observation mode in both combat and game
+     * Sets a player as eliminated in both combat and game
      */
-    private setPlayerToObservationMode(player: Player, game: Game): void {
-        player.isObservationMode = true;
+    private setPlayerToEliminated(player: Player, game: Game): void {
+        player.isEliminated = true;
+        player.isActive = false;
         const playerInGame = game.players.find((p) => p.socketId === player.socketId);
         if (playerInGame) {
-            playerInGame.isObservationMode = true;
+            playerInGame.isEliminated = true;
+            playerInGame.isActive = false;
         }
-        console.log(`[ELIMINATION DEBUG] Player ${player.name} set to observation mode (isObservationMode: ${player.isObservationMode})`);
+        console.log(`[ELIMINATION DEBUG] Player ${player.name} set as eliminated (isEliminated: ${player.isEliminated})`);
     }
 
     /**
-     * Notifies a player they entered observation mode
+     * Notifies a player they have been eliminated
      */
     private notifyPlayerEnteredObservationMode(player: Player, message: string): void {
         const observationModeData: PlayerEnteredObservationModeData = {
@@ -302,7 +304,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             return null;
         }
 
-        if (player?.isObservationMode === true || data.opponent?.isObservationMode === true) {
+        if (player?.isEliminated === true || data.opponent?.isEliminated === true) {
             return null;
         }
 
@@ -331,7 +333,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
      * Adds observer players to combat room
      */
     private async addObserversToCombat(game: Game, combatId: string): Promise<void> {
-        const observers = game.players.filter((p) => p.isObservationMode === true);
+        const observers = game.players.filter((p) => p.isEliminated === true || p.isObserver === true);
         const sockets = await this.server.in(game.id).fetchSockets();
         for (const observer of observers) {
             const observerSocket = sockets.find((socket) => socket.id === observer.socketId);
@@ -543,6 +545,14 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         client.to(updatedGame.id).emit(GameCreationEvents.PlayerLeft, updatedGame.players);
 
         if (updatedGame.hasStarted) {
+            // Get the updated player from the game after handlePlayerLeaving
+            const updatedPlayer = updatedGame.players.find((p) => p.socketId === client.id);
+            
+            // If game is in elimination mode, set player as eliminated
+            if (updatedGame.settings.isFastElimination && updatedPlayer) {
+                this.setPlayerToEliminated(updatedPlayer, updatedGame);
+            }
+
             if (player.inventory && player.inventory.length > 0) {
                 this.itemsManagerService.dropInventory(player, updatedGame.id);
                 const itemDroppedData: ItemDroppedData = { updatedGame: game, updatedPlayer: player };
@@ -558,6 +568,20 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                 this.gameCountdownService.deleteCountdown(updatedGame.id);
                 this.combatCountdownService.deleteCountdown(updatedGame.id); // Clean up combat timer if exists
                 return;
+            }
+
+            // If player was eliminated, check if game should end (elimination mode)
+            if (updatedGame.settings.isFastElimination && updatedPlayer?.isEliminated) {
+                const activePlayers = updatedGame.players.filter((p) => p.isActive && !p.isObserver);
+                if (activePlayers.length < 2) {
+                    const eliminationEndResult = this.gameManagerService.checkAfterCombat(updatedGame.id, activePlayers[0], true);
+                    if (eliminationEndResult.reason !== GameEndReason.Ongoing) {
+                        this.gameManagerService.handleGameEnd(updatedGame.id, eliminationEndResult, this.server);
+                        this.gameCountdownService.deleteCountdown(updatedGame.id);
+                        this.combatCountdownService.deleteCountdown(updatedGame.id);
+                        return;
+                    }
+                }
             }
 
             // Game continues, handle combat or turn timeout
@@ -576,12 +600,12 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         disconnectedPlayer.isActive = false;
 
         if (updatedGame.settings.isFastElimination) {
-            this.setPlayerToObservationMode(disconnectedPlayer, updatedGame);
+            this.setPlayerToEliminated(disconnectedPlayer, updatedGame);
 
             // Check if this elimination ends the game BEFORE notifying
             const endResult = this.gameManagerService.checkAfterCombat(updatedGame.id, winner, updatedGame.settings.isFastElimination);
 
-            // Only notify about observation mode if game continues
+            // Only notify about elimination if game continues
             // If game ends, the eliminated player will receive GameFinished event and be redirected to stats
             if (endResult.reason === GameEndReason.Ongoing) {
                 this.notifyPlayerEnteredObservationMode(

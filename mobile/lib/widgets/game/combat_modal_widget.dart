@@ -329,58 +329,81 @@ class _CombatModalWidgetState extends State<CombatModalWidget> {
                       ),
                       const SizedBox(height: 18),
 
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ElevatedButton(
-                            onPressed:
-                                (isMyTurn && !isObserver) ? _attack : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  (isMyTurn && !isObserver)
-                                      ? AppColors.accentHighlight(context)
-                                      : Colors.grey,
-                              disabledBackgroundColor: Colors.grey,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 30,
-                                vertical: 14,
+                      if (!isObserver)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ElevatedButton(
+                              onPressed: isMyTurn ? _attack : null,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    isMyTurn
+                                        ? AppColors.accentHighlight(context)
+                                        : Colors.grey,
+                                disabledBackgroundColor: Colors.grey,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 30,
+                                  vertical: 14,
+                                ),
+                              ),
+                              child: const Text(
+                                'Attaquer',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
-                            child: const Text(
-                              'Attaquer',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
+                            const SizedBox(width: 16),
+                            ElevatedButton(
+                              onPressed:
+                                  (isMyTurn && evasionsLeft > 0)
+                                      ? _evade
+                                      : null,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    (isMyTurn && evasionsLeft > 0)
+                                        ? AppColors.accentHighlight(context)
+                                        : Colors.grey,
+                                disabledBackgroundColor: Colors.grey,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 30,
+                                  vertical: 14,
+                                ),
+                              ),
+                              child: Text(
+                                'Évasion ($evasionsLeft)',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
+                          ],
+                        ),
+                      if (isObserver)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
                           ),
-                          const SizedBox(width: 16),
-                          ElevatedButton(
-                            onPressed:
-                                (isMyTurn && !isObserver && evasionsLeft > 0)
-                                    ? _evade
-                                    : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  (isMyTurn && !isObserver && evasionsLeft > 0)
-                                      ? AppColors.accentHighlight(context)
-                                      : Colors.grey,
-                              disabledBackgroundColor: Colors.grey,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 30,
-                                vertical: 14,
-                              ),
-                            ),
-                            child: Text(
-                              'Évasion ($evasionsLeft)',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
-                            ),
+                          decoration: BoxDecoration(
+                            color:
+                                isDark
+                                    ? Colors.black45
+                                    : Colors.white.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        ],
-                      ),
+                          child: Text(
+                            'Combat en cours...',
+                            style: TextStyle(
+                              color: isDark ? Colors.white70 : Colors.black87,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
                     ],
                   ),
                 ],

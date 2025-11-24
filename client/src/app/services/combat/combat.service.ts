@@ -16,7 +16,8 @@ export class CombatService {
         avatar: 1,
         level: 1,
         isActive: false,
-        isObservationMode: false,
+        isEliminated: false,
+        isObserver: false,
         specs: {
             evasions: 2,
             life: 0,
@@ -86,7 +87,7 @@ export class CombatService {
                         this.opponent.next(data.challenger);
                     }
                     this.isCombatModalOpen.next(true);
-                } else if (currentPlayer.isObservationMode === true) {
+                } else if (currentPlayer.isEliminated === true || currentPlayer.isObserver === true) {
                     // Player is observing - set both combatants
                     this.combatPlayer.next(data.challenger);
                     this.opponent.next(data.opponent);

@@ -47,8 +47,10 @@ class PlayerService {
       avatar: Avatar.values[(json['avatar'] as int? ?? 1) - 1],
       level: json['level'] as int? ?? 1,
       isActive: json['isActive'] as bool? ?? true,
-      isObservationMode: json['isObservationMode'] as bool? ?? false,
+      isEliminated: json['isEliminated'] as bool? ?? false,
       isGameWinner: json['isGameWinner'] as bool? ?? false,
+      isObserver: json['isObserver'] as bool? ?? false,
+      wasActivePlayer: json['wasActivePlayer'] as bool? ?? false,
       specs: Specs(
         life: specsJson['life'] as int? ?? 0,
         evasions: specsJson['evasions'] as int? ?? 0,

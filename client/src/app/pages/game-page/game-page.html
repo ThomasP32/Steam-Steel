@@ -12,7 +12,8 @@
 </div>
 
 }
-<div class="game-page-container">
+<div class="game-page-container" [ngClass]="{ 'observer-mode': player.isObserver }">
+    @if(!player.isObserver) {
     <div class="game-info-panel">
         <app-player-infos
             [player]="player"
@@ -20,6 +21,7 @@
             (showExitModalChange)="onShowExitModalChange($event)"
         ></app-player-infos>
     </div>
+    }
 
     <div class="game-map-container">
         <app-game-map [player]="player" [loadedMap]="game" [moves]="moves" [isYourTurn]="isYourTurn" (tileClicked)="onTileClickToMove($event)">
@@ -53,8 +55,21 @@
         </div>
     </div>
 </div>
+@if(!player.isObserver) {
 <div class="challenge-section">
     <app-challenge></app-challenge>
+</div>
+}
+<div
+    class="exit-button"
+    (mouseenter)="showExitDescription = true"
+    (mouseleave)="showExitDescription = false"
+    (click)="openExitModal()"
+>
+    @if(showExitDescription) {
+    <div class="exit-tooltip">Quitter la partie</div>
+    }
+    <img [src]="imageService.getIconImage('quit')" alt="Quitter la partie" />
 </div>
 <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
     <i class="fas fa-comments" aria-hidden="true"></i>
@@ -97,9 +112,9 @@
 <div class="combat-modal">
     <div class="popup-overlay">
         <app-combat-modal
-            [player]="(player.isObservationMode === true) ? combatPlayer : player"
+            [player]="(player.isEliminated === true || player.isObserver === true) ? combatPlayer : player"
             [opponent]="opponent"
-            [isObserver]="player.isObservationMode === true"
+            [isObserver]="player.isEliminated === true || player.isObserver === true"
         >
         </app-combat-modal>
     </div>
@@ -110,7 +125,7 @@
         <app-inventory-modal [player]="player" [gameId]="game.id"> </app-inventory-modal>
     </div>
 </div>
-} @if(isObservationModeModalOpen) {
+} @if(isEliminatedModalOpen) {
 <div class="observation-mode-modal">
     <div class="popup-overlay">
         <app-observation-mode-modal [message]="observationModeMessage" [closeModal]="closeObservationModeModal.bind(this)">

@@ -306,7 +306,7 @@ export class GameManagerService {
         const adjacentPlayers: Player[] = [];
         if (game?.players && player?.position) {
             game.players.forEach((otherPlayer) => {
-                if (otherPlayer.isActive && !otherPlayer.isObservationMode && otherPlayer.position) {
+                if (otherPlayer.isActive && !otherPlayer.isEliminated && otherPlayer.position) {
                     if (otherPlayer.socketId !== player.socketId) {
                         const isAdjacent = DIRECTIONS.some(
                             (direction) =>
@@ -441,7 +441,7 @@ export class GameManagerService {
     isGameResumable(gameId: string): boolean {
         return (
             this.gameCreationService.getGameById(gameId) &&
-            !!this.gameCreationService.getGameById(gameId).players.find((player) => player.isActive && !player.isObservationMode)
+            !!this.gameCreationService.getGameById(gameId).players.find((player) => player.isActive && !player.isEliminated && !player.isObserver)
         );
     }
 
@@ -541,7 +541,7 @@ export class GameManagerService {
         console.log(`  - Players: ${game.players.length}`);
         game.players.forEach((p, i) => {
             console.log(
-                `    ${i}. ${p.name} (${p.socketId.substring(0, 8)}...) - Active: ${p.isActive}, Observing: ${p.isObservationMode}, Position: ${
+                `    ${i}. ${p.name} (${p.socketId.substring(0, 8)}...) - Active: ${p.isActive}, Observing: ${p.isEliminated}, Position: ${
                     p.position ? `(${p.position.x},${p.position.y})` : 'UNDEFINED'
                 }`,
             );
@@ -558,7 +558,7 @@ export class GameManagerService {
     private getActiveNonObserverCount(gameId: string): number {
         const game = this.gameCreationService.getGameById(gameId);
         if (!game) return 0;
-        return game.players.filter((p) => p.isActive && !p.isObservationMode).length;
+        return game.players.filter((p) => p.isActive && !p.isEliminated && !p.isObserver).length;
     }
 
     /**
@@ -567,7 +567,7 @@ export class GameManagerService {
     private getActiveNonObservers(gameId: string): Player[] {
         const game = this.gameCreationService.getGameById(gameId);
         if (!game) return [];
-        return game.players.filter((p) => p.isActive && !p.isObservationMode);
+        return game.players.filter((p) => p.isActive && !p.isEliminated && !p.isObserver);
     }
 
     /**
@@ -596,7 +596,17 @@ export class GameManagerService {
      * Only checks for termination (< 2 active non-observers)
      */
     checkAfterDisconnect(gameId: string): GameEndResult {
+        const game = this.gameCreationService.getGameById(gameId);
         const count = this.getActiveNonObserverCount(gameId);
+
+        // Debug: Log all players and their state
+        console.log(`[GameManager] checkAfterDisconnect for game ${gameId}:`);
+        if (game) {
+            game.players.forEach((p) => {
+                console.log(`  - ${p.name} (${p.socketId}): isActive=${p.isActive}, isEliminated=${p.isEliminated}, isObserver=${p.isObserver}`);
+            });
+        }
+        console.log(`  Total active count: ${count}`);
 
         if (count < 2) {
             console.log(`[GameManager] Game ${gameId} terminating: ${count} active non-observers`);

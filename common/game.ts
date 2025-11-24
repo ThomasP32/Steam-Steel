@@ -64,7 +64,9 @@ export interface Player {
     avatar: Avatar;
     level: number;
     isActive: boolean;
-    isObservationMode?: boolean;
+    isEliminated?: boolean;
+    isObserver?: boolean;
+    wasActivePlayer?: boolean;
     specs: Specs;
     inventory: ItemCategory[];
     position: Coordinate;
@@ -88,7 +90,6 @@ export interface GameClassic extends Map {
     isLocked: boolean;
     hasStarted: boolean;
     settings: GameSettings;
-    participants: Player[];
 }
 
 interface GameSettings {

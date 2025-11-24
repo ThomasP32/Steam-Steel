@@ -85,22 +85,31 @@ export class GameCreationService {
             this.gamePrizePools[gameId].playerEntries.set(userId, entryFee);
             console.log(`[addPlayerToGame] Player ${userId} paid ${entryFee}, total pool: ${this.gamePrizePools[gameId].totalPool}`);
         }
-        if (player.isObservationMode === undefined) {
-            player.isObservationMode = false;
-        }
-
-        if (!game.participants) {
-            game.participants = [];
+        if (player.isEliminated === undefined) {
+            player.isEliminated = false;
         }
 
         const existingPlayer = game.players.find((plyr) => plyr.name === player.name);
         if (existingPlayer) {
             if (game.settings.isFastElimination && existingPlayer.specs.nDefeats === 1) {
                 existingPlayer.isActive = false;
-                existingPlayer.isObservationMode = true;
+                existingPlayer.isEliminated = true;
+
             } else {
-                existingPlayer.isActive = true;
-                existingPlayer.isObservationMode = false;
+                // Only set isActive = true if player is not eliminated and not an observer
+                if (!existingPlayer.isEliminated && !existingPlayer.isObserver) {
+                    existingPlayer.isActive = true;
+                    // Mark as active player when they rejoin as an active participant
+                    if (existingPlayer.wasActivePlayer === undefined || existingPlayer.wasActivePlayer === false) {
+                        existingPlayer.wasActivePlayer = true;
+                    }
+                } else {
+                    existingPlayer.isActive = false;
+                }
+                // Preserve elimination status if game has started - don't reset eliminated players
+                if (!game.hasStarted) {
+                    existingPlayer.isEliminated = false;
+                }
                 existingPlayer.inventory = [];
             }
             existingPlayer.socketId = socketId;
@@ -109,7 +118,8 @@ export class GameCreationService {
             if (!player.inventory) {
                 player.inventory = [];
             }
-            game.participants.push(player);
+            // Mark new players as active participants (not observers)
+            player.wasActivePlayer = true;
             this.gameRooms[gameId].players.push(player);
 
             // Assign challenge to new player
@@ -182,12 +192,26 @@ export class GameCreationService {
         }
 
         if (game.hasStarted) {
-            game.players = game.players.map((player) => {
-                return player.socketId === client.id ? { ...player, isActive: false } : player;
-            });
+            const leavingPlayer = game.players.find((player) => player.socketId === client.id);
+            
+            // If player was only an observer (never active participant) and was not eliminated, remove them from the game
+            if (!leavingPlayer?.wasActivePlayer) {
+                game.players = game.players.filter((player) => player.socketId !== client.id);
+            } else {
+                game.players = game.players.map((player) => {
+                    if (player.socketId === client.id) {
+                        // If game is in elimination mode, set player as eliminated (only if they were an active player)
+                        if (game.settings.isFastElimination) {
+                            return { ...player, isActive: false, isEliminated: true, isObserver: false };
+                        }
+                        return { ...player, isActive: false, isObserver: false  };
+                    }
+                    return player;
+                });
+            }
         } else {
             game.players = game.players.filter((player) => player.socketId !== client.id);
-            if (!this.isMaxPlayersReached(game.players, gameId)) {
+            if (!this.isMaxPlayersReached(gameId)) {
                 game.isLocked = false;
             }
         }
@@ -242,7 +266,6 @@ export class GameCreationService {
         }
 
         game.players = game.players.filter((player) => player.socketId !== playerId);
-        game.participants = [...game.players];
 
         console.log(`Player with socket ID ${playerId} has been kicked from game ${gameId}, refund: ${refundAmount}`);
         return { updatedGame: game, refundAmount };
@@ -323,16 +346,17 @@ export class GameCreationService {
         const mapSize = Object.values(MapSize).find((size) => MapConfig[size].size === game.mapSize.x);
 
         if (mapSize) {
-            const activePlayersCount = game.players.filter((player) => player.isActive).length;
+            const activePlayersCount = game.players.filter((player) => player.isActive && !player.isObserver).length;
             return activePlayersCount >= MapConfig[mapSize].minPlayers;
         }
         return false;
     }
 
-    isMaxPlayersReached(players: Player[], gameId: string): boolean {
+    isMaxPlayersReached(gameId: string): boolean {
         const game = this.getGameById(gameId);
         const mapSize = Object.values(MapSize).find((size) => MapConfig[size].size === game.mapSize.x);
-        return mapSize && players.length === MapConfig[mapSize].maxPlayers;
+        const activeOrEliminatedCount = game.players.filter((p) => p.isActive || p.isEliminated).length;
+        return mapSize && activeOrEliminatedCount >= MapConfig[mapSize].maxPlayers;
     }
 
     lockGame(gameId: string): void {
@@ -483,8 +507,8 @@ export class GameCreationService {
 
     recalculateTurnOrder(game: Game): void {
         const currentPlayer = game.players.find((p) => p.turn === game.currentTurn);
-        const activePlayers = game.players.filter((p) => p.isActive);
-        const inactivePlayers = game.players.filter((p) => !p.isActive);
+        const activePlayers = game.players.filter((p) => p.isActive && !p.isObserver);
+        const inactivePlayers = game.players.filter((p) => !p.isActive || p.isObserver);
         const orderedActivePlayers = [...activePlayers].sort((player1, player2) => {
             const speedDifference = player2.specs.speed - player1.specs.speed;
             return speedDifference === 0 ? Math.random() - HALF : speedDifference;

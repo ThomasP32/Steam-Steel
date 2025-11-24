@@ -261,7 +261,7 @@ class WaitingRoomService {
         'socketId': SocketService().socketId ?? storedPlayer.socketId,
         'level': storedPlayer.level,
         'isActive': storedPlayer.isActive,
-        'isObservationMode': storedPlayer.isObservationMode,
+        'isEliminated': storedPlayer.isEliminated,
         'avatar': storedPlayer.avatar.index + 1,
         'specs': {
           'life': storedPlayer.specs.life,

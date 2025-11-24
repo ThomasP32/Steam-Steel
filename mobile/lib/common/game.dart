@@ -8,8 +8,10 @@ class Player {
     required this.avatar,
     required this.specs,
     this.isActive = true,
-    this.isObservationMode = false,
     this.isGameWinner = false,
+    this.isObserver = false,
+    this.isEliminated = false,
+    this.wasActivePlayer = false,
     this.inventory = const [],
     this.position = const [],
     this.turn = 0,
@@ -22,8 +24,10 @@ class Player {
   final String name;
   final Avatar avatar;
   final bool isActive;
-  final bool isObservationMode;
+  final bool isEliminated;
   final bool isGameWinner;
+  final bool wasActivePlayer;
+  final bool isObserver;
   final Specs specs;
   final List<ItemCategory> inventory;
   final List<Coordinate> position;

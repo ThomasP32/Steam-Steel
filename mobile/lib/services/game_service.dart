@@ -204,7 +204,9 @@ class GameService {
       level: json['level'] as int? ?? 1,
       isActive: json['isActive'] as bool? ?? true,
       isGameWinner: json['isGameWinner'] as bool? ?? false,
-      isObservationMode: json['isObservationMode'] as bool? ?? false,
+      isEliminated: json['isEliminated'] as bool? ?? false,
+      wasActivePlayer: json['wasActivePlayer'] as bool? ?? false,
+      isObserver: json['isObserver'] as bool? ?? false,
       specs: Specs(
         life: specsJson['life'] as int? ?? 0,
         evasions: specsJson['evasions'] as int? ?? 0,

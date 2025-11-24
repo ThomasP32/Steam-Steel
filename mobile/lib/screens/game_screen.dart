@@ -617,10 +617,7 @@ class _GameScreenState extends State<GameScreen> {
         final activePlayers =
             players
                 .where(
-                  (p) =>
-                      p.isActive &&
-                      !p.isObservationMode &&
-                      p.socketId.isNotEmpty,
+                  (p) => p.isActive && !p.isEliminated && p.socketId.isNotEmpty,
                 )
                 .toList();
         final allVirtual =
@@ -948,7 +945,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final isGameFinished = _gameTurnService.gameFinishedNotifier.value;
-    final isObserving = PlayerService().player.isObservationMode;
+    final isObserver = PlayerService().player.isObserver;
 
     return WillPopScope(
       onWillPop: () async {
@@ -973,7 +970,8 @@ class _GameScreenState extends State<GameScreen> {
               right: 0,
               child: Center(child: _buildTimer()),
             ),
-            Positioned(left: 16, top: 16, child: _buildPlayerPanel()),
+            if (!isObserver)
+              Positioned(left: 16, top: 16, child: _buildPlayerPanel()),
             Positioned(
               top: 18,
               right: 16,
@@ -1043,97 +1041,17 @@ class _GameScreenState extends State<GameScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  Container(
-                    width: 270,
-                    constraints: const BoxConstraints(maxHeight: 200),
-                    child: const ChallengesWidget(showInfoButton: false),
-                  ),
+                  if (!isObserver)
+                    Container(
+                      width: 270,
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      child: const ChallengesWidget(showInfoButton: false),
+                    ),
                 ],
               ),
             ),
             Positioned(
-              left: 16,
-              bottom: 16,
-              child: ValueListenableBuilder<bool>(
-                valueListenable: _gameTurnService.yourTurnNotifier,
-                builder: (context, isYourTurn, _) {
-                  return ValueListenableBuilder<List<dynamic>>(
-                    valueListenable: _gameTurnService.possibleOpponentsNotifier,
-                    builder: (context, opponents, _) {
-                      final player = PlayerService().player;
-                      final hasCombat =
-                          opponents.isNotEmpty &&
-                          isYourTurn &&
-                          player.specs.actions > 0;
-                      DebugLogger.log(
-                        'Combat button: opponents=${opponents.length}, isYourTurn=$isYourTurn, enabled=$hasCombat',
-                        tag: 'GameScreen',
-                      );
-                      return ActionButton(
-                        iconPath: 'lib/assets/icons/fighting.png',
-                        onPressed: _handleCombatAction,
-                        isEnabled: hasCombat,
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-            if (PlayerService().player.inventory.contains(
-              ItemCategory.wallBreaker,
-            ))
-              Positioned(
-                left: 86,
-                bottom: 16,
-                child: ActionButton(
-                  iconPath: 'lib/assets/items/wallbreaker.png',
-                  onPressed: _handleWallAction,
-                  isEnabled:
-                      _gameTurnService.isYourTurn &&
-                      _gameTurnService.possibleWallsNotifier.value.isNotEmpty &&
-                      (_gameTurnService.possibleActions['wall'] ?? false) &&
-                      PlayerService().player.specs.actions > 0,
-                ),
-              ),
-            Positioned(
-              left:
-                  PlayerService().player.inventory.contains(
-                        ItemCategory.wallBreaker,
-                      )
-                      ? 156
-                      : 86,
-              bottom: 16,
-              child: ActionButton(
-                iconPath: 'lib/assets/icons/door.png',
-                onPressed: _handleDoorAction,
-                isEnabled:
-                    _gameTurnService.isYourTurn &&
-                    _gameTurnService.possibleDoorsNotifier.value.isNotEmpty &&
-                    (_gameTurnService.possibleActions['door'] ?? false) &&
-                    PlayerService().player.specs.actions > 0,
-              ),
-            ),
-            Positioned(
-              left:
-                  PlayerService().player.inventory.contains(
-                        ItemCategory.wallBreaker,
-                      )
-                      ? 226
-                      : 156,
-              bottom: 16,
-              child: ActionButton(
-                iconPath: 'lib/assets/icons/endturn_icon.png',
-                onPressed: () => _gameTurnService.endTurn(widget.gameId),
-                isEnabled: _gameTurnService.isYourTurn,
-              ),
-            ),
-            Positioned(
-              left:
-                  PlayerService().player.inventory.contains(
-                        ItemCategory.wallBreaker,
-                      )
-                      ? 296
-                      : 226,
+              left: 20,
               bottom: 16,
               child: ActionButton(
                 iconPath: 'lib/assets/icons/quit_icon.png',
@@ -1141,6 +1059,79 @@ class _GameScreenState extends State<GameScreen> {
                 isEnabled: true,
               ),
             ),
+            if (!isObserver) ...[
+              Positioned(
+                left: 20,
+                bottom: 120,
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: _gameTurnService.yourTurnNotifier,
+                  builder: (context, isYourTurn, _) {
+                    return ValueListenableBuilder<List<dynamic>>(
+                      valueListenable:
+                          _gameTurnService.possibleOpponentsNotifier,
+                      builder: (context, opponents, _) {
+                        final player = PlayerService().player;
+                        final hasCombat =
+                            opponents.isNotEmpty &&
+                            isYourTurn &&
+                            player.specs.actions > 0;
+                        return ActionButton(
+                          iconPath: 'lib/assets/icons/fighting.png',
+                          onPressed: _handleCombatAction,
+                          isEnabled: hasCombat,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              if (PlayerService().player.inventory.contains(
+                ItemCategory.wallBreaker,
+              ))
+                Positioned(
+                  left: 100,
+                  bottom: 120,
+                  child: ActionButton(
+                    iconPath: 'lib/assets/items/wallbreaker.png',
+                    onPressed: _handleWallAction,
+                    isEnabled:
+                        _gameTurnService.isYourTurn &&
+                        _gameTurnService
+                            .possibleWallsNotifier
+                            .value
+                            .isNotEmpty &&
+                        (_gameTurnService.possibleActions['wall'] ?? false) &&
+                        PlayerService().player.specs.actions > 0,
+                  ),
+                ),
+              Positioned(
+                left:
+                    PlayerService().player.inventory.contains(
+                          ItemCategory.wallBreaker,
+                        )
+                        ? 175
+                        : 135,
+                bottom: 120,
+                child: ActionButton(
+                  iconPath: 'lib/assets/icons/door.png',
+                  onPressed: _handleDoorAction,
+                  isEnabled:
+                      _gameTurnService.isYourTurn &&
+                      _gameTurnService.possibleDoorsNotifier.value.isNotEmpty &&
+                      (_gameTurnService.possibleActions['door'] ?? false) &&
+                      PlayerService().player.specs.actions > 0,
+                ),
+              ),
+              Positioned(
+                left: 250,
+                bottom: 120,
+                child: ActionButton(
+                  iconPath: 'lib/assets/icons/endturn_icon.png',
+                  onPressed: () => _gameTurnService.endTurn(widget.gameId),
+                  isEnabled: _gameTurnService.isYourTurn,
+                ),
+              ),
+            ],
             if (!_delayFinished)
               ColoredBox(
                 color: Colors.black.withValues(alpha: 0.7),
@@ -1195,7 +1186,7 @@ class _GameScreenState extends State<GameScreen> {
                   challenger: _combatChallenger!,
                   opponent: _combatOpponent!,
                   gameId: widget.gameId,
-                  isObserver: PlayerService().player.isObservationMode,
+                  isObserver: PlayerService().player.isEliminated,
                 ),
               ),
             if (_showPlayerLeftModal) const PlayerLeftModalWidget(),
@@ -1396,7 +1387,7 @@ class _GameScreenState extends State<GameScreen> {
     final player = game.players.cast<dynamic>().firstWhere((p) {
       if (p.position == null) return false;
       if (p.isActive == false) return false;
-      if (p.isObservationMode == true) return false;
+      if (p.isEliminated == true) return false;
       final pos = p.position as List;
       return pos.isNotEmpty && pos[0].x == row && pos[0].y == col;
     }, orElse: () => null);
@@ -1953,7 +1944,8 @@ class _GameScreenState extends State<GameScreen> {
       final avatarIndex = (player.avatar.index + 1).clamp(1, 17);
       final hasFlag = player.inventory.contains(ItemCategory.flag);
       final hasLeftGame = !player.isActive;
-      final isObserving = player.isObservationMode;
+      final isObserving = player.isEliminated;
+      final isPureObserver = player.isObserver && !player.isEliminated;
       final isVirtualPlayer = player.socketId.contains('virtualPlayer');
       final isGameCreator = player.socketId == game.hostSocketId;
       final isNotInGame = hasLeftGame || isObserving;
@@ -1968,153 +1960,147 @@ class _GameScreenState extends State<GameScreen> {
                   : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
         ),
-        child: Stack(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+            Row(
               children: [
-                Row(
-                  children: [
-                    const SizedBox(width: 8),
-                    Opacity(
-                      opacity: isNotInGame ? 0.4 : 1.0,
-                      child: CircleAvatar(
-                        radius: 16,
-                        backgroundColor: Colors.grey.shade900,
-                        child: Image.asset(
-                          'lib/assets/previewcharacters/${avatarIndex}_preview.png',
-                          width: 32,
-                          height: 32,
-                          fit: BoxFit.cover,
-                        ),
+                const SizedBox(width: 8),
+                if (!isPureObserver)
+                  Opacity(
+                    opacity: isNotInGame ? 0.4 : 1.0,
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.grey.shade900,
+                      child: Image.asset(
+                        'lib/assets/previewcharacters/${avatarIndex}_preview.png',
+                        width: 32,
+                        height: 32,
+                        fit: BoxFit.cover,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              player.name.isNotEmpty ? player.name : 'Joueur',
-                              style: TextStyle(
-                                color:
-                                    isNotInGame
-                                        ? textColor.withValues(alpha: 0.4)
-                                        : textColor,
-                                fontSize: 16,
-                                fontWeight:
-                                    isActivePlayer
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                decoration:
-                                    isNotInGame
-                                        ? TextDecoration.lineThrough
-                                        : TextDecoration.none,
-                                decorationColor: AppColors.accentHighlight(
-                                  context,
-                                ),
-                                decorationThickness: 3,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          if (!isVirtualPlayer) ...[
-                            Opacity(
-                              opacity: isNotInGame ? 0.4 : 1.0,
-                              child: Image.asset(
-                                'lib/assets/level-badges/level-${player.level}.png',
-                                width: 28,
-                                height: 28,
-                                errorBuilder:
-                                    (context, error, stackTrace) =>
-                                        const SizedBox.shrink(),
-                              ),
-                            ),
-                          ],
-                          if (isVirtualPlayer) ...[
-                            Image.asset(
-                              'lib/assets/icons/robot.png',
-                              width: 24,
-                              height: 24,
-                              fit: BoxFit.contain,
-                            ),
-                            const SizedBox(width: 8),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Opacity(
-                  opacity: isNotInGame ? 0.4 : 1.0,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Row(
-                      children: [
-                        if (isActivePlayer) ...[
-                          Image.asset(
-                            'lib/assets/icons/arrow.png',
-                            width: 30,
-                            height: 30,
-                            fit: BoxFit.contain,
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        if (isGameCreator) ...[
-                          Image.asset(
-                            'lib/assets/icons/crown.png',
-                            width: 24,
-                            height: 24,
-                            fit: BoxFit.contain,
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        if (isObserving) ...[
-                          Image.asset(
-                            'lib/assets/icons/observer.png',
-                            width: 30,
-                            height: 30,
-                            fit: BoxFit.contain,
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        if (hasFlag) ...[
-                          Image.asset(
-                            'lib/assets/icons/flag_player.png',
-                            width: 30,
-                            height: 30,
-                            fit: BoxFit.contain,
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        Image.asset(
-                          'lib/assets/icons/trophy_icon.png',
-                          width: 22,
-                          height: 22,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${player.specs.nVictories}',
+                  ),
+                if (!isPureObserver) const SizedBox(width: 8),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          player.name.isNotEmpty ? player.name : 'Joueur',
                           style: TextStyle(
                             color:
-                                isActivePlayer
-                                    ? AppColors.accentHighlight(context)
-                                    : (isDark
-                                        ? Colors.white70
-                                        : Colors.black54),
+                                isNotInGame
+                                    ? textColor.withValues(alpha: 0.4)
+                                    : textColor,
                             fontSize: 16,
+                            fontWeight:
+                                isActivePlayer
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                            decoration:
+                                isNotInGame && !isPureObserver
+                                    ? TextDecoration.lineThrough
+                                    : TextDecoration.none,
+                            decorationColor: AppColors.accentHighlight(context),
+                            decorationThickness: 3,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      if (!isPureObserver && !isVirtualPlayer) ...[
+                        Opacity(
+                          opacity: isNotInGame ? 0.4 : 1.0,
+                          child: Image.asset(
+                            'lib/assets/level-badges/level-${player.level}.png',
+                            width: 28,
+                            height: 28,
+                            errorBuilder:
+                                (context, error, stackTrace) =>
+                                    const SizedBox.shrink(),
                           ),
                         ),
                       ],
-                    ),
+                      if (!isPureObserver && isVirtualPlayer) ...[
+                        Image.asset(
+                          'lib/assets/icons/robot.png',
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                    ],
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 6),
+            Opacity(
+              opacity: isNotInGame && !isPureObserver ? 0.4 : 1.0,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Row(
+                  children: [
+                    if (isActivePlayer) ...[
+                      Image.asset(
+                        'lib/assets/icons/arrow.png',
+                        width: 30,
+                        height: 30,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    if (isGameCreator) ...[
+                      Image.asset(
+                        'lib/assets/icons/crown.png',
+                        width: 24,
+                        height: 24,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    if (player.isObserver) ...[
+                      Image.asset(
+                        'lib/assets/icons/observer.png',
+                        width: 30,
+                        height: 30,
+                        fit: BoxFit.contain,
+                      ),
+                    ],
+                    if (!isPureObserver) ...[
+                      if (hasFlag) ...[
+                        Image.asset(
+                          'lib/assets/icons/flag_player.png',
+                          width: 30,
+                          height: 30,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Image.asset(
+                        'lib/assets/icons/trophy_icon.png',
+                        width: 22,
+                        height: 22,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${player.specs.nVictories}',
+                        style: TextStyle(
+                          color:
+                              isActivePlayer
+                                  ? AppColors.accentHighlight(context)
+                                  : (isDark ? Colors.white70 : Colors.black54),
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ],
         ),
