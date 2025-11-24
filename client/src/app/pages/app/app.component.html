@@ -2,9 +2,10 @@
 <button class="friends-list-toggle-button" aria-label="Toggle friends list" (click)="toggleFriendsListVisibility()">
     <i class="fas fa-user-friends" aria-hidden="true"></i>
 </button>
-<button class="toggle-theme-btn" (click)="toggleTheme()">🌓</button>
-}
-@if(isLoggedIn && isGamePage){
+<button class="toggle-theme-btn" (click)="toggleTheme()">
+    <span class="material-icons">{{ themeClass === 'theme-dark' ? 'light_mode' : 'mode_night' }}</span>
+</button>
+} @if(isLoggedIn && isGamePage){
 <button class="game-info-toggle-button" aria-label="Toggle game info" (click)="toggleGameInfoVisibility()">
     <i class="fas fa-info-circle" aria-hidden="true"></i>
 </button>
@@ -23,8 +24,7 @@
 <div class="friends-list-wrapper">
     <app-friends-list></app-friends-list>
 </div>
-}
-@if (isGameInfoVisible && isGamePage && gameService.game) {
+} @if (isGameInfoVisible && isGamePage && gameService.game) {
 <div class="game-info-wrapper">
     <span class="close-button" (click)="isGameInfoVisible = false">×</span>
     <app-game-info [game]="gameService.game" [currentPlayerTurn]="gameTurnService.playerTurn$ | async"></app-game-info>

@@ -4,10 +4,10 @@ import { Router } from '@angular/router';
 import { AccountComponent } from '@app/components/account/account.component';
 import { AuthenticationComponent } from '@app/components/authentication/authentication.component';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
+import { ShopComponent } from '@app/components/shop/shop.component';
 import { AuthService } from '@app/services/auth/auth.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { Subscription } from 'rxjs';
-import { ShopComponent } from '@app/components/shop/shop.component';
 @Component({
     selector: 'app-main-page',
     standalone: true,
@@ -76,8 +76,9 @@ export class HomePageComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     logout(): void {
-        this.authService.logout();
-        this.isChatVisible = false;
+        if (!this.isLoggedIn) {
+            this.isChatVisible = false;
+        }
     }
 
     async connect() {
