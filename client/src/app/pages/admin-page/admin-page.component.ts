@@ -31,6 +31,7 @@ export class AdminPageComponent implements OnInit, OnDestroy {
     isCreateMapModalVisible = false;
     isChatVisible: boolean = false;
     currentUsername: string = '';
+    currentUserId: string = '';
 
     private readonly unsubscribe$ = new Subject<void>();
 
@@ -54,6 +55,7 @@ export class AdminPageComponent implements OnInit, OnDestroy {
         try {
             const userInfo = await this.authService.getUserInfo();
             this.currentUsername = userInfo.user.username;
+            this.currentUserId = userInfo.user._id;
         } catch (error) {
             console.error('Erreur lors de la récupération des informations utilisateur:', error);
         }
@@ -93,8 +95,8 @@ export class AdminPageComponent implements OnInit, OnDestroy {
     }
 
     private separateMaps(): void {
-        this.myMaps = this.maps.filter((map) => map.creator === this.currentUsername);
-        this.publicMaps = this.maps.filter((map) => map.state === MapState.Public && map.creator !== this.currentUsername);
+        this.myMaps = this.maps.filter((map) => map.creator === this.currentUserId);
+        this.publicMaps = this.maps.filter((map) => map.state === MapState.Public && map.creator !== this.currentUserId);
     }
 
     scrollToTop(): void {

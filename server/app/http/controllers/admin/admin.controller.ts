@@ -1,6 +1,7 @@
 import { MapDto } from '@app/http/model/dto/map/map.dto';
 import { Map } from '@app/http/model/schemas/map/map.schema';
 import { AdminService } from '@app/http/services/admin/admin.service';
+import { UserService } from '@app/http/services/user/user.service';
 import { Body, Controller, Delete, Get, HttpStatus, Inject, Param, Patch, Post, Put, Res } from '@nestjs/common';
 import { ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -9,6 +10,7 @@ import { Response } from 'express';
 @Controller('admin')
 export class AdminController {
     @Inject(AdminService) private readonly adminService: AdminService;
+    @Inject(UserService) private readonly userService: UserService;
 
     @ApiOkResponse({
         description: 'Returns all maps',
@@ -45,6 +47,24 @@ export class AdminController {
         }
     }
 
+    @ApiOkResponse({
+        description: 'Get username by user ID',
+        type: String,
+    })
+    @ApiNotFoundResponse({
+        description: 'Return NOT_FOUND http status when request fails',
+    })
+    @Get('/username/:userId')
+    async getUsernameByUserID(@Param('userId') userId: string, @Res() response: Response) {
+        try {
+            const user = await this.userService.getUserById(userId);
+            const username = user.username;
+            response.status(HttpStatus.OK).json(username);
+        } catch (error) {
+            response.status(HttpStatus.NOT_FOUND).send(error.message);
+        }
+    }
+
     @ApiCreatedResponse({
         description: 'Add new map',
     })
@@ -72,10 +92,10 @@ export class AdminController {
         description: 'Return NOT_FOUND http status when request fails',
     })
     @Put('/edition/:mapId')
-    async modifyMap(@Param('mapId') mapId: string, @Body() body: { mapDto: MapDto; username: string }, @Res() response: Response) {
+    async modifyMap(@Param('mapId') mapId: string, @Body() body: { mapDto: MapDto; userId: string }, @Res() response: Response) {
         try {
-            const { mapDto, username } = body;
-            const updatedMap = await this.adminService.modifyMap(mapId, mapDto, username);
+            const { mapDto, userId } = body;
+            const updatedMap = await this.adminService.modifyMap(mapId, mapDto, userId);
             response.status(HttpStatus.OK).json(updatedMap);
         } catch (error) {
             return response.status(error.status || HttpStatus.BAD_REQUEST).json({
@@ -109,9 +129,9 @@ export class AdminController {
         description: 'Return NOT_FOUND http status when request fails',
     })
     @Delete('/:mapId')
-    async deleteMap(@Param('mapId') mapId: string, @Body() body: { username: string }, @Res() response: Response) {
+    async deleteMap(@Param('mapId') mapId: string, @Body() body: { userId: string }, @Res() response: Response) {
         try {
-            await this.adminService.deleteMap(mapId, body.username);
+            await this.adminService.deleteMap(mapId, body.userId);
             response.status(HttpStatus.OK).send();
         } catch (error) {
             return response.status(error.status || HttpStatus.BAD_REQUEST).json({
@@ -129,9 +149,9 @@ export class AdminController {
         description: 'Return NOT_FOUND http status when request fails',
     })
     @Post('/duplicate/:mapId')
-    async duplicateMap(@Param('mapId') mapId: string, @Body() body: { username: string }, @Res() response: Response) {
+    async duplicateMap(@Param('mapId') mapId: string, @Body() body: { userId: string }, @Res() response: Response) {
         try {
-            const duplicatedMap = await this.adminService.duplicateMap(mapId, body.username);
+            const duplicatedMap = await this.adminService.duplicateMap(mapId, body.userId);
             response.status(HttpStatus.CREATED).json(duplicatedMap);
         } catch (error) {
             return response.status(error.status || HttpStatus.BAD_REQUEST).json({

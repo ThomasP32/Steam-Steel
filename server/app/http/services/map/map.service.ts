@@ -20,11 +20,11 @@ export class MapService {
         return map;
     }
 
-    async getVisibleMapsForUser(username: string): Promise<Map[]> {
+    async getVisibleMapsForUser(userId: string): Promise<Map[]> {
         const maps = await this.mapModel.find(
             {
                 isVisible: true,
-                $or: [{ state: MapState.Public }, { creator: username }],
+                $or: [{ state: MapState.Public }, { creator: userId }],
             },
             { _id: 0, isVisible: 0, lastModified: 0 },
         );

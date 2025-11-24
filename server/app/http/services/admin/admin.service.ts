@@ -66,7 +66,7 @@ export class AdminService {
         }
     }
 
-    async deleteMap(mapId: string, username?: string): Promise<void> {
+    async deleteMap(mapId: string, userId?: string): Promise<void> {
         try {
             const objectId = new Types.ObjectId(mapId);
             const map = await this.mapModel.findById(objectId);
@@ -75,7 +75,7 @@ export class AdminService {
                 throw new NotFoundException("Le jeu n'a pas été trouvé");
             }
 
-            if (!this.canDeleteMap(map, username)) {
+            if (!this.canDeleteMap(map, userId)) {
                 throw new ForbiddenException("Vous n'avez pas les permissions pour supprimer ce jeu");
             }
 
@@ -92,16 +92,16 @@ export class AdminService {
         }
     }
 
-    async deleteAllMapsByCreator(username: string): Promise<void> {
+    async deleteAllMapsByCreator(userId: string): Promise<void> {
         try {
-            await this.mapModel.deleteMany({ creator: username });
+            await this.mapModel.deleteMany({ creator: userId });
             this.adminGateway.notifyMapListUpdate();
         } catch (error) {
             throw new BadRequestException('La suppression des cartes a échoué');
         }
     }
 
-    async duplicateMap(mapId: string, username: string): Promise<DetailedMap> {
+    async duplicateMap(mapId: string, userId: string): Promise<DetailedMap> {
         const existingMap = await this.mapModel.findById(mapId);
 
         if (!existingMap) {
@@ -132,7 +132,7 @@ export class AdminService {
             items: existingMap.items,
             mode: existingMap.mode,
             state: MapState.Private,
-            creator: username,
+            creator: userId,
         };
 
         try {
@@ -144,18 +144,18 @@ export class AdminService {
         }
     }
 
-    async modifyMap(mapId: string, updateMapDto: MapDto, username?: string): Promise<DetailedMap> {
+    async modifyMap(mapId: string, updateMapDto: MapDto, userId?: string): Promise<DetailedMap> {
         const existingMap = await this.mapModel.findById(mapId);
 
         if (!existingMap) {
             throw new NotFoundException("Le jeu n'a pas été trouvé");
         }
 
-        if (!this.canModifyMap(existingMap, username)) {
+        if (!this.canModifyMap(existingMap, userId)) {
             throw new ForbiddenException("Vous n'avez pas la permission de modifier cette carte");
         }
 
-        if (updateMapDto.state !== existingMap.state && existingMap.creator !== username) {
+        if (updateMapDto.state !== existingMap.state && existingMap.creator !== userId) {
             throw new ForbiddenException("Seul le créateur peut modifier l'état de la carte");
         }
 
@@ -355,25 +355,25 @@ export class AdminService {
         }
     }
 
-    private canDeleteMap(map: DetailedMap, username?: string): boolean {
+    private canDeleteMap(map: DetailedMap, userId?: string): boolean {
         if (map.state === MapState.Public) {
             return true;
         }
-        return username !== undefined && map.creator === username;
+        return userId !== undefined && map.creator === userId;
     }
 
-    private canModifyMap(map: DetailedMap, username?: string): boolean {
+    private canModifyMap(map: DetailedMap, userId?: string): boolean {
         if (map.state === MapState.Public) {
             return true;
         }
-        return username !== undefined && map.creator === username;
+        return userId !== undefined && map.creator === userId;
     }
 
-    canUseMapForGameByUsername(map: DetailedMap, username?: string): boolean {
+    canUseMapForGameByUserId(map: DetailedMap, userId?: string): boolean {
         if (map.state === MapState.Public || map.state === MapState.Share) {
             return true;
         }
 
-        return username !== undefined && map.creator === username;
+        return userId !== undefined && map.creator === userId;
     }
 }

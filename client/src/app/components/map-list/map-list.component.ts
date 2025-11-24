@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { Router } from '@angular/router';
+import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { MapService } from '@app/services/map/map.service';
 import { DetailedMap, MapState } from '@common/map.types';
-import { Subject } from 'rxjs';
+import { Subject, firstValueFrom } from 'rxjs';
 
 @Component({
     selector: 'app-map-list',
@@ -12,12 +13,13 @@ import { Subject } from 'rxjs';
     styleUrls: ['./map-list.component.scss'],
     imports: [CommonModule],
 })
-export class MapListComponent implements OnDestroy {
+export class MapListComponent implements OnInit, OnDestroy {
     @Input() maps: DetailedMap[] = [];
     @Input() currentUsername: string = '';
     @Output() mapDuplicated = new EventEmitter<void>();
 
     currentMapId: string | null = null;
+    mapCreators = new Map<string, string>();
     showDeleteModal = false;
     private readonly unsubscribe$ = new Subject<void>();
     publicSate = MapState.Public;
@@ -25,9 +27,24 @@ export class MapListComponent implements OnDestroy {
     constructor(
         private readonly router: Router,
         private readonly mapService: MapService,
+        private readonly communicationMapService: CommunicationMapService,
     ) {
         this.router = router;
         this.mapService = mapService;
+        this.communicationMapService = communicationMapService;
+    }
+
+    async ngOnInit(): Promise<void> {
+        for (const map of this.maps) {
+            this.getMapCreator(map).then((username) => {
+                this.mapCreators.set(map._id.toString(), username);
+            });
+        }
+    }
+
+    async getMapCreator(map: DetailedMap): Promise<string> {
+        const username = await firstValueFrom(this.communicationMapService.basicGet<string>(`admin/username/${map.creator}`));
+        return username;
     }
 
     onEditMap(map: DetailedMap): void {

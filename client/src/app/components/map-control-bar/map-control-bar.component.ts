@@ -6,6 +6,8 @@ import { MapService } from '@app/services/map/map.service';
 import { TIME_LIMIT_DELAY } from '@common/constants';
 import { MapState } from '@common/map.types';
 import { AuthService } from '@app/services/auth/auth.service';
+import { CommunicationMapService } from '@app/services/communication/communication.map.service';
+import { firstValueFrom } from 'rxjs';
 @Component({
     selector: 'app-map-control-bar',
     standalone: true,
@@ -22,11 +24,13 @@ export class MapControlBarComponent implements OnInit {
         private readonly mapService: MapService,
         private readonly router: Router,
         private readonly authService: AuthService,
+        private readonly communicationMapService: CommunicationMapService,
     ) {
         this.route = route;
         this.mapService = mapService;
         this.router = router;
         this.authService = authService;
+        this.communicationMapService = communicationMapService;
     }
 
     async ngOnInit(): Promise<void> {
@@ -40,8 +44,7 @@ export class MapControlBarComponent implements OnInit {
             this.title = this.mapService.map.name;
             this.description = this.mapService.map.description;
             this.mapState = this.mapService.map.state;
-            const info = await this.authService.getUserInfo();
-            this.creator = this.mapService.map.creator || info?.user?.username || 'Créateur inconnu';
+            this.loadMapCreator();
         }
     }
 
@@ -51,6 +54,16 @@ export class MapControlBarComponent implements OnInit {
     mapState: MapState = MapState.Public;
     creator: string = '';
     MapState = MapState;
+
+    async loadMapCreator(): Promise<void> {
+        if (this.mapService.map.creator) {
+            const username = await firstValueFrom(this.communicationMapService.basicGet<string>(`admin/username/${this.mapService.map.creator}`));
+            this.creator = username;
+        } else {
+            const info = await this.authService.getUserInfo();
+            this.creator = info?.user?.username || 'Créateur inconnu';
+        }
+    }
 
     toggleEditing() {
         this.editMode = !this.editMode;
