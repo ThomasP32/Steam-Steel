@@ -15,6 +15,7 @@ import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/friends/friend_button.dart';
 import 'package:mobile/widgets/game/game_invitation_listener.dart';
+import 'package:mobile/widgets/mainpage/account_button.dart';
 import 'package:mobile/widgets/mainpage/main_page_footer.dart';
 import 'package:mobile/widgets/mainpage/shop_widget.dart';
 import 'package:mobile/widgets/theme/theme_widget.dart';
@@ -174,11 +175,7 @@ class HomeScreen extends StatelessWidget {
                                           'Commencer une nouvelle partie',
                                         ),
                                       ),
-                                      const SizedBox(width: 24),
-                                      TextButton(
-                                        onPressed: () => context.go('/auth'),
-                                        child: const Text('Compte'),
-                                      ),
+
                                       const SizedBox(width: 24),
                                       TextButton(
                                         onPressed: () {
@@ -232,7 +229,7 @@ class HomeScreen extends StatelessWidget {
                   right: 12,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: [FriendButton(), ChatWidget()],
+                    children: [AccountButton(), FriendButton(), ChatWidget()],
                   ),
                 );
               }

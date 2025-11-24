@@ -56,6 +56,11 @@ export class AccountComponent implements OnInit {
         return this.userInfo?.user?.status === 'online' ? 'en ligne' : 'hors ligne';
     }
 
+    logoutAccount(): void {
+        this.authService.logout();
+        this.closed.emit();
+    }
+
     async resetEditFields() {
         if (this.userInfo?.user) {
             this.editEmail = this.userInfo.user.email;
