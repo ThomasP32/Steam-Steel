@@ -59,6 +59,8 @@ export class FriendsService {
             status: user.status as UserStatus,
             avatar: user.avatar,
             avatarCustom: user.avatarCustom,
+            profilePicture: user.profilePicture,
+            profilePictureCustom: user.profilePictureCustom,
         };
     }
 

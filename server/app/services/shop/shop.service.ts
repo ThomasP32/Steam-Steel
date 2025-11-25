@@ -21,7 +21,7 @@ export class ShopService {
             id: 'avatar_1',
             name: 'Nyssara',
             price: 700,
-            category: 'avatar',
+            category: 'characters',
             imagePath: 'assets/characters/13.png',
             description: 'Un brave assassin avec ses dagues rapides',
         },
@@ -29,7 +29,7 @@ export class ShopService {
             id: 'avatar_2',
             name: 'Lancelot',
             price: 500,
-            category: 'avatar',
+            category: 'characters',
             imagePath: 'assets/characters/14.png',
             description: 'Une puissante guerrière avec son épée et son bouclier',
         },
@@ -37,7 +37,7 @@ export class ShopService {
             id: 'avatar_3',
             name: 'Legolas',
             price: 600,
-            category: 'avatar',
+            category: 'characters',
             imagePath: 'assets/characters/15.png',
             description: 'Une archère agile et précise avec son arc et ses flèches',
         },
@@ -45,7 +45,7 @@ export class ShopService {
             id: 'avatar_4',
             name: 'Aetherion',
             price: 1000,
-            category: 'avatar',
+            category: 'characters',
             imagePath: 'assets/characters/16.png',
             description: 'Un dragon mystique avec des pouvoirs élémentaires',
         },
@@ -53,7 +53,7 @@ export class ShopService {
             id: 'avatar_5',
             name: 'Luminova',
             price: 1500,
-            category: 'avatar',
+            category: 'characters',
             imagePath: 'assets/characters/17.png',
             description: 'Une licorne magique avec une crinière étincelante',
         },
@@ -137,6 +137,68 @@ export class ShopService {
             category: 'sound',
             imagePath: 'assets/icons/fighting.png',
             description: 'Sons magiques et fantastiques (À venir)',
+        },
+
+        {
+            id: 'profile_4',
+            name: 'Daphné',
+            price: 300,
+            category: 'profilePicture',
+            imagePath: 'assets/profile/4.png',
+            description: 'Une photo de profil feminine',
+        },
+        {
+            id: 'profile_5',
+            name: 'Pascal',
+            price: 350,
+            category: 'profilePicture',
+            imagePath: 'assets/profile/5.png',
+            description: 'Une photo de profil Pascal',
+        },
+        {
+            id: 'profile_6',
+            name: 'R2D2',
+            price: 400,
+            category: 'profilePicture',
+            imagePath: 'assets/profile/6.png',
+            description: 'Une photo de profil R2D2',
+            levelRequired: 5,
+        },
+        {
+            id: 'profile_7',
+            name: 'Arc-en-ciel',
+            price: 450,
+            category: 'profilePicture',
+            imagePath: 'assets/profile/7.png',
+            description: 'Une photo de profil Arc-en-ciel',
+            levelRequired: 10,
+        },
+        {
+            id: 'profile_8',
+            name: 'Krokmou',
+            price: 500,
+            category: 'profilePicture',
+            imagePath: 'assets/profile/8.png',
+            description: 'Une photo de profil Krokmou',
+            levelRequired: 15,
+        },
+        {
+            id: 'profile_9',
+            name: 'Étudiant de Poly',
+            price: 550,
+            category: 'profilePicture',
+            imagePath: 'assets/profile/9.png',
+            description: 'Une photo de profil typique',
+            levelRequired: 20,
+        },
+        {
+            id: 'profile_10',
+            name: 'Simba',
+            price: 600,
+            category: 'profilePicture',
+            imagePath: 'assets/profile/10.png',
+            description: 'Une photo de profil de Simba royal',
+            levelRequired: 25,
         },
     ];
 
@@ -342,12 +404,24 @@ export class ShopService {
 
             await this.userModel.updateOne({ _id: userId, 'shopItems.itemId': itemId }, { $set: { 'shopItems.$.equipped': true } });
 
-            if (item.category === 'avatar') {
+            if (item.category === 'characters') {
                 const avatarId = this.mapShopItemToAvatar(itemId);
                 if (avatarId) {
                     await this.userModel.updateOne({ _id: userId }, { $set: { avatar: avatarId } });
 
                     await this.chatroomService.updateMessageAuthorAvatar(user.username, avatarId, user.avatarCustom);
+                }
+            }
+
+            if (item.category === 'profilePicture') {
+                const profilePictureId = this.mapShopItemToProfilePicture(itemId);
+                if (profilePictureId) {
+                    await this.unequipAllProfilePicturesForUser(userId);
+
+                    await this.userModel.updateOne({ _id: userId, 'shopItems.itemId': itemId }, { $set: { 'shopItems.$.equipped': true } });
+                    await this.userModel.updateOne({ _id: userId }, { $set: { profilePicture: profilePictureId } });
+
+                    await this.chatroomService.updateMessageAuthorProfilePicture(user.username, profilePictureId, user.profilePictureCustom);
                 }
             }
 
@@ -386,12 +460,21 @@ export class ShopService {
         try {
             await this.userModel.updateOne({ _id: userId, 'shopItems.itemId': itemId }, { $set: { 'shopItems.$.equipped': false } });
 
-            if (item.category === 'avatar') {
+            if (item.category === 'characters') {
                 let newAvatarId = 1;
 
                 await this.userModel.updateOne({ _id: userId }, { $set: { avatar: 1 } });
 
                 await this.chatroomService.updateMessageAuthorAvatar(user.username, newAvatarId, user.avatarCustom);
+            }
+
+            if (item.category === 'profilePicture') {
+                // Retourner à Profile1 par défaut
+                let newProfilePictureId = 1;
+
+                await this.userModel.updateOne({ _id: userId }, { $set: { profilePicture: 1 } });
+
+                await this.chatroomService.updateMessageAuthorProfilePicture(user.username, newProfilePictureId, user.profilePictureCustom);
             }
 
             return { success: true };
@@ -452,6 +535,20 @@ export class ShopService {
         return mapping[itemId] || null;
     }
 
+    private mapShopItemToProfilePicture(itemId: string): number | null {
+        const mapping: { [key: string]: number } = {
+            profile_4: 4,
+            profile_5: 5,
+            profile_6: 6,
+            profile_7: 7,
+            profile_8: 8,
+            profile_9: 9,
+            profile_10: 10,
+        };
+
+        return mapping[itemId] || null;
+    }
+
     async getUserItems(userId: string): Promise<{ itemId: string; equipped: boolean; purchaseDate: Date }[]> {
         if (!userId || userId === 'undefined') {
             console.error('getUserItems: userId is invalid:', userId);
@@ -470,5 +567,53 @@ export class ShopService {
 
         const user = await this.userModel.findOne({ username }).select('shopItems');
         return user?.shopItems || [];
+    }
+
+    async unequipAllProfilePicturesForUser(userId: string): Promise<{ success: boolean; error?: string }> {
+        if (!userId || userId === 'undefined') {
+            console.error('unequipAllProfilePicturesForUser: userId is invalid:', userId);
+            return { success: false, error: 'ID utilisateur invalide' };
+        }
+
+        try {
+            const profilePictureItems = this.getItemsByCategory('profilePicture').map((item) => item.id);
+
+            await this.userModel.updateOne(
+                { _id: userId },
+                { $set: { 'shopItems.$[elem].equipped': false } },
+                { arrayFilters: [{ 'elem.itemId': { $in: profilePictureItems } }] },
+            );
+
+            return { success: true };
+        } catch (error) {
+            console.error('Erreur lors du déséquipement des photos de profil:', error);
+            return { success: false, error: 'Erreur serveur lors du déséquipement' };
+        }
+    }
+
+    async isProfilePictureFromEquippedShopItem(userId: string, profilePictureId: number): Promise<boolean> {
+        if (!userId || userId === 'undefined') {
+            return false;
+        }
+
+        try {
+            const user = await this.userModel.findById(userId).select('shopItems');
+            if (!user || !user.shopItems) return false;
+
+            const equippedProfileItem = user.shopItems.find((item) => {
+                if (!item.equipped) return false;
+
+                const shopItem = this.getItemById(item.itemId);
+                if (!shopItem || shopItem.category !== 'profilePicture') return false;
+
+                const mappedProfileId = this.mapShopItemToProfilePicture(item.itemId);
+                return mappedProfileId === profilePictureId;
+            });
+
+            return !!equippedProfileItem;
+        } catch (error) {
+            console.error('Erreur lors de la vérification de la photo de profil équipée:', error);
+            return false;
+        }
     }
 }

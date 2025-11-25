@@ -1,6 +1,6 @@
 import { JWT_SECRET, MAX_LEVEL, N_LEVEL_BANNER, N_WINS_PER_LEVEL } from '@common/constants';
 import { GameManagerEvents } from '@common/events/game-manager.events';
-import { Avatar } from '@common/game';
+import { Avatar, ProfilePicture } from '@common/game';
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as jwt from 'jsonwebtoken';
@@ -26,8 +26,24 @@ export class UserService {
         this.server = server;
     }
 
-    async create(email: string, password: string, username: string, avatar?: Avatar, avatarCustom?: string): Promise<User> {
-        const user = new this.userModel({ email, password, username, avatar, avatarCustom });
+    async create(
+        email: string,
+        password: string,
+        username: string,
+        avatar?: Avatar,
+        avatarCustom?: string,
+        profilePicture?: ProfilePicture,
+        profilePictureCustom?: string,
+    ): Promise<User> {
+        const user = new this.userModel({
+            email,
+            password,
+            username,
+            avatar,
+            avatarCustom,
+            profilePicture: profilePicture || ProfilePicture.Profile1,
+            profilePictureCustom,
+        });
         return user.save();
     }
 
@@ -59,10 +75,20 @@ export class UserService {
         return { deleted: true };
     }
 
-    async updateById(id: string, email: string, username: string, avatar?: Avatar, avatarCustom?: string): Promise<User | null> {
+    async updateById(
+        id: string,
+        email: string,
+        username: string,
+        avatar?: Avatar,
+        avatarCustom?: string,
+        profilePicture?: ProfilePicture,
+        profilePictureCustom?: string,
+    ): Promise<User | null> {
         const update: any = { email, username };
         if (avatar !== undefined) update.avatar = avatar;
         if (avatarCustom !== undefined) update.avatarCustom = avatarCustom;
+        if (profilePicture !== undefined) update.profilePicture = profilePicture;
+        if (profilePictureCustom !== undefined) update.profilePictureCustom = profilePictureCustom;
         return this.userModel.findByIdAndUpdate(id, update, { new: true }).select('-password').lean();
     }
 
@@ -105,6 +131,8 @@ export class UserService {
         username: string,
         avatar?: Avatar,
         avatarCustom?: string,
+        profilePicture?: ProfilePicture,
+        profilePictureCustom?: string,
     ): Promise<{ success: boolean; message?: string; user?: User }> {
         const validationError = this.validateInputs(email, password, username);
         if (validationError) {
@@ -119,7 +147,7 @@ export class UserService {
         if (existingUsername) {
             return { success: false, message: 'Ce pseudo est déjà utilisé.' };
         }
-        const user = await this.create(email, password, username, avatar, avatarCustom);
+        const user = await this.create(email, password, username, avatar, avatarCustom, profilePicture, profilePictureCustom);
         return { success: true, user };
     }
 
@@ -129,6 +157,8 @@ export class UserService {
         username: string,
         avatar?: Avatar,
         avatarCustom?: string,
+        profilePicture?: ProfilePicture,
+        profilePictureCustom?: string,
     ): Promise<{ success: boolean; message?: string }> {
         const validationError = this.validateUpdateInputs(email, username);
         if (validationError) {
@@ -147,7 +177,7 @@ export class UserService {
                 return { success: false, message: 'Ce pseudo est déjà utilisé.' };
             }
         }
-        await this.updateById(String(user._id), email, username, avatar, avatarCustom);
+        await this.updateById(String(user._id), email, username, avatar, avatarCustom, profilePicture, profilePictureCustom);
         return { success: true, message: 'Compte mis à jour avec succès' };
     }
 
@@ -212,7 +242,7 @@ export class UserService {
             return "Les champs ne peuvent pas contenir d'espaces";
         }
 
-        const emailRegex = /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@(?![a-zA-Z0-9.-]+\.$)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+        const emailRegex = /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@(?![a-zA-Z0-9.-]+\.$)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         if (!emailRegex.test(email)) {
             return "Format d'email invalide";
         }

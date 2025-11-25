@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { Character } from '@app/interfaces/character';
-import { CharacterService } from '@app/services/character/character.service';
-import { Avatar } from '@common/game';
+import { ProfilePictureData } from '@app/interfaces/profile-picture';
+import { ProfilePictureService } from '@app/services/profile-picture/profile-picture.service';
+import { ProfilePicture } from '@common/game';
 
 @Component({
     selector: 'app-profile-picture',
@@ -12,80 +12,80 @@ import { Avatar } from '@common/game';
     styleUrls: ['./profile-picture.component.scss'],
 })
 export class ProfilePictureComponent implements OnInit {
-    @Input() selectedAvatar: Avatar = Avatar.Avatar1;
-    @Input() customAvatarPreview: string | undefined;
-    @Output() selectedAvatarChange = new EventEmitter<Avatar>();
-    @Output() customAvatarPreviewChange = new EventEmitter<string | undefined>();
+    @Input() selectedProfilePicture: ProfilePicture = ProfilePicture.Profile1;
+    @Input() customProfilePicturePreview: string | undefined;
+    @Output() selectedProfilePictureChange = new EventEmitter<ProfilePicture>();
+    @Output() customProfilePicturePreviewChange = new EventEmitter<string | undefined>();
 
-    allAvatars: Character[] = [];
+    allProfilePictures: ProfilePictureData[] = [];
     userOwnedItems: { itemId: string; equipped: boolean }[] = [];
 
-    get avatars() {
-        return this.allAvatars;
+    get profilePictures() {
+        return this.allProfilePictures;
     }
 
-    constructor(public characterService: CharacterService) {
-        this.characterService = characterService;
+    constructor(public profilePictureService: ProfilePictureService) {
+        this.profilePictureService = profilePictureService;
     }
 
     async ngOnInit(): Promise<void> {
-        this.allAvatars = this.characterService.getAllCharacters();
-        this.userOwnedItems = await this.characterService.getUserOwnedItems();
+        this.allProfilePictures = this.profilePictureService.getAllProfilePictureData();
+        this.userOwnedItems = await this.profilePictureService.getUserOwnedItems();
     }
 
-    isSelected(avatarId: Avatar): boolean {
-        return this.selectedAvatar === avatarId && !this.customAvatarPreview;
+    isSelected(profilePictureId: ProfilePicture): boolean {
+        return this.selectedProfilePicture === profilePictureId && !this.customProfilePicturePreview;
     }
 
-    isShopAvatarOwned(avatar: Character): boolean {
-        if (!avatar.isShopAvatar || !avatar.shopItemId) {
+    isShopProfileOwned(profilePicture: ProfilePictureData): boolean {
+        if (!profilePicture.isShopProfile || !profilePicture.shopItemId) {
             return true;
         }
-        return this.userOwnedItems.some((item) => item.itemId === avatar.shopItemId);
+        return this.userOwnedItems.some((item) => item.itemId === profilePicture.shopItemId);
     }
 
-    canSelectAvatar(avatar: Character): boolean {
-        return !avatar.isShopAvatar || this.isShopAvatarOwned(avatar);
+    canSelectProfile(profilePicture: ProfilePictureData): boolean {
+        return !profilePicture.isShopProfile || this.isShopProfileOwned(profilePicture);
     }
 
-    async selectPredefinedAvatar(avatarId: Avatar) {
-        const selectedAvatar = this.allAvatars.find((avatar) => avatar.id === avatarId);
+    async selectPredefinedProfile(profilePictureId: ProfilePicture) {
+        const selectedProfile = this.allProfilePictures.find((profile) => profile.id === profilePictureId);
 
-        if (selectedAvatar && !this.canSelectAvatar(selectedAvatar)) {
+        if (selectedProfile && !this.canSelectProfile(selectedProfile)) {
             return;
         }
 
-        this.selectedAvatar = avatarId;
-        this.customAvatarPreview = undefined;
-        this.selectedAvatarChange.emit(avatarId);
-        this.customAvatarPreviewChange.emit(undefined);
-        this.characterService.selectPredefinedAvatar();
+        this.selectedProfilePicture = profilePictureId;
+        this.customProfilePicturePreview = undefined;
+        this.selectedProfilePictureChange.emit(profilePictureId);
+        this.customProfilePicturePreviewChange.emit(undefined);
+        this.profilePictureService.selectPredefinedProfile();
 
-        if (selectedAvatar && !selectedAvatar.isShopAvatar) {
-            await this.characterService.unequipShopAvatars();
-        } else if (selectedAvatar && selectedAvatar.isShopAvatar) {
-            await this.characterService.clearCustomAvatar();
+        if (selectedProfile && !selectedProfile.isShopProfile) {
+            await this.profilePictureService.unequipShopProfiles();
+        } else if (selectedProfile && selectedProfile.isShopProfile) {
+            await this.profilePictureService.clearCustomProfile();
         }
     }
 
-    async onAvatarFileSelected(event: Event) {
+    async onProfileFileSelected(event: Event) {
         const input = event.target as HTMLInputElement;
         if (input.files && input.files[0]) {
             const file = input.files[0];
             const reader = new FileReader();
             reader.onload = async (e: any) => {
-                this.customAvatarPreview = e.target.result;
-                this.customAvatarPreviewChange.emit(this.customAvatarPreview);
-                this.selectedAvatarChange.emit(this.selectedAvatar);
-                await this.characterService.unequipShopAvatars();
+                this.customProfilePicturePreview = e.target.result;
+                this.customProfilePicturePreviewChange.emit(this.customProfilePicturePreview);
+                this.selectedProfilePictureChange.emit(this.selectedProfilePicture);
+                await this.profilePictureService.unequipShopProfiles();
             };
             reader.readAsDataURL(file);
         }
     }
 
-    async removeCustomAvatar() {
-        this.customAvatarPreview = undefined;
-        this.customAvatarPreviewChange.emit(undefined);
-        this.characterService.removeCustomAvatar();
+    async removeCustomProfile() {
+        this.customProfilePicturePreview = undefined;
+        this.customProfilePicturePreviewChange.emit(undefined);
+        this.profilePictureService.removeCustomProfile();
     }
 }

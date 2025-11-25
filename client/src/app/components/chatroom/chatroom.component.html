@@ -90,8 +90,8 @@
                         <div class="message-header">
                             <div class="author-info">
                                 <div class="author-avatar">
-                                    @if (getMessageAuthorAvatarUrl(message)) {
-                                    <img [src]="getMessageAuthorAvatarUrl(message)" [alt]="message.author + ' avatar'" class="avatar-image" />
+                                    @if (getMessageAuthorImageUrl(message)) {
+                                    <img [src]="getMessageAuthorImageUrl(message)" [alt]="message.author + ' image'" class="avatar-image" />
                                     } @else {
                                     <i class="fas fa-user"></i>
                                     } @if ((isAuthorFriend(message.author) || message.author === playerName) && message.authorStatus) {

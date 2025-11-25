@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Avatar } from '@common/game';
+import { ProfilePicture } from '@common/game';
 import { AuthService } from '../../services/auth/auth.service';
 import { ProfilePictureComponent } from '../profile-picture/profile-picture.component';
 
@@ -18,8 +18,8 @@ export class AuthenticationComponent {
     registerEmail = '';
     registerPassword = '';
     registerUsername = '';
-    registerAvatar: Avatar = Avatar.Avatar1;
-    registerCustomAvatarPreview: string | undefined;
+    registerProfilePicture: ProfilePicture = ProfilePicture.Profile1;
+    registerCustomProfilePicturePreview: string | undefined;
     loginUsername = '';
     loginPassword = '';
     registerMessage = '';
@@ -32,10 +32,18 @@ export class AuthenticationComponent {
     }
 
     async register() {
-        const avatar = this.registerAvatar;
-        const avatarCustom = this.registerCustomAvatarPreview;
+        const profilePicture = this.registerProfilePicture;
+        const profilePictureCustom = this.registerCustomProfilePicturePreview;
         const result = await this.handleAuth(() =>
-            this.authService.register(this.registerEmail, this.registerPassword, this.registerUsername, avatar, avatarCustom),
+            this.authService.register(
+                this.registerEmail,
+                this.registerPassword,
+                this.registerUsername,
+                undefined,
+                undefined,
+                profilePicture,
+                profilePictureCustom,
+            ),
         );
         this.registerMessage = result.message;
         if (result.success) {

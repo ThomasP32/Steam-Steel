@@ -3,52 +3,55 @@
     flex-direction: column;
     align-items: flex-start;
 }
-.avatar-list {
+.profile-list {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
 }
 
-.avatar-container {
+.profile-container {
     position: relative;
     display: inline-block;
 }
 
-.avatar-img {
+.profile-img {
     width: 48px;
     height: 48px;
     border-radius: 8px;
     border: 2px solid transparent;
     cursor: pointer;
     object-fit: cover;
-    transition: border 0.2s, opacity 0.2s;
+    transition:
+        border 0.2s,
+        opacity 0.2s;
 }
 
-.avatar-img.selected {
-    border: 2px solid #007bff;
+.profile-img.selected {
+    border: 3px solid #ff0000;
+    box-shadow: 0 0 8px rgba(255, 0, 0, 0.4);
 }
 
-// Style pour les avatars de boutique possédés
-.avatar-img.shop-avatar {
+// Style pour les profils de boutique possédés
+.profile-img.shop-profile {
     border: 2px solid #ffd700; // Bordure dorée
     box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
 }
 
-.avatar-img.shop-avatar.selected {
-    border: 2px solid #007bff;
-    box-shadow: 0 0 12px rgba(0, 123, 255, 0.5);
+.profile-img.shop-profile.selected {
+    border: 3px solid #ff0000;
+    box-shadow: 0 0 12px rgba(255, 0, 0, 0.5);
 }
 
-// Style pour les avatars de boutique non possédés
-.avatar-img.shop-avatar-locked {
+// Style pour les profils de boutique non possédés
+.profile-img.shop-profile-locked {
     border: 2px solid #666;
     opacity: 0.4;
     filter: brightness(0.3);
     cursor: not-allowed;
 }
 
-.avatar-img.disabled {
+.profile-img.disabled {
     cursor: not-allowed;
 }
 
@@ -72,7 +75,7 @@
     text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
 }
 
-.avatar-upload-label {
+.profile-upload-label {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -83,15 +86,15 @@
     cursor: pointer;
     background: #f8f8f8;
 }
-.avatar-upload-btn {
+.profile-upload-btn {
     font-size: 2rem;
     color: #888;
     line-height: 1;
 }
-.custom-avatar-reset {
+.custom-profile-reset {
     margin-top: 8px;
 }
-.custom-avatar-reset button {
+.custom-profile-reset button {
     background: #f44336;
     color: #fff;
     border: none;

@@ -2,11 +2,11 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '@app/services/auth/auth.service';
-import { CharacterService } from '@app/services/character/character.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { FriendsService } from '@app/services/friends/friends.service';
+import { ProfilePictureService } from '@app/services/profile-picture/profile-picture.service';
 import { ShopHttpService } from '@app/services/shop-http/shop-http.service';
-import { Avatar } from '@common/game';
+import { ProfilePicture } from '@common/game';
 import { Friend, FriendRequest, UserStatus } from '@common/user-friends';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -25,7 +25,7 @@ export class FriendsListComponent implements OnInit, OnDestroy {
     activeTab: 'friends' | 'requests' = 'friends';
     currentUsername: string = '';
 
-    allUsers: { username: string, level: number }[] = [];
+    allUsers: { username: string; level: number }[] = [];
     searchQuery: string = '';
     isLoadingUsers: boolean = false;
     selectedUserForAdd: string = '';
@@ -36,13 +36,13 @@ export class FriendsListComponent implements OnInit, OnDestroy {
 
     constructor(
         private readonly friendsService: FriendsService,
-        private readonly characterService: CharacterService,
+        private readonly profilePictureService: ProfilePictureService,
         private readonly communicationMapService: CommunicationMapService,
         private readonly authService: AuthService,
         private readonly shopHttpService: ShopHttpService,
     ) {
         this.friendsService = friendsService;
-        this.characterService = characterService;
+        this.profilePictureService = profilePictureService;
         this.communicationMapService = communicationMapService;
         this.authService = authService;
         this.shopHttpService = shopHttpService;
@@ -203,18 +203,26 @@ export class FriendsListComponent implements OnInit, OnDestroy {
         return this.filteredUsers.filter((user) => !friendUsernames.includes(user.username));
     }
 
-    getUserAvatarUrl(user: Friend | { username: string }): string {
+    getUserProfilePictureUrl(user: Friend | { username: string }): string {
+        if ('profilePicture' in user || 'profilePictureCustom' in user) {
+            const friend = user as Friend;
+            if (friend.profilePictureCustom) {
+                return friend.profilePictureCustom;
+            }
+
+            if (friend.profilePicture) {
+                const profilePictureId = typeof friend.profilePicture === 'string' ? parseInt(friend.profilePicture, 10) : friend.profilePicture;
+                if (profilePictureId && Object.values(ProfilePicture).includes(profilePictureId as ProfilePicture)) {
+                    return this.profilePictureService.getProfilePicturePreview(profilePictureId as ProfilePicture);
+                }
+            }
+        }
+
+        // Fallback to avatar if profile picture is not available
         if ('avatar' in user || 'avatarCustom' in user) {
             const friend = user as Friend;
             if (friend.avatarCustom) {
                 return friend.avatarCustom;
-            }
-
-            if (friend.avatar) {
-                const avatarId = typeof friend.avatar === 'string' ? parseInt(friend.avatar, 10) : friend.avatar;
-                if (avatarId && Object.values(Avatar).includes(avatarId as Avatar)) {
-                    return this.characterService.getAvatarPreview(avatarId as Avatar);
-                }
             }
         }
 

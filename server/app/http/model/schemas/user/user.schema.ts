@@ -1,4 +1,4 @@
-import { Avatar } from '@common/game';
+import { Avatar, ProfilePicture } from '@common/game';
 import { FriendRequest } from '@common/user-friends';
 import { StatsUser } from '@common/userStats';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
@@ -19,6 +19,12 @@ export class User extends Document {
 
     @Prop()
     avatarCustom?: string;
+
+    @Prop()
+    profilePicture: ProfilePicture;
+
+    @Prop()
+    profilePictureCustom?: string;
 
     @Prop({
         default: {

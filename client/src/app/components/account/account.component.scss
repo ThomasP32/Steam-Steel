@@ -62,7 +62,7 @@
     border: 2px solid #3b3f46;
 }
 
-.avatar-square {
+.profile-picture-square {
     width: 80px;
     height: 80px;
     background: #1c242c;
@@ -80,7 +80,7 @@
     flex-shrink: 0;
 }
 
-.avatar-img-square {
+.profile-img-square {
     width: 72px;
     height: 72px;
     width: 72px;
@@ -276,13 +276,13 @@
     text-align: center;
 }
 
-.avatar-selection {
+.profile-picture-selection {
     width: 100%;
     margin-top: 0.5rem;
     margin-top: 0.5rem;
 }
 
-.avatar-selection .form-label {
+.profile-picture-selection .form-label {
     margin-bottom: 0.8rem;
 }
 
@@ -290,10 +290,6 @@
     margin-top: 1.5rem;
     padding-top: 1.5rem;
     border-top: 2px solid #7d7f7d;
-}
-
-.avatar-selection .form-label {
-    margin-bottom: 0.8rem;
 }
 
 .stats-section {

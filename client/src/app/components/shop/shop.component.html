@@ -27,13 +27,22 @@
             <div class="items-area">
                 <div class="category-header">
                     <h2 class="category-title">{{ getCurrentCategory().name }}</h2>
-                    <div *ngIf="getCurrentCategory().id === 'avatar'" class="info-icon-container">
+                    <div *ngIf="getCurrentCategory().id === 'characters'" class="info-icon-container">
                         <span class="info-icon">ℹ️</span>
                         <div class="custom-tooltip">
-                            <div class="tooltip-header">🎭 Avatars</div>
+                            <div class="tooltip-header">🎭 Personnages</div>
                             <div class="tooltip-content">
-                                Personnalise ton identité ! Une fois acheté, ce personnage sera disponible comme photo de profil et comme avatar
-                                jouable en partie. Si équipé, il deviendra automatiquement ta photo de profil.
+                                Personnalise ton identité ! Une fois acheté, ce personnage sera disponible comme personnage jouable en partie.
+                            </div>
+                        </div>
+                    </div>
+                    <div *ngIf="getCurrentCategory().id === 'profilePicture'" class="info-icon-container">
+                        <span class="info-icon">ℹ️</span>
+                        <div class="custom-tooltip">
+                            <div class="tooltip-header">📸 Photos de Profil</div>
+                            <div class="tooltip-content">
+                                Ces photos de profil uniques apparaîtront partout où ton identité est visible : dans les chats, la liste d'amis, et
+                                les écrans de jeu. Montre qui tu es vraiment ! Si équipé, il deviendra automatiquement ta photo de profil.
                             </div>
                         </div>
                     </div>
@@ -97,11 +106,21 @@
                                         >
                                     </button>
 
-                                    <button *ngIf="item.owned && !item.equipped" class="action-btn equip-btn" (click)="equipItem(item)">
+                                    <button
+                                        *ngIf="item.owned && !item.equipped && item.category !== 'characters'"
+                                        class="action-btn equip-btn"
+                                        (click)="equipItem(item)"
+                                    >
                                         Équiper
                                     </button>
 
-                                    <button *ngIf="item.equipped" class="action-btn unequip-btn" (click)="unequipItem(item)">Déséquiper</button>
+                                    <button
+                                        *ngIf="item.equipped && item.category !== 'characters'"
+                                        class="action-btn unequip-btn"
+                                        (click)="unequipItem(item)"
+                                    >
+                                        Déséquiper
+                                    </button>
                                 </div>
                             </div>
                         </div>

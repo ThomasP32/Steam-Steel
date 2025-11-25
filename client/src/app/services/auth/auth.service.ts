@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { ChallengeService } from '@app/services/challenge/challenge.service';
 import { ChannelService } from '@app/services/channel/channel.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
-import { Avatar } from '@common/game';
+import { Avatar, ProfilePicture } from '@common/game';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { SocketService } from '../communication-socket/communication-socket.service';
 @Injectable({ providedIn: 'root' })
@@ -44,7 +44,15 @@ export class AuthService {
         }
     }
 
-    async register(email: string, password: string, username: string, avatar: Avatar, avatarCustom?: string): Promise<any> {
+    async register(
+        email: string,
+        password: string,
+        username: string,
+        avatar?: Avatar,
+        avatarCustom?: string,
+        profilePicture?: ProfilePicture,
+        profilePictureCustom?: string,
+    ): Promise<any> {
         return firstValueFrom(
             this.communicationService.basicPost<any>(`${this.apiUrl}/register`, {
                 email,
@@ -52,6 +60,8 @@ export class AuthService {
                 username,
                 avatar,
                 avatarCustom: avatarCustom || null,
+                profilePicture,
+                profilePictureCustom: profilePictureCustom || null,
             }),
         );
     }
@@ -106,7 +116,14 @@ export class AuthService {
         return firstValueFrom(this.communicationService.basicDelete(`${this.apiUrl}/delete?token=${token}`));
     }
 
-    async updateAccount(email: string, username: string, avatar?: Avatar, avatarCustom?: string): Promise<any> {
+    async updateAccount(
+        email: string,
+        username: string,
+        avatar?: Avatar,
+        avatarCustom?: string,
+        profilePicture?: ProfilePicture,
+        profilePictureCustom?: string,
+    ): Promise<any> {
         const token = localStorage.getItem('authToken');
 
         const response = await firstValueFrom(
@@ -115,6 +132,8 @@ export class AuthService {
                 username,
                 avatar,
                 avatarCustom: avatarCustom || null,
+                profilePicture,
+                profilePictureCustom: profilePictureCustom || null,
             }),
         );
         const body = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;

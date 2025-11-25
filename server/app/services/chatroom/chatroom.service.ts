@@ -35,8 +35,8 @@ export class ChatroomService {
             try {
                 const user = await this.userService.findByUsername(message.author);
                 if (user) {
-                    enrichedMessage.authorAvatar = user.avatar;
-                    enrichedMessage.authorAvatarCustom = user.avatarCustom;
+                    enrichedMessage.authorProfilePicture = user.profilePicture;
+                    enrichedMessage.authorProfilePictureCustom = user.profilePictureCustom;
                     if (user.status === 'online' || user.status === 'offline' || user.status === 'ingame') {
                         enrichedMessage.authorStatus = user.status as 'online' | 'offline' | 'ingame';
                     }
@@ -52,8 +52,8 @@ export class ChatroomService {
                 text: enrichedMessage.text,
                 roomType,
                 roomId,
-                authorAvatar: enrichedMessage.authorAvatar,
-                authorAvatarCustom: enrichedMessage.authorAvatarCustom,
+                authorProfilePicture: enrichedMessage.authorProfilePicture,
+                authorProfilePictureCustom: enrichedMessage.authorProfilePictureCustom,
                 authorStatus: enrichedMessage.authorStatus,
             });
             return created.toObject ? created.toObject() : created;
@@ -78,6 +78,8 @@ export class ChatroomService {
                 timestamp: (doc as any).createdAt || new Date(),
                 authorAvatar: (doc as any).authorAvatar,
                 authorAvatarCustom: (doc as any).authorAvatarCustom,
+                authorProfilePicture: (doc as any).authorProfilePicture,
+                authorProfilePictureCustom: (doc as any).authorProfilePictureCustom,
                 authorStatus: (doc as any).authorStatus,
             }));
         } else {
@@ -192,6 +194,35 @@ export class ChatroomService {
             return (result.modifiedCount || 0) + updatedInMemory;
         } catch (error) {
             console.error('Error updating message author avatar:', error);
+            return 0;
+        }
+    }
+
+    async updateMessageAuthorProfilePicture(username: string, profilePicture?: any, profilePictureCustom?: string): Promise<number> {
+        if (!this.messageModel) return 0;
+
+        try {
+            const updateFields: any = {};
+            if (profilePicture !== undefined) updateFields.authorProfilePicture = profilePicture;
+            if (profilePictureCustom !== undefined) updateFields.authorProfilePictureCustom = profilePictureCustom;
+
+            const result = await this.messageModel.updateMany({ author: username }, updateFields).exec();
+
+            let updatedInMemory = 0;
+            for (const roomId in this.roomMessages) {
+                const messages = this.roomMessages[roomId];
+                for (const message of messages) {
+                    if (message.author === username) {
+                        if (profilePicture !== undefined) message.authorProfilePicture = profilePicture;
+                        if (profilePictureCustom !== undefined) message.authorProfilePictureCustom = profilePictureCustom;
+                        updatedInMemory++;
+                    }
+                }
+            }
+
+            return (result.modifiedCount || 0) + updatedInMemory;
+        } catch (error) {
+            console.error('Error updating message author profile picture:', error);
             return 0;
         }
     }

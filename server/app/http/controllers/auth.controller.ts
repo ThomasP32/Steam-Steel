@@ -1,11 +1,12 @@
 import { JWT_SECRET } from '@common/constants';
-import { Avatar } from '@common/game';
+import { Avatar, ProfilePicture } from '@common/game';
 import { UserStatus } from '@common/user-friends';
 import { Body, Controller, Delete, Get, HttpStatus, Inject, Patch, Post, Req, Res } from '@nestjs/common';
 import { ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { ChatroomService } from '../../services/chatroom/chatroom.service';
+import { ShopService } from '../../services/shop/shop.service';
 import { AdminService } from '../services/admin/admin.service';
 import { FriendsService } from '../services/friends/friends.service';
 import { UserService } from '../services/user/user.service';
@@ -17,6 +18,7 @@ export class AuthController {
     @Inject(AdminService) private readonly adminService: AdminService;
     @Inject(FriendsService) private readonly friendsService: FriendsService;
     @Inject(ChatroomService) private readonly chatroomService: ChatroomService;
+    @Inject(ShopService) private readonly shopService: ShopService;
 
     @ApiCreatedResponse({
         description: 'Register a new user',
@@ -31,10 +33,12 @@ export class AuthController {
         @Body('username') username: string,
         @Body('avatar') avatar: Avatar,
         @Body('avatarCustom') avatarCustom: string,
+        @Body('profilePicture') profilePicture: ProfilePicture,
+        @Body('profilePictureCustom') profilePictureCustom: string,
         @Res() response: Response,
     ) {
         try {
-            const result = await this.userService.registerUser(email, password, username, avatar, avatarCustom);
+            const result = await this.userService.registerUser(email, password, username, avatar, avatarCustom, profilePicture, profilePictureCustom);
             if (!result.success) {
                 return response.status(HttpStatus.BAD_REQUEST).json(result);
             }
@@ -131,6 +135,8 @@ export class AuthController {
         @Body('username') username: string,
         @Body('avatar') avatar: Avatar,
         @Body('avatarCustom') avatarCustom: string,
+        @Body('profilePicture') profilePicture: ProfilePicture,
+        @Body('profilePictureCustom') profilePictureCustom: string,
     ) {
         const { userId, error } = await this.getUserIdFromToken(req);
         if (error) return { success: false, message: error };
@@ -140,8 +146,10 @@ export class AuthController {
         const oldUsername = user.username;
         const oldAvatar = user.avatar;
         const oldAvatarCustom = user.avatarCustom;
+        const oldProfilePicture = user.profilePicture;
+        const oldProfilePictureCustom = user.profilePictureCustom;
 
-        const result = await this.userService.updateUserWithChecks(user, email, username, avatar, avatarCustom);
+        const result = await this.userService.updateUserWithChecks(user, email, username, avatar, avatarCustom, profilePicture, profilePictureCustom);
 
         if (result.success) {
             try {
@@ -150,9 +158,21 @@ export class AuthController {
                 }
 
                 const avatarChanged = avatar !== oldAvatar || avatarCustom !== oldAvatarCustom;
+                const profilePictureChanged = profilePicture !== oldProfilePicture || profilePictureCustom !== oldProfilePictureCustom;
+
                 if (avatarChanged) {
                     const currentUsername = username || oldUsername;
                     await this.chatroomService.updateMessageAuthorAvatar(currentUsername, avatar, avatarCustom);
+                }
+
+                if (profilePictureChanged) {
+                    const currentUsername = username || oldUsername;
+                    await this.chatroomService.updateMessageAuthorProfilePicture(currentUsername, profilePicture, profilePictureCustom);
+
+                    const isFromEquippedShopItem = await this.shopService.isProfilePictureFromEquippedShopItem(userId, profilePicture);
+                    if (!isFromEquippedShopItem) {
+                        await this.shopService.unequipAllProfilePicturesForUser(userId);
+                    }
                 }
             } catch (error) {
                 console.error('Erreur lors de la mise à jour des messages:', error);
