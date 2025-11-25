@@ -58,6 +58,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     showDiceError: boolean = false;
 
     showGameStartedModal: boolean = false;
+    showHostQuitModal: boolean = false;
 
     constructor(
         private readonly communicationMapService: CommunicationMapService,
@@ -92,16 +93,14 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         try {
             // Charger tous les avatars (y compris ceux du shop)
             this.allCharacters = this.characterService.getAllCharacters();
-            
+
             // Charger les items possédés par l'utilisateur
             this.userOwnedItems = await this.characterService.getUserOwnedItems();
-            
+
             if (this.allCharacters.length > 0) {
                 // Trouver le premier avatar disponible et possédé
-                const firstAvailableCharacter = this.allCharacters.find(char => 
-                    this.isCharacterSelectable(char)
-                );
-                
+                const firstAvailableCharacter = this.allCharacters.find((char) => this.isCharacterSelectable(char));
+
                 if (firstAvailableCharacter) {
                     this.selectedCharacter = firstAvailableCharacter;
                     this.currentIndex = this.allCharacters.indexOf(firstAvailableCharacter);
@@ -178,7 +177,7 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         if (!extendedCharacter.isShopAvatar || !extendedCharacter.shopItemId) {
             return true; // Les avatars non-shop sont toujours "possédés"
         }
-        return this.userOwnedItems.some(item => item.itemId === extendedCharacter.shopItemId);
+        return this.userOwnedItems.some((item) => item.itemId === extendedCharacter.shopItemId);
     }
 
     isCharacterSelectable(character: Character): boolean {
@@ -201,6 +200,16 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
         this.socketSubscription.add(
             this.socketService.listen<string>(GameCreationEvents.GameAlreadyStarted).subscribe(() => {
                 this.showGameStartedModal = true;
+                setTimeout(() => {
+                    this.characterService.resetCharacterAvailability();
+                    this.router.navigate(['/main-menu']);
+                }, TIME_REDIRECTION);
+            }),
+        );
+
+        this.socketSubscription.add(
+            this.socketService.listen(GameCreationEvents.GameClosed).subscribe(() => {
+                this.showHostQuitModal = true;
                 setTimeout(() => {
                     this.characterService.resetCharacterAvailability();
                     this.router.navigate(['/main-menu']);
@@ -287,7 +296,10 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     previousCharacter() {
         do {
             this.currentIndex = this.currentIndex === 0 ? this.allCharacters.length - 1 : this.currentIndex - 1;
-        } while (!this.isCharacterSelectable(this.allCharacters[this.currentIndex]) && this.allCharacters[this.currentIndex] !== this.selectedCharacter);
+        } while (
+            !this.isCharacterSelectable(this.allCharacters[this.currentIndex]) &&
+            this.allCharacters[this.currentIndex] !== this.selectedCharacter
+        );
 
         this.selectedCharacter = this.allCharacters[this.currentIndex];
 
@@ -300,7 +312,10 @@ export class CharacterFormPageComponent implements OnInit, OnDestroy {
     nextCharacter() {
         do {
             this.currentIndex = this.currentIndex === this.allCharacters.length - 1 ? 0 : this.currentIndex + 1;
-        } while (!this.isCharacterSelectable(this.allCharacters[this.currentIndex]) && this.allCharacters[this.currentIndex] !== this.selectedCharacter);
+        } while (
+            !this.isCharacterSelectable(this.allCharacters[this.currentIndex]) &&
+            this.allCharacters[this.currentIndex] !== this.selectedCharacter
+        );
 
         this.selectedCharacter = this.allCharacters[this.currentIndex];
 

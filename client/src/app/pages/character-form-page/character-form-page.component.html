@@ -8,13 +8,13 @@
             }
         </div>
         <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
-        <i class="fas fa-comments" aria-hidden="true"></i>
-    </button>
-    @if (isChatVisible) {
-    <div class="global-chat-wrapper">
-        <app-chatroom [isInGame]="false" (closed)="isChatVisible = false"></app-chatroom>
-    </div>
-    }
+            <i class="fas fa-comments" aria-hidden="true"></i>
+        </button>
+        @if (isChatVisible) {
+        <div class="global-chat-wrapper">
+            <app-chatroom [isInGame]="false" (closed)="isChatVisible = false"></app-chatroom>
+        </div>
+        }
         <div class="left-side">
             <div class="player-stats">
                 <div class="stats">
@@ -70,7 +70,8 @@
 
                         <div class="dice-icon">
                             @if (attackOrDefenseBonus) { @if(attackBonus === Bonus.D4) {
-                            <img src="./assets/icons/d4.png" alt="D4" class="dice-image" />} @else if(attackBonus === Bonus.D6) { <img src="./assets/icons/d6.png" alt="D6" class="dice-image" />} }
+                            <img src="./assets/icons/d4.png" alt="D4" class="dice-image" />} @else if(attackBonus === Bonus.D6) {
+                            <img src="./assets/icons/d6.png" alt="D6" class="dice-image" />} }
                         </div>
                     </div>
                     <div class="dice-and-buttons-wrapper">
@@ -99,8 +100,11 @@
                 <div class="loading-characters">Chargement des avatars...</div>
                 } @else if (selectedCharacter && selectedCharacter.image) {
                 <div class="character-image-container">
-                    <img [src]="selectedCharacter.image" alt="Selected Character" 
-                         [class.locked-main-character]="selectedCharacter.isShopAvatar && !isShopAvatarOwned(selectedCharacter)" />
+                    <img
+                        [src]="selectedCharacter.image"
+                        alt="Selected Character"
+                        [class.locked-main-character]="selectedCharacter.isShopAvatar && !isShopAvatarOwned(selectedCharacter)"
+                    />
                     @if(selectedCharacter.isShopAvatar && !isShopAvatarOwned(selectedCharacter)) {
                     <div class="main-lock-overlay">
                         <span class="main-lock-icon">🔒</span>
@@ -160,6 +164,13 @@
         <div class="modal">
             <h2>La partie a commencée.</h2>
             <p>La partie a commencée sans vous, vous serez redirigé.</p>
+        </div>
+    </div>
+    } @if(showHostQuitModal) {
+    <div class="game-started-modal">
+        <div class="modal">
+            <h2>L'hôte de la partie a quitté.</h2>
+            <p>Vous serez redirigé vers le menu principal.</p>
         </div>
     </div>
     } @if((gameLockedModal && !gameSettings.isDropInOut) || (gameLockedModal && gameSettings.isDropInOut && !gameHasStarted)) {

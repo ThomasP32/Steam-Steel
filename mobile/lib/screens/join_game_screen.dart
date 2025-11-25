@@ -214,7 +214,8 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
 
     if (_isLoading || _pendingGameCode != null) {
       setState(() => _isLoading = false);
-      _showError(reason);
+      final message = reason.isNotEmpty ? reason : 'La partie est verrouillée';
+      _showError(message);
       _resetInputs();
     }
     _pendingGameCode = null;
