@@ -805,7 +805,6 @@ class _GameScreenState extends State<GameScreen> {
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
                 await ChannelService().removeGameChannel(widget.gameId);
-                SocketService().send('leaveGame', widget.gameId);
 
                 FriendService().updateUserStatus(UserStatus.online);
 
@@ -1196,6 +1195,16 @@ class _GameScreenState extends State<GameScreen> {
             if (_showObservationModal)
               ObservationModeModalWidget(
                 message: _gameTurnService.observationMessageNotifier.value,
+              ),
+            if (_showCombatModal || !_delayFinished)
+              Positioned(
+                left: 20,
+                bottom: 16,
+                child: ActionButton(
+                  iconPath: 'lib/assets/icons/quit_icon.png',
+                  onPressed: quitGame,
+                  isEnabled: true,
+                ),
               ),
             if (_showGameInfo)
               Positioned(

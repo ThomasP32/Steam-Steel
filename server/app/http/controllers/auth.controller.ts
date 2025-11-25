@@ -107,7 +107,7 @@ export class AuthController {
         if (!user) return { success: false, message: 'Utilisateur non trouvé' };
 
         this.userService.removeUserSession(userId);
-        await this.chatroomService.updateMessageAuthor(user.username, '[compte supprimé]');
+        await this.chatroomService.updateMessageAuthor(user.username, '[supprimé]');
         await this.adminService.deleteAllMapsByCreator(userId);
         await this.friendsService.removeUserFromAllFriendLists(user.username);
         await this.userService.deleteById(userId);
