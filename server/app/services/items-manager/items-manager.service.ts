@@ -82,7 +82,7 @@ export class ItemsManagerService {
             }
 
             // Track challenge progress
-            this.challengeService.onItemCollected(game, player);
+            this.challengeService.onItemCollected(game, player, item);
 
             const involvedPlayers = game.players.map((player) => player.name);
 

@@ -6,7 +6,7 @@ import { ChallengeState, ChallengeType, PublicChallengeView } from '@common/chal
 import { GameId, PlayerId } from '@common/combat';
 import { ChallengeEvent } from '@common/events/challenge.events';
 import { GameClassic, GameEndReason, Player } from '@common/game';
-import { DoorTile } from '@common/map.types';
+import { DoorTile, ItemCategory } from '@common/map.types';
 import { Injectable } from '@nestjs/common';
 import { Server } from 'socket.io';
 
@@ -83,12 +83,16 @@ export class ChallengeService {
         }
     }
 
-    onItemCollected(game: GameClassic, player: Player) {
+    onItemCollected(game: GameClassic, player: Player, item: ItemCategory) {
         const st = this.getState(game.id, player.name);
         if (!st) return;
         if (st.type === ChallengeType.COLLECT_2_ITEMS) {
-            st.itemsCollected! += 1;
-            this.challengeUpdate(game, player);
+            // Only add the item if it's not already collected
+            if (!st.collectedItems.includes(item)) {
+                st.collectedItems.push(item);
+                st.itemsCollected = st.collectedItems.length;
+                this.challengeUpdate(game, player);
+            }
         }
     }
 
@@ -118,16 +122,6 @@ export class ChallengeService {
         };
     }
 
-    // Cleanup methods for when players leave or games end
-    // cleanupPlayer(gameId: GameId, playerId: PlayerId): void {
-    //   const gameStates = this.states.get(gameId);
-    //   if (gameStates) {
-    //     gameStates.delete(playerId);
-    //     if (gameStates.size === 0) {
-    //       this.states.delete(gameId);
-    //     }
-    //   }
-    // }
 
     async cleanupGame(game: GameClassic, endReason: GameEndReason): Promise<void> {
         const gameStates = this.states.get(game.id);
@@ -248,9 +242,10 @@ export class ChallengeService {
                 return {
                     type,
                     title: 'Collectionneur',
-                    description: 'Collecter au moins deux objets.',
+                    description: 'Collecter au moins deux objets différents.',
                     reward: 50,
                     itemsCollected: 0,
+                    collectedItems: [],
                     progress: 0,
                     completed: false,
                 };
