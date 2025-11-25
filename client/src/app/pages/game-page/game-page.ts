@@ -82,6 +82,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
     showNoActivePlayersModal: boolean = false;
     gameOverMessage: boolean = false;
     isCombatModalOpen: boolean = false;
+    isCombatOngoing: boolean = false;
     isInventoryModalOpen = false;
     isEliminatedModalOpen = false;
     observationModeMessage = '';
@@ -275,6 +276,9 @@ export class GamePageComponent implements OnInit, OnDestroy {
             if (!isCombatModalOpen) {
                 this.gameTurnService.clearMoves();
             }
+        });
+        this.combatService.isCombatOngoing$.subscribe((isCombatOngoing) => {
+            this.isCombatOngoing = isCombatOngoing;
         });
     }
 

@@ -3,12 +3,16 @@ import { CombatService } from '@app/services/combat/combat.service';
 import { CombatCountdownService } from '@app/services/countdown/combat/combat-countdown.service';
 import { GameCountdownService } from '@app/services/countdown/game/game-countdown.service';
 import { GameCreationService } from '@app/services/game-creation/game-creation.service';
+import { GameManagerService } from '@app/services/game-manager/game-manager.service';
 import { ItemsManagerService } from '@app/services/items-manager/items-manager.service';
+import { JournalService } from '@app/services/journal/journal.service';
+import { TIME_LIMIT_DELAY } from '@common/constants';
 import { ChallengeEvent } from '@common/events/challenge.events';
+import { CombatEvents, CombatFinishedData } from '@common/events/combat.events';
 import { CountdownEvents } from '@common/events/countdown.events';
 import { GameCreationEvents, JoinGameData, KickPlayerData, ToggleGameLockStateData } from '@common/events/game-creation.events';
 import { GameTurnEvents } from '@common/events/game-turn.events';
-import { Game, GameCtf, GameEndReason } from '@common/game';
+import { Game, GameCtf, GameEndReason, Player } from '@common/game';
 import { Mode } from '@common/map.types';
 import { Inject } from '@nestjs/common';
 import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
@@ -27,6 +31,8 @@ export class GameGateway {
     @Inject(GameCountdownService) private readonly gameCountdownService: GameCountdownService;
     @Inject(CombatCountdownService) private readonly combatCountdownService: CombatCountdownService;
     @Inject(CombatService) private readonly combatService: CombatService;
+    @Inject(GameManagerService) private readonly gameManagerService: GameManagerService;
+    @Inject(JournalService) private readonly journalService: JournalService;
     @Inject(UserSocketService) private readonly userSocketSession: UserSocketService;
     @Inject(FriendsService) private readonly friendsService: FriendsService;
     @Inject(UserService) private readonly userService: UserService;
@@ -358,6 +364,16 @@ export class GameGateway {
                 this.itemsManagerService.dropInventory(leavingPlayer, gameId);
             }
 
+            // Check if there's an active combat and handle it
+            const combat = this.combatService.getCombatByGameId(gameId);
+            if (combat && leavingPlayer) {
+                const isInCombat = combat.challenger.socketId === client.id || combat.opponent.socketId === client.id;
+                if (isInCombat) {
+                    // Handle combat termination when player leaves during combat
+                    await this.handleCombatPlayerLeft(client, game, leavingPlayer, combat);
+                }
+            }
+
             // If player was only an observer (never active participant) and was not eliminated, remove them from the game
             if (!leavingPlayer?.wasActivePlayer && leavingPlayer?.isObserver && !leavingPlayer?.isEliminated) {
                 game.players = game.players.filter((player) => player.socketId !== client.id);
@@ -550,6 +566,106 @@ export class GameGateway {
                     });
                 }
             }
+        }
+    }
+
+    /**
+     * Handles combat termination when a player leaves the game during combat.
+     * The other player in the combat is declared the winner.
+     */
+    private async handleCombatPlayerLeft(
+        client: Socket,
+        game: Game,
+        leavingPlayer: Player,
+        combat: { challenger: Player; opponent: Player; id: string; currentTurnSocketId: string },
+    ): Promise<void> {
+        const isChallenger = combat.challenger.socketId === client.id;
+        const winner = isChallenger ? combat.opponent : combat.challenger;
+        const loser = isChallenger ? combat.challenger : combat.opponent;
+
+        console.log(`[GameGateway] Player ${leavingPlayer.name} left during combat. Winner: ${winner.name}`);
+
+        // Set leaving player as inactive
+        loser.isActive = false;
+
+        // Handle elimination mode
+        if (game.settings.isFastElimination) {
+            loser.isEliminated = true;
+            const playerInGame = game.players.find((p) => p.socketId === loser.socketId);
+            if (playerInGame) {
+                playerInGame.isEliminated = true;
+                playerInGame.isActive = false;
+            }
+        }
+
+        // Update combat stats
+        this.combatService.combatWinStatsUpdate(winner, game.id);
+        this.combatService.updatePlayersInGame(game);
+
+        // Notify all players in combat room that combat finished by disconnection
+        this.server.to(combat.id).emit(CombatEvents.CombatFinishedByDisconnection, winner);
+
+        // Log the event
+        this.journalService.logMessage(game.id, `${leavingPlayer.name} a quitté pendant le combat. ${winner.name} gagne par forfait.`, [
+            winner.name,
+            leavingPlayer.name,
+        ]);
+
+        // Delete combat countdown
+        this.combatCountdownService.deleteCountdown(game.id);
+
+        // Schedule post-combat cleanup and game flow continuation
+        setTimeout(async () => {
+            const currentGame = this.gameCreationService.getGameById(game.id);
+            if (!currentGame) {
+                console.warn(`[GameGateway] handleCombatPlayerLeft setTimeout: Game ${game.id} not found (likely already ended)`);
+                return;
+            }
+
+            // Emit combat finished event to all players in the game
+            const combatFinishedData: CombatFinishedData = { updatedGame: currentGame, winner: winner, loser: loser };
+            this.server.to(currentGame.id).emit(CombatEvents.CombatFinished, combatFinishedData);
+
+            // Check if combat resulted in game end
+            const endResult = this.gameManagerService.checkAfterCombat(currentGame.id, winner, currentGame.settings.isFastElimination);
+
+            if (endResult.reason !== GameEndReason.Ongoing) {
+                this.gameManagerService.handleGameEnd(currentGame.id, endResult, this.server);
+                this.combatService.deleteCombat(currentGame.id);
+                await this.cleanupCombatRoom(combat.id);
+                this.gameCountdownService.deleteCountdown(currentGame.id);
+                return;
+            }
+
+            // Game continues - handle post-combat flow
+            if (currentGame.currentTurn === winner.turn) {
+                this.gameCountdownService.resumeCountdown(currentGame.id);
+                if (!winner.socketId.includes('virtual')) {
+                    this.server.to(winner.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
+                    // Check if winner is stuck after combat
+                    if (this.gameManagerService.isPlayerStuck(currentGame.id, winner.socketId)) {
+                        console.log(`[GameGateway] Player ${winner.name} is stuck after combat. Auto-ending turn.`);
+                        this.gameCountdownService.emit(CountdownEvents.Timeout, currentGame.id);
+                    }
+                }
+            } else {
+                // Not winner's turn, trigger timeout to move to next turn
+                this.gameCountdownService.emit(CountdownEvents.Timeout, currentGame.id);
+            }
+
+            // Clean up combat
+            this.combatService.deleteCombat(currentGame.id);
+            await this.cleanupCombatRoom(combat.id);
+        }, TIME_LIMIT_DELAY);
+    }
+
+    /**
+     * Cleans up the combat room by removing all sockets from it.
+     */
+    private async cleanupCombatRoom(combatRoomId: string): Promise<void> {
+        const sockets = await this.server.in(combatRoomId).fetchSockets();
+        for (const socket of sockets) {
+            socket.leave(combatRoomId);
         }
     }
 }
