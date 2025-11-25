@@ -19,11 +19,11 @@
 
     <div class="characters-display">
         <div class="character player1">
-            <p class="player-life">{{ player.specs.life }} PV</p>
+            <p class="player-life">{{ player.specs.life < 0 ? 0 : player.specs.life }} PV</p>
             <img src="./assets/characters/{{ player.avatar }}.png" alt="Player 1 avatar" />
         </div>
         <div class="character player2">
-            <p class="player-life">{{ opponent.specs.life }} PV</p>
+            <p class="player-life">{{ opponent.specs.life < 0 ? 0 : opponent.specs.life }} PV</p>
             <img src="./assets/characters/{{ opponent.avatar }}.png" alt="Player 2 avatar" />
         </div>
     </div>

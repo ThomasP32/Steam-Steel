@@ -1,5 +1,5 @@
 import { DoorTile } from '@app/http/model/schemas/map/tiles.schema';
-import { ICE_ATTACK_PENALTY, ICE_DEFENSE_PENALTY, N_WIN_VICTORIES } from '@common/constants';
+import { ICE_ATTACK_PENALTY, ICE_DEFENSE_PENALTY, N_WIN_VICTORIES, ProfileType } from '@common/constants';
 import { CORNER_DIRECTIONS, DIRECTIONS, MovesMap } from '@common/directions';
 import { CombatEvents } from '@common/events/combat.events';
 import { GameCreationEvents } from '@common/events/game-creation.events';
@@ -571,6 +571,24 @@ export class GameManagerService {
     }
 
     /**
+     * Helper: Get count of active non-observer real (non-virtual) players
+     */
+    private getActiveRealPlayerCount(gameId: string): number {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) return 0;
+        return game.players.filter((p) => p.isActive && !p.isObserver && p.profile === ProfileType.NORMAL).length;
+    }
+
+    /**
+     * Helper: Get list of active non-observer real (non-virtual) players
+     */
+    private getActiveRealPlayers(gameId: string): Player[] {
+        const game = this.gameCreationService.getGameById(gameId);
+        if (!game) return [];
+        return game.players.filter((p) => p.isActive && !p.isObserver && p.profile === ProfileType.NORMAL);
+    }
+
+    /**
      * Helper: Check if player has 3 victories (Classic mode only)
      */
     private hasThreeVictories(player: Player, gameId: string): boolean {
@@ -593,10 +611,14 @@ export class GameManagerService {
 
     /**
      * Check game end condition after a player disconnects or leaves
-     * Only checks for termination (< 2 active non-observers)
+     * Checks for:
+     * - Last player standing (1 real player left in CTF/Classic modes)
+     * - Termination (< 2 active non-observers and no real players)
      */
     checkAfterDisconnect(gameId: string): GameEndResult {
         const game = this.gameCreationService.getGameById(gameId);
+        if (!game) return { reason: GameEndReason.Ongoing };
+
         const count = this.getActiveNonObserverCount(gameId);
 
         // Debug: Log all players and their state
@@ -608,10 +630,16 @@ export class GameManagerService {
         }
         console.log(`  Total active count: ${count}`);
 
+
+        // Only terminate if less than 2 players total
         if (count < 2) {
-            console.log(`[GameManager] Game ${gameId} terminating: ${count} active non-observers`);
+            const lastPlayer = this.getActiveNonObservers(gameId);
+            const winner = lastPlayer[0];
+            console.log(`[GameManager] Victory by last player standing: ${winner.name}`);
+            this.markGameWinner(gameId, winner);
             return {
-                reason: GameEndReason.NoWinner_Termination,
+                reason: GameEndReason.Victory_LastPlayerStanding,
+                winner,
             };
         }
 

@@ -560,6 +560,16 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             }
             this.journalService.logMessage(game.id, `${player.name} a abandonné la partie.`, [player.name]);
 
+            // Check if there's an ongoing combat and update stats before checking game termination
+            const combat = this.combatService.getCombatByGameId(updatedGame.id);
+            if (combat) {
+                // Update combat stats before game potentially ends
+                const winner = client.id === combat.challenger.socketId ? combat.opponent : combat.challenger;
+                
+                this.combatService.combatWinStatsUpdate(winner, updatedGame.id);
+                this.combatService.updatePlayersInGame(updatedGame);
+            }
+
             // Check if disconnect caused game termination
             const endResult = this.gameManagerService.checkAfterDisconnect(updatedGame.id);
 
@@ -585,9 +595,27 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             }
 
             // Game continues, handle combat or turn timeout
-            const combat = this.combatService.getCombatByGameId(updatedGame.id);
+            // Only handle combat disconnection if stats weren't already updated above
             if (combat) {
-                this.handleCombatDisconnection(client, updatedGame, combat);
+                // Emit combat finished event and cleanup
+                this.server.to(combat.id).emit(CombatEvents.CombatFinishedByDisconnection, combat.challenger.socketId === client.id ? combat.opponent : combat.challenger);
+                this.combatCountdownService.deleteCountdown(updatedGame.id);
+                
+                setTimeout(() => {
+                    const game = this.gameCreationService.getGameById(updatedGame.id);
+                    if (!game) {
+                        console.warn(`[CombatGateway] handlePlayerDisconnection setTimeout: Game ${updatedGame.id} not found (likely already ended)`);
+                        return;
+                    }
+                    
+                    const winner = client.id === combat.challenger.socketId ? combat.opponent : combat.challenger;
+                    const loser = client.id === combat.challenger.socketId ? combat.challenger : combat.opponent;
+                    const combatFinishedData: CombatFinishedData = { updatedGame: game, winner: winner, loser: loser };
+                    this.server.to(game.id).emit(CombatEvents.CombatFinished, combatFinishedData);
+                    
+                    this.cleanupCombatRoom(combat.id);
+                    this.combatService.deleteCombat(game.id);
+                }, TIME_LIMIT_DELAY);
             } else if (game.currentTurn === player.turn) {
                 this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
             }

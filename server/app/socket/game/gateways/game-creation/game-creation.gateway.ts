@@ -384,7 +384,7 @@ export class GameGateway {
                         if (game.settings.isFastElimination && !player.isObserver) {
                             return { ...player, isActive: false, isEliminated: true, isObserver: false };
                         }
-                        return { ...player, isActive: false, isObserver: false  };
+                        return { ...player, isActive: false, isObserver: false };
                     }
                     return player;
                 });
@@ -401,16 +401,26 @@ export class GameGateway {
             client.leave(gameId);
             client.leave(gameId + '-combat');
             this.server.to(game.id).emit(GameCreationEvents.PlayerLeft, game.players);
-            this.server.to(game.id).emit(GameCreationEvents.GameUpdated, game);
-            if (game.hasStarted && game.mode === Mode.Ctf) {
+
+            // Check if game should end after player leaves
+            if (game.hasStarted && (game.mode === Mode.Ctf || game.mode === Mode.Classic)) {
                 const activeNonObserverCount = game.players.filter((p) => p.isActive && !p.isEliminated && !p.isObserver).length;
 
+                const endResult = this.gameManagerService.checkAfterDisconnect(game.id);
+                if (endResult.reason !== 'ongoing') {
+                    console.log(`[GameCreation] Game ending after player quit. Reason: ${endResult.reason}`);
+                    await this.gameManagerService.handleGameEnd(game.id, endResult, this.server);
+                    this.gameCountdownService.deleteCountdown(game.id);
+                    this.combatCountdownService.deleteCountdown(game.id);
+                    return; // Exit early, game is ended
+                }
                 if (activeNonObserverCount === 0) {
                     console.log(`[CTF] Last active player quit. Ending game ${game.id}`);
                     this.server.to(game.id).emit(GameCreationEvents.GameEndedNoActivePlayers);
                     this.gameCreationService.deleteRoom(game.id);
                 }
             }
+            this.server.to(game.id).emit(GameCreationEvents.GameUpdated, game);
         } else {
             return;
         }
@@ -423,7 +433,7 @@ export class GameGateway {
             const game = this.gameCreationService.getGameById(data.gameId);
             if (game.hasStarted) {
                 const existingPlayer = game.players.find((plyr) => plyr.name === data.player.name);
-                
+
                 if (!existingPlayer) {
                     // New player (not in game.players) - check capacity before allowing
                     if (this.gameCreationService.isMaxPlayersReached(data.gameId)) {
@@ -436,7 +446,7 @@ export class GameGateway {
                     client.emit(GameCreationEvents.GameNotFound, 'Joueur introuvable dans cette partie.');
                     return;
                 }
-                
+
                 // existingPlayer exists - allow them to rejoin regardless of capacity (they already have a slot)
 
                 existingPlayer.socketId = client.id;
@@ -488,7 +498,7 @@ export class GameGateway {
             client.emit(GameCreationEvents.YouJoined, { updatedPlayer: observerPlayer, updatedGame: game });
             this.server.to(data.gameId).emit(GameCreationEvents.PlayerJoined, game.players);
             this.server.to(data.gameId).emit(GameCreationEvents.CurrentPlayers, game.players);
-            
+
             // Emit GameUpdated to ensure all clients have consistent state
             this.server.to(data.gameId).emit(GameCreationEvents.GameUpdated, game);
 

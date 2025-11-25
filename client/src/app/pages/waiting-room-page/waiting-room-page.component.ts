@@ -236,6 +236,9 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
                     } else {
                         this.mapName = game.name;
                         this.maxPlayers = this.mapConversionService.getMaxPlayers(game.mapSize.x);
+                        if (game.settings) {
+                            this.gameSettings = game.settings;
+                        }
                     }
                 }
             }),

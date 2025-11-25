@@ -139,6 +139,13 @@ export class CombatService {
                 this.isCombatOngoing.next(false);
             }),
         );
+        // Also listen for game finish to close combat modal when the entire game ends
+        this.socketSubscription.add(
+            this.socketService.listen(CombatEvents.GameFinished).subscribe(() => {
+                this.isCombatModalOpen.next(false);
+                this.isCombatOngoing.next(false);
+            }),
+        );
     }
 
     listenForEvasionInfo(): void {
@@ -173,5 +180,10 @@ export class CombatService {
 
     closeObservationModeModal(): void {
         this.showObservationModeModal.next(false);
+    }
+
+    closeCombatModal(): void {
+        this.isCombatModalOpen.next(false);
+        this.isCombatOngoing.next(false);
     }
 }

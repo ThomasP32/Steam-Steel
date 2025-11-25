@@ -202,7 +202,6 @@ export class GameManagerGateway implements OnGatewayInit {
         if (player.socketId !== client.id) {
             return;
         }
-        game.lastTurnPlayer = player.name;
         // Move to next turn - stats will be reset in startTurn for the next player
         this.prepareNextTurn(gameId);
     }
@@ -212,6 +211,14 @@ export class GameManagerGateway implements OnGatewayInit {
         if (!game) {
             console.warn(`[GameManagerGateway] prepareNextTurn: Game ${gameId} not found (likely already ended)`);
             return;
+        }
+        const finishingPlayer = game.players.find((player) => player.turn === game.currentTurn);
+        if (finishingPlayer) {
+            game.lastTurnPlayer = finishingPlayer.name;
+        } else {
+            console.warn(
+                `[GameManagerGateway] prepareNextTurn: No player found for turn index ${game.currentTurn}, keeping lastTurnPlayer as ${game.lastTurnPlayer}`,
+            );
         }
         this.gameCountdownService.resetTimerSubscription(gameId);
         this.gameManagerService.updateTurnCounter(gameId);
@@ -271,12 +278,40 @@ export class GameManagerGateway implements OnGatewayInit {
 
         const activePlayer = game.players.find((player) => player.turn === game.currentTurn);
         const involvedPlayers = game.players.map((player) => player.name);
-        if (!activePlayer?.isActive || activePlayer?.isEliminated || activePlayer?.isObserver || activePlayer.name === game.lastTurnPlayer) {
+        if (!activePlayer) {
+            console.warn(
+                `[GameManagerGateway] startTurn: No player found for turn index ${game.currentTurn}. Advancing turn (iteration ${iterationCount + 1}/${game.players.length})`,
+            );
             game.currentTurn++;
             if (game.currentTurn >= game.players.length) {
                 game.currentTurn = 0;
             }
-            console.log(`[GameManagerGateway] startTurn: Skipping to next player (iteration ${iterationCount + 1}/${game.players.length})`);
+            this.startTurn(gameId, iterationCount + 1);
+            return;
+        }
+        const skipReasons: string[] = [];
+        if (!activePlayer.isActive) {
+            skipReasons.push('inactive');
+        }
+        if (activePlayer.isEliminated) {
+            skipReasons.push('eliminated');
+        }
+        if (activePlayer.isObserver) {
+            skipReasons.push('observer');
+        }
+        if (game.lastTurnPlayer && activePlayer.name === game.lastTurnPlayer) {
+            skipReasons.push('already ended previous turn');
+        }
+        if (skipReasons.length > 0) {
+            console.log(
+                `[GameManagerGateway] startTurn: Skipping ${activePlayer.name} (${skipReasons.join(
+                    ', ',
+                )}) (iteration ${iterationCount + 1}/${game.players.length})`,
+            );
+            game.currentTurn++;
+            if (game.currentTurn >= game.players.length) {
+                game.currentTurn = 0;
+            }
             this.startTurn(gameId, iterationCount + 1);
             return;
         }

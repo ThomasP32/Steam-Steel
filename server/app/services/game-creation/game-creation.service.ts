@@ -195,7 +195,7 @@ export class GameCreationService {
             const leavingPlayer = game.players.find((player) => player.socketId === client.id);
             
             // If player was only an observer (never active participant) and was not eliminated, remove them from the game
-            if (!leavingPlayer?.wasActivePlayer) {
+            if (!leavingPlayer?.wasActivePlayer && leavingPlayer?.isObserver && !leavingPlayer?.isEliminated) {
                 game.players = game.players.filter((player) => player.socketId !== client.id);
             } else {
                 game.players = game.players.map((player) => {
