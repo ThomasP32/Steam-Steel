@@ -8,7 +8,7 @@ export interface ShopItem {
     id: string;
     name: string;
     price: number;
-    category: 'avatar' | 'banner' | 'sound';
+    category: 'characters' | 'banner' | 'sound' | 'profilePicture';
     imagePath: string;
     description: string;
     owned?: boolean;

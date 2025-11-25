@@ -28,13 +28,13 @@
             (input)="onInput($event, 'registerUsername')"
         />
         <span class="char-counter">{{ registerUsername.length }}/10</span>
-        <div class="avatar-selection">
-            <label>Choisissez un avatar :</label>
+        <div class="profile-picture-selection">
+            <label>Choisissez une photo de profil :</label>
             <app-profile-picture
-                [selectedAvatar]="registerAvatar"
-                [customAvatarPreview]="registerCustomAvatarPreview"
-                (selectedAvatarChange)="registerAvatar = $event"
-                (customAvatarPreviewChange)="registerCustomAvatarPreview = $event"
+                [selectedProfilePicture]="registerProfilePicture"
+                [customProfilePicturePreview]="registerCustomProfilePicturePreview"
+                (selectedProfilePictureChange)="registerProfilePicture = $event"
+                (customProfilePicturePreviewChange)="registerCustomProfilePicturePreview = $event"
             ></app-profile-picture>
         </div>
         <button type="button" class="sign-up-button" (click)="register()">S'inscrire</button>

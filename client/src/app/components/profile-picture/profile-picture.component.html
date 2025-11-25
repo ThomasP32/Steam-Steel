@@ -1,30 +1,26 @@
 <div class="profile-picture-container">
-    <div class="avatar-list">
-        <div
-            *ngFor="let avatar of avatars"
-            class="avatar-container"
-            (click)="selectPredefinedAvatar(avatar.id)"
-        >
+    <div class="profile-list">
+        <div *ngFor="let profile of profilePictures" class="profile-container" (click)="selectPredefinedProfile(profile.id)">
             <img
-                [src]="avatar.preview"
-                [alt]="'Avatar ' + avatar.id"
-                [class.selected]="isSelected(avatar.id)"
-                [class.shop-avatar]="avatar.isShopAvatar && isShopAvatarOwned(avatar)"
-                [class.shop-avatar-locked]="avatar.isShopAvatar && !isShopAvatarOwned(avatar)"
-                [class.disabled]="!canSelectAvatar(avatar)"
-                class="avatar-img"
+                [src]="profile.preview"
+                [alt]="'Profile ' + profile.id"
+                [class.selected]="isSelected(profile.id)"
+                [class.shop-profile]="profile.isShopProfile && isShopProfileOwned(profile)"
+                [class.shop-profile-locked]="profile.isShopProfile && !isShopProfileOwned(profile)"
+                [class.disabled]="!canSelectProfile(profile)"
+                class="profile-img"
             />
-            <div *ngIf="avatar.isShopAvatar && !isShopAvatarOwned(avatar)" class="lock-overlay">
+            <div *ngIf="profile.isShopProfile && !isShopProfileOwned(profile)" class="lock-overlay">
                 <span class="lock-icon">🔒</span>
             </div>
         </div>
-        <label class="avatar-upload-label">
-            <input type="file" accept="image/*" (change)="onAvatarFileSelected($event)" hidden />
-            <span class="avatar-upload-btn">+</span>
+        <label class="profile-upload-label">
+            <input type="file" accept="image/*" (change)="onProfileFileSelected($event)" hidden />
+            <span class="profile-upload-btn">+</span>
         </label>
-        <img *ngIf="customAvatarPreview" [src]="customAvatarPreview" alt="Aperçu avatar personnalisé" class="avatar-img selected" />
+        <img *ngIf="customProfilePicturePreview" [src]="customProfilePicturePreview" alt="Aperçu profil personnalisé" class="profile-img selected" />
     </div>
-    <div *ngIf="customAvatarPreview" class="custom-avatar-reset">
-        <button type="button" (click)="removeCustomAvatar()">Retirer l'image personnalisée</button>
+    <div *ngIf="customProfilePicturePreview" class="custom-profile-reset">
+        <button type="button" (click)="removeCustomProfile()">Retirer l'image personnalisée</button>
     </div>
 </div>

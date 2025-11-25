@@ -21,6 +21,19 @@ export enum Avatar {
     Avatar17 = 17,
 }
 
+export enum ProfilePicture {
+    Profile1 = 1,
+    Profile2 = 2,
+    Profile3 = 3,
+    Profile4 = 4,
+    Profile5 = 5,
+    Profile6 = 6,
+    Profile7 = 7,
+    Profile8 = 8,
+    Profile9 = 9,
+    Profile10 = 10,
+}
+
 export enum BotName {
     Bot1 = 'AlphaBot',
     Bot2 = 'RoboWarrior',

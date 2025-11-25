@@ -55,8 +55,8 @@
                 <div class="user-info">
                     <div class="user-left">
                         <div class="user-avatar">
-                            @if (getUserAvatarUrl(user)) {
-                            <img [src]="getUserAvatarUrl(user)" [alt]="user.username + ' avatar'" class="avatar-image" />
+                            @if (getUserProfilePictureUrl(user)) {
+                            <img [src]="getUserProfilePictureUrl(user)" [alt]="user.username + ' photo de profil'" class="avatar-image" />
                             } @else {
                             <i class="fas fa-user"></i>
                             }

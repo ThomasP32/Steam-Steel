@@ -1,4 +1,4 @@
-import { Avatar } from './game';
+import { Avatar, ProfilePicture } from './game';
 
 export interface Message {
     author: string;
@@ -15,5 +15,7 @@ export interface Message {
     // author information
     authorAvatar?: Avatar;
     authorAvatarCustom?: string;
+    authorProfilePicture?: ProfilePicture;
+    authorProfilePictureCustom?: string;
     authorStatus?: 'online' | 'offline' | 'ingame';
 }

@@ -15,6 +15,8 @@ export interface Friend {
     status: UserStatus;
     avatar?: number | string;
     avatarCustom?: string;
+    profilePicture?: number | string;
+    profilePictureCustom?: string;
 }
 
 export interface FriendRequest {

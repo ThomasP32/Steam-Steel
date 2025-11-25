@@ -6,15 +6,15 @@
 
     <ng-container *ngIf="!editMode; else editForm">
         <div class="account-main-row">
-            <div class="avatar-square">
+            <div class="profile-picture-square">
                 <img
-                    *ngIf="userInfo.user.avatarCustom; else defaultAvatar"
-                    [src]="userInfo.user.avatarCustom"
-                    alt="Avatar personnalisé"
-                    class="avatar-img-square"
+                    *ngIf="userInfo.user.profilePictureCustom; else defaultProfilePicture"
+                    [src]="userInfo.user.profilePictureCustom"
+                    alt="Photo de profil personnalisée"
+                    class="profile-img-square"
                 />
-                <ng-template #defaultAvatar>
-                    <img [src]="getAvatarPreview(userInfo.user.avatar)" alt="Avatar" class="avatar-img-square" />
+                <ng-template #defaultProfilePicture>
+                    <img [src]="getProfilePicturePreview(userInfo.user.profilePicture)" alt="Photo de profil" class="profile-img-square" />
                 </ng-template>
             </div>
             <div class="info-side">
@@ -46,13 +46,13 @@
                 <input class="form-input" type="text" [(ngModel)]="editUsername" maxlength="10" />
                 <span class="char-counter">{{ editUsername.length }}/10</span>
             </div>
-            <div class="avatar-selection">
-                <label class="form-label">Choisissez un avatar:</label>
+            <div class="profile-picture-selection">
+                <label class="form-label">Choisissez une photo de profil:</label>
                 <app-profile-picture
-                    [selectedAvatar]="editAvatar"
-                    [customAvatarPreview]="editCustomAvatarPreview"
-                    (selectedAvatarChange)="editAvatar = $event"
-                    (customAvatarPreviewChange)="editCustomAvatarPreview = $event"
+                    [selectedProfilePicture]="editProfilePicture"
+                    [customProfilePicturePreview]="editCustomProfilePicturePreview"
+                    (selectedProfilePictureChange)="editProfilePicture = $event"
+                    (customProfilePicturePreviewChange)="editCustomProfilePicturePreview = $event"
                 ></app-profile-picture>
             </div>
             <div *ngIf="editMessage" class="edit-message">{{ editMessage }}</div>

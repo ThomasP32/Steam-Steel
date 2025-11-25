@@ -5,6 +5,7 @@ import { AuthService } from '@app/services/auth/auth.service';
 import { Channel, ChannelService } from '@app/services/channel/channel.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { FriendsService } from '@app/services/friends/friends.service';
+import { ProfilePictureService } from '@app/services/profile-picture/profile-picture.service';
 import { ChatEvents } from '@common/events/chat.events';
 import { Message } from '@common/message';
 import { UserStatus } from '@common/user-friends';
@@ -51,11 +52,13 @@ export class ChatroomComponent implements OnInit, OnDestroy {
         private readonly channelService: ChannelService,
         private readonly authService: AuthService,
         private readonly friendsService: FriendsService,
+        private readonly profilePictureService: ProfilePictureService,
     ) {
         this.socketService = socketService;
         this.channelService = channelService;
         this.authService = authService;
         this.friendsService = friendsService;
+        this.profilePictureService = profilePictureService;
     }
 
     ngOnInit(): void {
@@ -321,13 +324,24 @@ export class ChatroomComponent implements OnInit, OnDestroy {
         this.channelService.removePartyChannel(this.gameId);
     }
 
-    getMessageAuthorAvatarUrl(message: Message): string | null {
+    getMessageAuthorImageUrl(message: Message): string | null {
+        // Priorité aux photos de profil
+        if (message.authorProfilePictureCustom) {
+            return message.authorProfilePictureCustom;
+        }
+        if (message.authorProfilePicture) {
+            const profilePictureData = this.profilePictureService.getAllProfilePictureData().find((p) => p.id === message.authorProfilePicture);
+            return profilePictureData ? profilePictureData.image : null;
+        }
+
+        // Fallback vers les avatars
         if (message.authorAvatarCustom) {
             return message.authorAvatarCustom;
         }
         if (message.authorAvatar) {
             return `assets/characters/${message.authorAvatar}.png`;
         }
+
         return null;
     }
 

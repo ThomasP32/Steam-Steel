@@ -5,6 +5,7 @@ import { Subscription } from 'rxjs';
 import { AuthService } from '../../services/auth/auth.service';
 import { CharacterService } from '../../services/character/character.service';
 import { SocketService } from '../../services/communication-socket/communication-socket.service';
+import { ProfilePictureService } from '../../services/profile-picture/profile-picture.service';
 import { ShopHttpService } from '../../services/shop-http/shop-http.service';
 import { VirtualMoneyComponent } from '../virtual-money/virtual-money.component';
 
@@ -19,14 +20,15 @@ export class ShopComponent implements OnInit, OnDestroy {
     @Output() closed = new EventEmitter<void>();
 
     currentMoney = 0;
-    selectedCategory = 'avatar';
+    selectedCategory = 'characters';
     private subscription: Subscription = new Subscription();
 
     allItems: ShopItem[] = [];
     userItems: { itemId: string; equipped: boolean; purchaseDate: Date }[] = [];
 
     categories = [
-        { id: 'avatar', name: 'Avatars', icon: '👤' },
+        { id: 'characters', name: 'Personnages', icon: '👤' },
+        { id: 'profilePicture', name: 'Photo de profil', icon: '📸' },
         { id: 'banner', name: 'Bannières', icon: '🏳️' },
         { id: 'sound', name: 'Sons', icon: '🔊' },
     ];
@@ -36,11 +38,13 @@ export class ShopComponent implements OnInit, OnDestroy {
         private authService: AuthService,
         private shopHttpService: ShopHttpService,
         private characterService: CharacterService,
+        private profilePictureService: ProfilePictureService,
     ) {
         this.socketService = socketService;
         this.authService = authService;
         this.shopHttpService = shopHttpService;
         this.characterService = characterService;
+        this.profilePictureService = profilePictureService;
     }
 
     async ngOnInit(): Promise<void> {
@@ -55,7 +59,11 @@ export class ShopComponent implements OnInit, OnDestroy {
             }
             this.currentMoney = user.virtualMoney || 0;
 
+            await this.profilePictureService.refreshProfilePictures();
+
             await this.loadShopData(userId);
+
+            await this.syncProfilePictureEquipState();
         } catch (error) {
             console.error("Erreur lors de la récupération de l'utilisateur:", error);
         }
@@ -78,9 +86,41 @@ export class ShopComponent implements OnInit, OnDestroy {
             if (userItems) {
                 this.userItems = userItems;
             }
+
+            await this.syncProfilePictureEquipState();
         } catch (error) {
             console.error('Erreur lors du chargement des données de la boutique:', error);
             this.allItems = [];
+        }
+    }
+
+    private async syncProfilePictureEquipState(): Promise<void> {
+        try {
+            const userInfo = await this.authService.getUserInfo();
+            const user = userInfo?.user || userInfo?.body?.user || userInfo;
+
+            if (!user) return;
+
+            const currentProfilePicture = user.profilePicture;
+            if (!currentProfilePicture) return;
+
+            const profilePictureItems = this.allItems.filter((item) => item.category === 'profilePicture');
+
+            profilePictureItems.forEach((item) => {
+                const profileNumber = parseInt(item.id.replace('profile_', ''));
+
+                if (profileNumber === currentProfilePicture) {
+                    if (item.owned && !item.equipped) {
+                        item.equipped = true;
+                    }
+                } else {
+                    if (item.equipped) {
+                        item.equipped = false;
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Erreur lors de la synchronisation des photos de profil:', error);
         }
     }
 
@@ -125,8 +165,12 @@ export class ShopComponent implements OnInit, OnDestroy {
                 }
                 console.log('Achat réussi:', item.name);
 
-                if (item.category === 'avatar') {
+                if (item.category === 'characters') {
                     await this.characterService.refreshAvatars();
+                }
+
+                if (item.category === 'profilePicture') {
+                    await this.profilePictureService.refreshProfilePictures();
                 }
             } else {
                 console.error("Erreur d'achat:", result?.error);
@@ -160,8 +204,13 @@ export class ShopComponent implements OnInit, OnDestroy {
 
                 console.log('Équipement réussi:', item.name);
 
-                if (item.category === 'avatar') {
+                if (item.category === 'characters') {
                     await this.characterService.refreshAvatars();
+                }
+
+                if (item.category === 'profilePicture') {
+                    await this.profilePictureService.refreshProfilePictures();
+                    await this.loadShopData(userId);
                 }
             } else {
                 console.error("Erreur d'équipement:", result?.error);
@@ -193,8 +242,14 @@ export class ShopComponent implements OnInit, OnDestroy {
 
                 console.log('Déséquipement réussi:', item.name);
 
-                if (item.category === 'avatar') {
+                if (item.category === 'characters') {
                     await this.characterService.refreshAvatars();
+                }
+
+                if (item.category === 'profilePicture') {
+                    await this.profilePictureService.refreshProfilePictures();
+                    // Recharger les données du shop pour synchroniser l'état
+                    await this.loadShopData(userId);
                 }
             } else {
                 console.error('Erreur de déséquipement:', result?.error);
