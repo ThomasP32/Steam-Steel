@@ -10,7 +10,6 @@ cache:
 .only-client: &only-client
     only:
         refs:
-            - branches
             - merge_requests
         changes:
             - client/**/*
@@ -24,7 +23,6 @@ cache:
 .only-server: &only-server
     only:
         refs:
-            - branches
             - merge_requests
         changes:
             - server/**/*
@@ -38,7 +36,6 @@ cache:
 .only-flutter: &only-flutter
     only:
         refs:
-            - branches
             - merge_requests
         changes:
             - mobile/**/*
