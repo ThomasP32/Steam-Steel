@@ -119,6 +119,13 @@
         </app-combat-modal>
     </div>
 </div>
+} @if(isCombatOngoing) {
+<div class="combat-notification-overlay">
+    <div class="combat-notification">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>⚔️ Combat en cours !</span>
+    </div>
+</div>
 } @if(isInventoryModalOpen) {
 <div class="inventory-modal">
     <div class="popup-overlay">

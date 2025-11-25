@@ -61,6 +61,9 @@ export class CombatService {
     private readonly observationModeMessage = new BehaviorSubject<string>('');
     public observationModeMessage$ = this.observationModeMessage.asObservable();
 
+    private readonly isCombatOngoing = new BehaviorSubject<boolean>(false);
+    public isCombatOngoing$ = this.isCombatOngoing.asObservable();
+
     constructor(
         private readonly socketService: SocketService,
         private readonly playerService: PlayerService,
@@ -95,13 +98,30 @@ export class CombatService {
                 }
             }),
         );
+
+        // Listen for combat signal sent to non-participants
+        this.socketSubscription.add(
+            this.socketService.listen(CombatEvents.CombatStartedSignal).subscribe(() => {
+                // Show notification for active players not in the combat
+                if (!this.isCombatModalOpen.value) {
+                    this.isCombatOngoing.next(true);
+                }
+            }),
+        );
     }
 
     listenForCombatFinish(): void {
         this.socketSubscription.add(
+            this.socketService.listen<Player>(CombatEvents.CombatFinished).subscribe(() => {
+                this.isCombatModalOpen.next(false);
+                this.isCombatOngoing.next(false);
+            }),
+        );
+        this.socketSubscription.add(
             this.socketService.listen<Player>(CombatEvents.CombatFinishedNormally).subscribe(() => {
                 setTimeout(() => {
                     this.isCombatModalOpen.next(false);
+                    this.isCombatOngoing.next(false);
                 }, TIME_LIMIT_DELAY);
             }),
         );
@@ -109,7 +129,14 @@ export class CombatService {
             this.socketService.listen<Player>(CombatEvents.CombatFinishedByDisconnection).subscribe(() => {
                 setTimeout(() => {
                     this.isCombatModalOpen.next(false);
+                    this.isCombatOngoing.next(false);
                 }, TIME_LIMIT_DELAY);
+            }),
+        );
+        this.socketSubscription.add(
+            this.socketService.listen<Player>(CombatEvents.CombatFinishedByEvasion).subscribe(() => {
+                this.isCombatModalOpen.next(false);
+                this.isCombatOngoing.next(false);
             }),
         );
     }

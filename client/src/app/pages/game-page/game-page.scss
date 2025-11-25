@@ -48,7 +48,7 @@
     transition:
         transform 0.3s ease,
         box-shadow 0.3s ease;
-    z-index: 20;
+    z-index: 1100; // Above combat modal (1000) to allow leaving during combat
 }
 
 .exit-button:hover {
@@ -166,7 +166,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 1200; // Above combat modal (1000) and exit button (1100)
 }
 
 .game-finished-modal {
@@ -369,6 +369,14 @@
 
 .combat-modal {
     z-index: 1000;
+
+    .popup-overlay {
+        pointer-events: none; // Allow clicks to pass through to exit button
+    }
+
+    app-combat-modal {
+        pointer-events: auto; // But capture clicks on the modal itself
+    }
 }
 
 .button:disabled {
@@ -537,4 +545,37 @@ button {
     background-color: rgba(44, 62, 80, 0.8);
     border: 2px solid #f39c12;
     border-radius: 0 40px 0 40px;
+}
+
+.combat-notification-overlay {
+    position: fixed;
+    top: 100px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 900;
+    pointer-events: none;
+}
+
+.combat-notification {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    background-color: #f57c00;
+    border-radius: 12px;
+    border: 2px solid #ffffff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+
+    i {
+        color: #ffffff;
+        font-size: 28px;
+    }
+
+    span {
+        color: #ffffff;
+        font-size: 18px;
+        font-weight: bold;
+    }
 }
