@@ -31,10 +31,18 @@ export class ItemsManagerService {
     dropInventory(player: Player, gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
         if (!game) return;
-        const availableTile = this.gameManagerService.getFirstFreePosition(player.position, game);
-        this.dropItem(player.inventory[0], gameId, player, player.position);
-        for (let item of player.inventory) {
-            this.dropItem(item, gameId, player, availableTile);
+
+        const inventoryCopy = [...player.inventory];
+
+        for (const item of inventoryCopy) {
+            const dropPosition = this.gameManagerService.getFirstFreePosition(player.position, game);
+            
+            if (dropPosition) {
+                this.dropItem(item, gameId, player, dropPosition);
+            } else {
+                // If no free position found, log warning but continue
+                console.warn(`[ItemsManagerService] dropInventory: No free position found for item ${item}, skipping drop`);
+            }
         }
     }
 
