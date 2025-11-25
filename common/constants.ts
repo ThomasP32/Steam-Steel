@@ -45,7 +45,7 @@ export enum tableColumns {
 
 export const TIME_LIMIT_DELAY: number = 3000;
 
-export const TIME_REDIRECTION: number = 5000;
+export const TIME_REDIRECTION: number = 3000;
 
 export const VIRTUAL_PLAYER_DELAY: number = 6000;
 

@@ -22,7 +22,7 @@ import { GameService } from '@app/services/game/game.service';
 import { ImageService } from '@app/services/image/image.service';
 import { MapConversionService } from '@app/services/map-conversion/map-conversion.service';
 import { PlayerService } from '@app/services/player-service/player.service';
-import { COUNTDOWN_PULSE, MAX_CHAR, TIME_DASH_OFFSET, TIME_LIMIT_DELAY, TIME_PULSE, TIME_REDIRECTION, TURN_DURATION } from '@common/constants';
+import { COUNTDOWN_PULSE, MAX_CHAR, TIME_DASH_OFFSET, TIME_PULSE, TIME_REDIRECTION, TURN_DURATION } from '@common/constants';
 import { MovesMap } from '@common/directions';
 import { CountdownEvents } from '@common/events/countdown.events';
 import { FriendsEvents } from '@common/events/friends.events';
@@ -299,9 +299,27 @@ export class GamePageComponent implements OnInit, OnDestroy {
     private listenForNoActivePlayers(): void {
         this.socketSubscription.add(
             this.socketService.listen(GameCreationEvents.GameEndedNoActivePlayers).subscribe(() => {
-                this.showNoActivePlayersModal = true;
+                console.log('[GamePage] GameEndedNoActivePlayers received');
+                
+                // Close combat modal if it's open
+                this.combatService.closeCombatModal();
+                
+                // Close any other modals and show appropriate message
+                this.showExitModal = false;
+                this.showKickedModal = false;
+                this.showEndGameModal = false;
+                this.showNoActivePlayersModal = true;  // Show "no active players" modal
+                
+                // Update stats before navigating
+                if (this.game && this.player) {
+                    const mode = this.game.mode;
+                    const duration = this.game.duration ?? 0;
+                    this.authService.updateStats({ mode, isWin: !!this.player.isGameWinner, duration });
+                }
+                
                 setTimeout(() => {
-                    this.leaveGame();
+                    console.log('[GamePage] Navigating to end-game page');
+                    this.navigateToEndOfGame();
                 }, TIME_REDIRECTION);
             }),
         );
@@ -320,18 +338,20 @@ export class GamePageComponent implements OnInit, OnDestroy {
     }
 
     private listenForEndOfGame() {
-        this.gameTurnService.playerWon$.subscribe((isGameOver) => {
-            this.showExitModal = false;
-            this.showEndGameModal = isGameOver;
-            if (isGameOver) {
-                const mode = this.game.mode;
-                const duration = this.game.duration ?? 0;
-                this.authService.updateStats({ mode, isWin: !!this.player.isGameWinner, duration });
-                setTimeout(() => {
-                    this.navigateToEndOfGame();
-                }, TIME_REDIRECTION);
-            }
-        });
+        this.socketSubscription.add(
+            this.gameTurnService.playerWon$.subscribe((isGameOver) => {
+                this.showExitModal = false;
+                this.showEndGameModal = isGameOver;
+                if (isGameOver) {
+                    const mode = this.game.mode;
+                    const duration = this.game.duration ?? 0;
+                    this.authService.updateStats({ mode, isWin: !!this.player.isGameWinner, duration });
+                    setTimeout(() => {
+                        this.navigateToEndOfGame();
+                    }, TIME_REDIRECTION);
+                }
+            }),
+        );
     }
 
     private listenForOpponent() {
@@ -352,13 +372,9 @@ export class GamePageComponent implements OnInit, OnDestroy {
                 this.gameService.game.players = players;
                 this.game.players = players;
                 this.activePlayers = players.filter((player) => player.isActive);
-                if (this.activePlayers.length <= 1) {
-                    this.showExitModal = false;
-                    this.showKickedModal = true;
-                    setTimeout(() => {
-                        this.leaveGame();
-                    }, TIME_LIMIT_DELAY);
-                }
+                // Note: Don't navigate here if <= 1 active player
+                // The server will emit GameEndedNoActivePlayers or GameFinished events
+                // which will handle navigation to the appropriate page (end-game stats or main menu)
             }),
         );
     }
@@ -370,7 +386,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
                 if (delay > 0) {
                     this.delayFinished = false;
                 }
-                
+
                 if (delay === 0) {
                     this.startTurnCountdown = 3;
                     this.delayFinished = true;
@@ -383,10 +399,9 @@ export class GamePageComponent implements OnInit, OnDestroy {
         this.socketSubscription.add(
             this.socketService.listen<Game>(GameCreationEvents.GameUpdated).subscribe((game) => {
                 this.gameService.setGame(game);
-                const me = game.players.find(p => p.socketId === this.playerService.player?.socketId);
-                if(me) this.playerService.setPlayer(me);
+                const me = game.players.find((p) => p.socketId === this.playerService.player?.socketId);
+                if (me) this.playerService.setPlayer(me);
                 this.activePlayers = game.players.filter((p) => p.isActive);
-   
             }),
         );
 

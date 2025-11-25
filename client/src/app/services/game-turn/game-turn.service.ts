@@ -326,13 +326,15 @@ export class GameTurnService {
     }
 
     listenForEndOfGame() {
-        let endGameHandled = false;
+        let gameFinishedHandled = false;
+        let playerWonHandled = false;
+
         this.socketSubscription.add(
             this.socketService
                 .listen<{ updatedGame: Game; moneyRewards?: { [key: string]: number } }>(CombatEvents.GameFinished)
                 .subscribe((data) => {
-                    if (endGameHandled) return;
-                    endGameHandled = true;
+                    if (gameFinishedHandled) return;
+                    gameFinishedHandled = true;
                     this.gameService.setGame(data.updatedGame);
                     const updatedPlayer = data.updatedGame.players.find((p) => p.socketId === this.playerService.player.socketId);
                     if (updatedPlayer) {
@@ -343,9 +345,21 @@ export class GameTurnService {
                     const reward = data.moneyRewards?.[currentSocketId] || 0;
                     this.moneyReward.next(reward);
 
-                    this.playerWon.next(true);
+                    if (!playerWonHandled) {
+                        playerWonHandled = true;
+                        this.playerWon.next(true);
+                    }
                 }),
         );
+
+        this.socketSubscription.add(
+            this.socketService.listen<Player>(CombatEvents.GameFinishedPlayerWon).subscribe(() => {
+                if (playerWonHandled) return;
+                playerWonHandled = true;
+                this.playerWon.next(true);
+            }),
+        );
+
         this.playerWon.next(false);
     }
 }

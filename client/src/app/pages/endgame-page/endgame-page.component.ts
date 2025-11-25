@@ -69,6 +69,15 @@ export class EndgamePageComponent implements OnInit, OnDestroy {
     }
 
     async ngOnInit(): Promise<void> {
+        console.log('[EndgamePage] ngOnInit, game:', this.gameService.game);
+        
+        // If no game data, redirect to main menu
+        if (!this.gameService.game) {
+            console.warn('[EndgamePage] No game data available, redirecting to main menu');
+            this.router.navigate(['/main-menu']);
+            return;
+        }
+        
         await this.loadPlayerBanners();
         this.listenToPlayerLeveledUp();
     }
@@ -82,7 +91,7 @@ export class EndgamePageComponent implements OnInit, OnDestroy {
     }
 
     get players(): Player[] {
-        return this.gameService.game.players;
+        return this.gameService.game?.players || [];
     }
 
     isGameCtf(game: Game): game is GameCtf {

@@ -125,6 +125,7 @@ export enum GameEndReason {
     Victory_Elimination = 'victory_elimination',
     Victory_CombatWins = 'victory_combat_wins',
     Victory_CtfFlag = 'victory_ctf_flag',
+    Victory_LastPlayerStanding = 'victory_last_player_standing',
     Ongoing = 'ongoing',
 }
 

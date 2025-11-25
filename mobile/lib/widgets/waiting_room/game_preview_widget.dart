@@ -229,7 +229,7 @@ class GamePreviewWidget extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 2),
                 Row(
                   children: [
                     const Icon(Icons.people, size: 10, color: Colors.grey),
@@ -245,7 +245,7 @@ class GamePreviewWidget extends StatelessWidget {
                   ],
                 ),
                 if (_entryFee > 0) ...[
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 2),
                   Row(
                     children: [
                       Icon(
@@ -265,7 +265,7 @@ class GamePreviewWidget extends StatelessWidget {
                     ],
                   ),
                 ],
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Row(
                   children: [
                     Container(
@@ -283,7 +283,7 @@ class GamePreviewWidget extends StatelessWidget {
                     Text(_status, style: const TextStyle(fontSize: 9)),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 if (canJoin) _buildDualButtons() else _buildSingleButton(),
               ],
             ),
