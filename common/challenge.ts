@@ -1,3 +1,5 @@
+import { ItemCategory } from './map.types';
+
   export type PublicChallengeView = {
     title: string;
     description: string;
@@ -26,6 +28,7 @@
     attacksDodged?: number;
     doorsOpened?: number;
     itemsCollected?: number;
+    collectedItems?: ItemCategory[];
   
     // derived
     progress: number;   // 0..1
