@@ -9,16 +9,29 @@
             maxlength="50"
             (input)="onInput($event, 'registerEmail')"
         />
-        <input
-            name="registerPassword"
-            [(ngModel)]="registerPassword"
-            placeholder="Mot de passe"
-            type="password"
-            ss
-            maxlength="30"
-            (keydown.enter)="register()"
-            (input)="onInput($event, 'registerPassword')"
-        />
+        <div class="password-input-container">
+            <input
+                name="registerPassword"
+                [(ngModel)]="registerPassword"
+                placeholder="Mot de passe"
+                [type]="showRegisterPassword ? 'text' : 'password'"
+                maxlength="30"
+                (keydown.enter)="register()"
+                (input)="onInput($event, 'registerPassword')"
+            />
+            <button 
+                type="button" 
+                class="password-toggle" 
+                (mousedown)="onRegisterPasswordMouseDown()"
+                (mouseup)="onRegisterPasswordMouseUp()"
+                (mouseleave)="onRegisterPasswordMouseUp()"
+                (touchstart)="onRegisterPasswordMouseDown()"
+                (touchend)="onRegisterPasswordMouseUp()"
+                tabindex="-1"
+            >
+                👁
+            </button>
+        </div>
         <input
             name="registerUsername"
             [(ngModel)]="registerUsername"
@@ -50,15 +63,29 @@
             (keydown.enter)="login()"
             (input)="onInput($event, 'loginUsername')"
         />
-        <input
-            name="loginPassword"
-            [(ngModel)]="loginPassword"
-            placeholder="Mot de passe"
-            type="password"
-            maxlength="30"
-            (keydown.enter)="login()"
-            (input)="onInput($event, 'loginPassword')"
-        />
+        <div class="password-input-container">
+            <input
+                name="loginPassword"
+                [(ngModel)]="loginPassword"
+                placeholder="Mot de passe"
+                [type]="showLoginPassword ? 'text' : 'password'"
+                maxlength="30"
+                (keydown.enter)="login()"
+                (input)="onInput($event, 'loginPassword')"
+            />
+            <button 
+                type="button" 
+                class="password-toggle" 
+                (mousedown)="onLoginPasswordMouseDown()"
+                (mouseup)="onLoginPasswordMouseUp()"
+                (mouseleave)="onLoginPasswordMouseUp()"
+                (touchstart)="onLoginPasswordMouseDown()"
+                (touchend)="onLoginPasswordMouseUp()"
+                tabindex="-1"
+            >
+                👁
+            </button>
+        </div>
         <button type="button" class="login-button" (click)="login()">Se connecter</button>
         <div *ngIf="loginMessage" class="message">{{ loginMessage }}</div>
     </div>

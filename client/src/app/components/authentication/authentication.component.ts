@@ -24,6 +24,8 @@ export class AuthenticationComponent {
     loginPassword = '';
     registerMessage = '';
     loginMessage = '';
+    showRegisterPassword = false;
+    showLoginPassword = false;
 
     @Output() closed = new EventEmitter<void>();
 
@@ -47,7 +49,12 @@ export class AuthenticationComponent {
         );
         this.registerMessage = result.message;
         if (result.success) {
-            this.closed.emit();
+            const loginResult = await this.handleAuth(() => 
+                this.authService.login(this.registerUsername, this.registerPassword)
+            );
+            if (loginResult.success) {
+                this.closed.emit();
+            }
         }
     }
 
@@ -84,6 +91,22 @@ export class AuthenticationComponent {
         }
 
         target.value = value;
+    }
+
+    onRegisterPasswordMouseDown(): void {
+        this.showRegisterPassword = true;
+    }
+
+    onRegisterPasswordMouseUp(): void {
+        this.showRegisterPassword = false;
+    }
+
+    onLoginPasswordMouseDown(): void {
+        this.showLoginPassword = true;
+    }
+
+    onLoginPasswordMouseUp(): void {
+        this.showLoginPassword = false;
     }
 
     private async handleAuth(requestFn: () => Promise<any>): Promise<{ success: boolean; message: string }> {
