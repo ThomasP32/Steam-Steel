@@ -15,6 +15,7 @@ import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/friends/friend_button.dart';
+import 'package:mobile/widgets/game_locked_dialog.dart';
 import 'package:mobile/widgets/theme/theme_widget.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
@@ -52,6 +53,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   StreamSubscription<dynamic>? _gameLockedSub;
   StreamSubscription<dynamic>? _youJoinedSub;
   StreamSubscription<dynamic>? _currentGameSub;
+  StreamSubscription<dynamic>? _gameClosedSub;
   GameSettings? _fetchedSettings;
 
   String _diceAsset(Bonus bonus) => 'lib/assets/icons/d${bonus.value}.png';
@@ -64,6 +66,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     _loadUserName();
     _listenToGameLocked();
     _listenToYouJoined();
+    _listenToGameClosed();
 
     _creationService.initializeOwnedAvatars();
 
@@ -88,28 +91,48 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     }
   }
 
+  void _listenToGameClosed() {
+    _gameClosedSub = SocketService().listen<dynamic>('gameClosed').listen((_) {
+      if (!mounted) return;
+      FriendService().updateUserStatus(UserStatus.online);
+      if (context.mounted) {
+        final isHost =
+            widget.mapName != null &&
+            widget.mapName!.isNotEmpty &&
+            (widget.gameId == null || widget.gameId!.isEmpty);
+        context.go('/');
+        if (!isHost) {
+          showTopSnackBar(
+            Overlay.of(context),
+            const CustomSnackBar.error(
+              message: "L'hôte de la partie a quitté.",
+            ),
+          );
+        }
+      }
+    });
+  }
+
   void _listenToGameLocked() {
     _gameLockedSub = SocketService().listen<dynamic>('gameLocked').listen((
       message,
-    ) {
+    ) async {
       if (!mounted) return;
-      final errorMessage =
-          (message is String && message.isNotEmpty)
-              ? message
-              : 'La partie est vérouillée, veuillez réessayer plus tard.';
       setState(() {
         _isSubmitting = false;
       });
-      try {
-        showTopSnackBar(
-          Overlay.of(context),
-          CustomSnackBar.error(message: errorMessage),
-        );
-      } on Exception catch (e) {
-        DebugLogger.log(
-          'Failed to show gameLocked snack: $e',
-          tag: 'CharacterCreation',
-        );
+
+      // Afficher le modal
+      final action = await showGameLockedDialog(context);
+
+      if (!mounted) return;
+
+      if (action == GameLockedAction.goToMenu) {
+        // Retourner au menu principal
+        if (mounted) context.go('/');
+      } else if (action == GameLockedAction.retry) {
+        // Réessayer de joindre la partie
+        unawaited(_onSubmit());
       }
     });
   }
@@ -170,8 +193,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
           }
 
           final effectiveSettings = widget.gameSettings ?? _fetchedSettings;
-          final isEliminated =
-              updatedPlayer['isEliminated'] as bool? ?? false;
+          final isEliminated = updatedPlayer['isEliminated'] as bool? ?? false;
           final hasStarted = updatedGame['hasStarted'] as bool? ?? false;
           final isDropInDropOut = effectiveSettings?.isDropInOut ?? false;
 
@@ -386,6 +408,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     _gameLockedSub?.cancel();
     _youJoinedSub?.cancel();
     _currentGameSub?.cancel();
+    _gameClosedSub?.cancel();
     _creationService.reset();
     super.dispose();
   }

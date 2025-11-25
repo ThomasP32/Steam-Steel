@@ -96,7 +96,16 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
       if (!mounted) return;
       FriendService().updateUserStatus(UserStatus.online);
       if (context.mounted) {
+        final isHost = _service.isHost.value;
         context.go('/');
+        if (!isHost) {
+          showTopSnackBar(
+            Overlay.of(context),
+            const CustomSnackBar.error(
+              message: "L'hôte de la partie a quitté.",
+            ),
+          );
+        }
       }
     });
   }
