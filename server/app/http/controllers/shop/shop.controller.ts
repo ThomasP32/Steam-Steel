@@ -1,10 +1,15 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Param, Post } from '@nestjs/common';
 import { ShopService } from '../../../services/shop/shop.service';
+import { ShopGateway } from '../../../socket/game/gateways/shop/shop.gateway';
 
 @Controller('shop')
 export class ShopController {
-    constructor(private readonly shopService: ShopService) {
+    constructor(
+        private readonly shopService: ShopService,
+        private readonly shopGateway: ShopGateway,
+    ) {
         this.shopService = shopService;
+        this.shopGateway = shopGateway;
     }
 
     @Get('money/:userId')
@@ -44,7 +49,13 @@ export class ShopController {
 
     @Post('purchase')
     async purchaseItem(@Body() body: { userId: string; itemId: string }) {
-        return this.shopService.purchaseItem(body.userId, body.itemId);
+        const result = await this.shopService.purchaseItem(body.userId, body.itemId);
+
+        if (result.success) {
+            await this.shopGateway.notifyMoneyUpdate(body.userId);
+        }
+
+        return result;
     }
 
     @Post('equip')

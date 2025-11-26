@@ -9,12 +9,14 @@ import { MapConversionService } from '@app/services/map-conversion/map-conversio
 import { AdminEvents } from '@common/events/admin.events';
 import { Map, Mode } from '@common/map.types';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
+import { VirtualMoneyComponent } from '@app/components/virtual-money/virtual-money.component';
+
 @Component({
     selector: 'app-game-choice-page',
     standalone: true,
     templateUrl: './game-choice-page.component.html',
     styleUrls: ['./game-choice-page.component.scss'],
-    imports: [CommonModule, ChatroomComponent, GameOptionsModalComponent],
+    imports: [CommonModule, ChatroomComponent, GameOptionsModalComponent, VirtualMoneyComponent],
 })
 export class GameChoicePageComponent implements OnInit, OnDestroy {
     map: Map;
