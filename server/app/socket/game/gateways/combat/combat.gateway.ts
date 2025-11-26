@@ -530,9 +530,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
             this.gameCountdownService.deleteCountdown(game.id); // Clean up game timer
             this.combatCountdownService.deleteCountdown(game.id); // Clean up combat timer if exists
-            this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
-            this.gameCountdownService.deleteCountdown(game.id); // Clean up game timer
-            this.combatCountdownService.deleteCountdown(game.id); // Clean up combat timer if exists
+            this.server.emit(GameCreationEvents.GameListUpdated);
             return true;
         }
         return false;

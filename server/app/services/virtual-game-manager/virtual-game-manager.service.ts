@@ -10,6 +10,7 @@ import {
     TIME_FOR_POSITION_UPDATE,
 } from '@common/constants';
 import { CombatEvents } from '@common/events/combat.events';
+import { GameCreationEvents } from '@common/events/game-creation.events';
 import { GameManagerEvents } from '@common/events/game-manager.events';
 import { ItemsEvents } from '@common/events/items.events';
 import { VirtualPlayerEvents } from '@common/events/virtualPlayer.events';
@@ -139,6 +140,11 @@ export class VirtualGameManagerService extends EventEmitter {
                 // Clean up timers to prevent infinite prepareNextTurn calls after game ends
                 this.gameCountdownService.deleteCountdown(game.id);
                 this.combatCountdownService.deleteCountdown(game.id);
+                
+                // Delete the room and notify all clients to update their game list
+                await this.gameCreationService.deleteRoom(game.id);
+                this.server.emit(GameCreationEvents.GameListUpdated);
+                
                 return true; // Game ended
             }
         }

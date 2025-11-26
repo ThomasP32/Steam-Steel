@@ -712,6 +712,8 @@ export class GameManagerService {
         if (endResult.reason === GameEndReason.NoWinner_Termination) {
             server.to(gameId).emit(GameCreationEvents.GameEndedNoActivePlayers);
             await this.gameCreationService.endGameAndDistributeRewards(gameId, [], []);
+            await this.gameCreationService.deleteRoom(gameId);
+            server.emit(GameCreationEvents.GameListUpdated);
             return;
         }
 
@@ -726,5 +728,9 @@ export class GameManagerService {
 
         server.to(gameId).emit(CombatEvents.GameFinished, { updatedGame: game, moneyRewards: rewardsObject });
         server.to(gameId).emit(CombatEvents.GameFinishedPlayerWon, endResult.winner);
+        
+        // Delete the room and notify all clients to update their game list
+        await this.gameCreationService.deleteRoom(gameId);
+        server.emit(GameCreationEvents.GameListUpdated);
     }
 }

@@ -243,6 +243,7 @@ export class GameManagerGateway implements OnGatewayInit {
             this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
             this.gameCountdownService.deleteCountdown(gameId);
             this.combatCountdownService.deleteCountdown(gameId); // Clean up combat timer if exists
+            this.server.emit(GameCreationEvents.GameListUpdated);
         } else {
             // Move to next turn if game is still viable
             console.log(`[GameManagerGateway] Skipping to next turn - ${reason}`);
