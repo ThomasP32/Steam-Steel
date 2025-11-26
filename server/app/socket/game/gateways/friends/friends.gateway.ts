@@ -159,4 +159,10 @@ export class FriendsGateway {
             status,
         });
     }
+
+    async notifyNewUserRegistered(newUser: { username: string; level: number }): Promise<void> {
+        this.server.emit(FriendsEvents.NewUserRegistered, {
+            user: newUser,
+        });
+    }
 }

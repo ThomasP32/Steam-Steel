@@ -11,16 +11,8 @@
 
         @if (activeTab === 'friends') {
         <div class="search-section">
-            <input
-                type="text"
-                [(ngModel)]="searchQuery"
-                placeholder="Rechercher un utilisateur..."
-                class="search-input"
-                (input)="onSearchInput($event)"
-            />
-
             @if (friendError) {
-            <div class="error-message">{{ friendError }}</div>
+            <div class="error-message" [class.success-message]="friendErrorType === 'success'">{{ friendError }}</div>
             }
         </div>
         }
@@ -40,75 +32,127 @@
         </div>
         } @else {
 
-        <!-- Section Amis -->
-        @if (getFilteredFriends().length > 0) {
-        <div class="section-header">
-            <h4>Mes Amis ({{ getFilteredFriends().length }})</h4>
-        </div>
-        @for (user of getFilteredFriends(); track user.username) {
-        <div
-            class="user-item friend-user"
-            [style.background-image]="getFriendBanner(user.username) ? 'url(' + getFriendBanner(user.username) + ')' : 'none'"
-            [class.has-banner]="getFriendBanner(user.username)"
-        >
-            <div class="user-content">
-                <div class="user-info">
-                    <div class="user-left">
-                        <div class="user-avatar">
-                            @if (getUserProfilePictureUrl(user)) {
-                            <img [src]="getUserProfilePictureUrl(user)" [alt]="user.username + ' photo de profil'" class="avatar-image" />
-                            } @else {
-                            <i class="fas fa-user"></i>
-                            }
-                        </div>
-
-                        <div class="user-details">
-                            <div class="user-header">
-                                <div class="user-name">{{ user.username }}</div>
-                                <img class="user-level" [src]="'assets/level-badges/level-' + getFriendLevel(user.username) + '.png'" alt="Niveau" />
-                            </div>
-                            <div class="user-status" [class]="getStatusClass(user.status)">
-                                <span class="status-dot"></span>
-                                {{ getStatusText(user.status) }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <button (click)="removeFriend(user.username)" class="remove-friend-btn" title="Supprimer ami">
-                        <i class="fas fa-times"></i>
-                    </button>
+        <div class="two-column-layout">
+            <!-- Section Amis -->
+            <div class="column friends-column">
+                @if (getFilteredFriends().length > 0 || friends.length > 0) {
+                <div class="section-header clickable" (click)="toggleFriendsSection()">
+                    <h4>
+                        <i
+                            class="fas toggle-icon"
+                            [class.fa-chevron-down]="!friendsSectionCollapsed"
+                            [class.fa-chevron-right]="friendsSectionCollapsed"
+                        ></i>
+                        Mes Amis ({{ getFilteredFriends().length }})
+                    </h4>
                 </div>
-            </div>
-        </div>
-        } } @if (getFilteredOtherUsers().length > 0) {
-        <div class="section-header">
-            <h4>Autres Utilisateurs</h4>
-        </div>
-        @for (user of getFilteredOtherUsers(); track user.username) {
-        <div class="user-item other-user">
-            <div class="user-info">
-                <div class="user-details">
-                    <div class="user-header">
-                        <div class="user-name">{{ user.username }}</div>
-                        <img class="user-level" [src]="'assets/level-badges/level-' + getFriendLevel(user.username) + '.png'" alt="Niveau" />
+                @if (!friendsSectionCollapsed) {
+                <div class="column-content">
+                    @for (user of getFilteredFriends(); track user.username) {
+                    <div
+                        class="user-item friend-user"
+                        [style.background-image]="getFriendBanner(user.username) ? 'url(' + getFriendBanner(user.username) + ')' : 'none'"
+                        [class.has-banner]="getFriendBanner(user.username)"
+                    >
+                        <div class="user-content">
+                            <div class="user-info">
+                                <div class="user-left">
+                                    <div class="user-avatar">
+                                        @if (getUserProfilePictureUrl(user)) {
+                                        <img [src]="getUserProfilePictureUrl(user)" [alt]="user.username + ' photo de profil'" class="avatar-image" />
+                                        } @else {
+                                        <i class="fas fa-user"></i>
+                                        }
+                                    </div>
+
+                                    <div class="user-details">
+                                        <div class="user-header">
+                                            <div class="user-name">{{ user.username }}</div>
+                                            <img
+                                                class="user-level"
+                                                [src]="'assets/level-badges/level-' + getFriendLevel(user.username) + '.png'"
+                                                alt="Niveau"
+                                            />
+                                        </div>
+                                        <div class="user-status" [class]="getStatusClass(user.status)">
+                                            <span class="status-dot"></span>
+                                            {{ getStatusText(user.status) }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button (click)="removeFriend(user.username)" class="remove-friend-btn" title="Supprimer ami">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    @if (getPendingRequestStatus(user.username)) {
-                    <div class="pending-status">{{ getPendingRequestStatus(user.username) }}</div>
                     }
                 </div>
+                } }
             </div>
 
-            @if (!getPendingRequestStatus(user.username)) {
-            <button (click)="addFriendFromList(user.username)" [disabled]="isAddingFriend" class="add-friend-btn-list" title="Ajouter ami">
-                @if (isAddingFriend && selectedUserForAdd === user.username) {
-                <i class="fas fa-spinner fa-spin"></i>
-                } @else {
-                <i class="fas fa-plus"></i>
-                }
-            </button>
-            }
+            <!-- Section Autres Utilisateurs -->
+            <div class="column others-column">
+                @if (getFilteredOtherUsers().length > 0 || allUsers.length > 0) {
+                <div class="section-header clickable" (click)="toggleOthersSection()">
+                    <h4>
+                        <i
+                            class="fas toggle-icon"
+                            [class.fa-chevron-down]="!othersSectionCollapsed"
+                            [class.fa-chevron-right]="othersSectionCollapsed"
+                        ></i>
+                        Autres Utilisateurs
+                    </h4>
+                </div>
+                @if (!othersSectionCollapsed) {
+                <input
+                    type="text"
+                    [(ngModel)]="othersSearchQuery"
+                    placeholder="Rechercher d'autres utilisateurs..."
+                    class="search-input-small"
+                    (input)="onOthersSearchInput($event)"
+                />
+                <div class="column-content">
+                    @for (user of getFilteredOtherUsers(); track user.username) {
+                    <div class="user-item other-user">
+                        <div class="user-info">
+                            <div class="user-details">
+                                <div class="user-header">
+                                    <div class="user-name">{{ user.username }}</div>
+                                    <img
+                                        class="user-level"
+                                        [src]="'assets/level-badges/level-' + getFriendLevel(user.username) + '.png'"
+                                        alt="Niveau"
+                                    />
+                                </div>
+                                @if (getPendingRequestStatus(user.username)) {
+                                <div class="pending-status">{{ getPendingRequestStatus(user.username) }}</div>
+                                }
+                            </div>
+                        </div>
+
+                        @if (!hasPendingRequest(user.username)) {
+                        <button
+                            (click)="addFriendFromList(user.username)"
+                            [disabled]="isAddingFriend"
+                            class="add-friend-btn-list"
+                            title="Ajouter ami"
+                        >
+                            @if (isAddingFriend && selectedUserForAdd === user.username) {
+                            <i class="fas fa-spinner fa-spin"></i>
+                            } @else {
+                            <i class="fas fa-plus"></i>
+                            }
+                        </button>
+                        }
+                    </div>
+                    }
+                </div>
+                } }
+            </div>
         </div>
-        } } }
+        }
     </div>
     } @else if (activeTab === 'requests') {
     <div class="friend-requests-list">

@@ -7,6 +7,7 @@ import { Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { ChatroomService } from '../../services/chatroom/chatroom.service';
 import { ShopService } from '../../services/shop/shop.service';
+import { FriendsGateway } from '../../socket/game/gateways/friends/friends.gateway';
 import { AdminService } from '../services/admin/admin.service';
 import { FriendsService } from '../services/friends/friends.service';
 import { UserService } from '../services/user/user.service';
@@ -19,6 +20,7 @@ export class AuthController {
     @Inject(FriendsService) private readonly friendsService: FriendsService;
     @Inject(ChatroomService) private readonly chatroomService: ChatroomService;
     @Inject(ShopService) private readonly shopService: ShopService;
+    @Inject(FriendsGateway) private readonly friendsGateway: FriendsGateway;
 
     @ApiCreatedResponse({
         description: 'Register a new user',
@@ -42,6 +44,14 @@ export class AuthController {
             if (!result.success) {
                 return response.status(HttpStatus.BAD_REQUEST).json(result);
             }
+
+            if (result.user) {
+                await this.friendsGateway.notifyNewUserRegistered({
+                    username: result.user.username,
+                    level: result.user.stats?.level || 1,
+                });
+            }
+
             response.status(HttpStatus.CREATED).json({ success: true, message: 'Inscription réussie !', user: result.user });
         } catch (error) {
             response.status(HttpStatus.BAD_REQUEST).json({
