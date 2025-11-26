@@ -13,4 +13,5 @@ export enum FriendsEvents {
     GameInvitationReceived = 'gameInvitationReceived',
     GameInvitationAccepted = 'gameInvitationAccepted',
     GameInvitationRejected = 'gameInvitationRejected',
+    NewUserRegistered = 'newUserRegistered',
 }

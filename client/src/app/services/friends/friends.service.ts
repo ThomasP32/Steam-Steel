@@ -58,6 +58,10 @@ export class FriendsService {
         });
     }
 
+    public listenForNewUsers() {
+        return this.socketService.listen<{ user: { username: string; level: number } }>(FriendsEvents.NewUserRegistered);
+    }
+
     async loadFriends(): Promise<void> {
         try {
             const token = localStorage.getItem('authToken');

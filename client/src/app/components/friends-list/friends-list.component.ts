@@ -22,14 +22,21 @@ export class FriendsListComponent implements OnInit, OnDestroy {
     friendRequests: FriendRequest[] = [];
     isAddingFriend: boolean = false;
     friendError: string = '';
+    friendErrorType: 'success' | 'error' = 'error';
     activeTab: 'friends' | 'requests' = 'friends';
     currentUsername: string = '';
 
     allUsers: { username: string; level: number }[] = [];
-    searchQuery: string = '';
+    friendsSearchQuery: string = '';
+    othersSearchQuery: string = '';
     isLoadingUsers: boolean = false;
     selectedUserForAdd: string = '';
     filteredUsers: { username: string }[] = [];
+    requestStatusMap: Map<string, 'sent' | 'received'> = new Map();
+    addedFriendsSet: Set<string> = new Set();
+
+    friendsSectionCollapsed: boolean = true;
+    othersSectionCollapsed: boolean = false;
 
     private readonly friendBanners: Map<string, string> = new Map();
     private readonly unsubscribe$ = new Subject<void>();
@@ -68,13 +75,39 @@ export class FriendsListComponent implements OnInit, OnDestroy {
 
         this.friendsService.friendRequests$.pipe(takeUntil(this.unsubscribe$)).subscribe((friendRequests) => {
             this.friendRequests = friendRequests;
+            this.updateRequestStatusMap();
             this.updateFilteredUsers();
         });
+
+        this.friendsService
+            .listenForNewUsers()
+            .pipe(takeUntil(this.unsubscribe$))
+            .subscribe((data: { user: { username: string; level: number } }) => {
+                const existingUser = this.allUsers.find((user) => user.username === data.user.username);
+                if (!existingUser) {
+                    this.allUsers.push({
+                        username: data.user.username,
+                        level: data.user.level,
+                    });
+                    this.updateFilteredUsers();
+                }
+            });
     }
 
     ngOnDestroy(): void {
         this.unsubscribe$.next();
         this.unsubscribe$.complete();
+    }
+
+    private updateRequestStatusMap(): void {
+        this.requestStatusMap.clear();
+        this.friendRequests.forEach((request) => {
+            if (request.from === this.currentUsername) {
+                this.requestStatusMap.set(request.to, 'sent');
+            } else {
+                this.requestStatusMap.set(request.from, 'received');
+            }
+        });
     }
 
     async loadFriends(): Promise<void> {
@@ -117,9 +150,18 @@ export class FriendsListComponent implements OnInit, OnDestroy {
 
         if (result.success) {
             this.friendError = "La demande d'ami a été envoyée avec succès";
+            this.friendErrorType = 'success';
+            this.addedFriendsSet.add(username);
+            this.requestStatusMap.set(username, 'sent');
             this.updateFilteredUsers();
+            setTimeout(() => {
+                if (this.friendErrorType === 'success') {
+                    this.friendError = '';
+                }
+            }, 3000);
         } else {
             this.friendError = result.message || "Erreur lors de l'envoi de la demande d'ami";
+            this.friendErrorType = 'error';
         }
 
         this.isAddingFriend = false;
@@ -136,6 +178,8 @@ export class FriendsListComponent implements OnInit, OnDestroy {
 
     async rejectFriendRequest(username: string): Promise<void> {
         const result = await this.friendsService.rejectFriendRequest(username);
+        this.isAddingFriend = false;
+        this.selectedUserForAdd = '';
 
         if (!result.success) {
             this.friendError = result.message || '';
@@ -152,12 +196,15 @@ export class FriendsListComponent implements OnInit, OnDestroy {
 
     switchTab(tab: 'friends' | 'requests'): void {
         this.activeTab = tab;
+        this.friendError = '';
+        this.friendsSearchQuery = '';
+        this.othersSearchQuery = '';
+
         if (tab === 'requests') {
             this.loadFriendRequests();
         } else if (tab === 'friends') {
             this.loadFriends();
             this.loadAllUsers();
-            this.friendError = '';
         }
     }
 
@@ -169,9 +216,14 @@ export class FriendsListComponent implements OnInit, OnDestroy {
         return this.getFilteredFriends().length + this.getFilteredOtherUsers().length;
     }
 
-    onSearchInput(event: Event): void {
+    onFriendsSearchInput(event: Event): void {
         const target = event.target as HTMLInputElement;
-        this.searchQuery = target.value;
+        this.friendsSearchQuery = target.value;
+    }
+
+    onOthersSearchInput(event: Event): void {
+        const target = event.target as HTMLInputElement;
+        this.othersSearchQuery = target.value;
         this.updateFilteredUsers();
     }
 
@@ -180,7 +232,7 @@ export class FriendsListComponent implements OnInit, OnDestroy {
             return;
         }
 
-        const query = this.searchQuery.toLowerCase().trim();
+        const query = this.othersSearchQuery.toLowerCase().trim();
 
         let filteredUsers = this.allUsers.filter((user) => user.username !== this.currentUsername);
 
@@ -192,15 +244,17 @@ export class FriendsListComponent implements OnInit, OnDestroy {
     }
 
     getFilteredFriends(): Friend[] {
-        const friendUsernames = this.friends.map((f) => f.username);
-        const filteredFriendUsernames = this.filteredUsers.filter((user) => friendUsernames.includes(user.username)).map((user) => user.username);
+        if (!this.friendsSearchQuery.trim()) {
+            return this.friends;
+        }
 
-        return this.friends.filter((friend) => filteredFriendUsernames.includes(friend.username));
+        const query = this.friendsSearchQuery.toLowerCase().trim();
+        return this.friends.filter((friend) => friend.username.toLowerCase().includes(query));
     }
 
     getFilteredOtherUsers(): { username: string }[] {
-        const friendUsernames = this.friends.map((f) => f.username);
-        return this.filteredUsers.filter((user) => !friendUsernames.includes(user.username));
+        const friendUsernames = new Set(this.friends.map((f) => f.username));
+        return this.filteredUsers.filter((user) => !friendUsernames.has(user.username));
     }
 
     getUserProfilePictureUrl(user: Friend | { username: string }): string {
@@ -235,12 +289,14 @@ export class FriendsListComponent implements OnInit, OnDestroy {
     }
 
     getPendingRequestStatus(username: string): string {
-        const sentRequest = this.friendRequests.find((req) => req.from === username);
-        const receivedRequest = this.friendRequests.find((req) => req.to === username);
-
-        if (sentRequest) return 'Demande reçue';
-        if (receivedRequest) return 'Demande envoyée';
+        const status = this.requestStatusMap.get(username);
+        if (status === 'received') return 'Demande reçue';
+        if (status === 'sent') return 'Demande envoyée';
         return '';
+    }
+
+    hasPendingRequest(username: string): boolean {
+        return this.requestStatusMap.has(username) || this.addedFriendsSet.has(username);
     }
 
     getStatusText(status?: UserStatus): string {
@@ -298,5 +354,13 @@ export class FriendsListComponent implements OnInit, OnDestroy {
 
     getFriendBanner(username: string): string | null {
         return this.friendBanners.get(username) || null;
+    }
+
+    toggleFriendsSection(): void {
+        this.friendsSectionCollapsed = !this.friendsSectionCollapsed;
+    }
+
+    toggleOthersSection(): void {
+        this.othersSectionCollapsed = !this.othersSectionCollapsed;
     }
 }
