@@ -38,6 +38,9 @@
                     [style.background-image]="getPlayerBanner(gamePlayer.name) ? 'url(' + getPlayerBanner(gamePlayer.name) + ')' : 'none'"
                     [class.has-banner]="getPlayerBanner(gamePlayer.name)"
                 >
+                   @if (!getPlayerBanner(gamePlayer.name)) {
+                    <td class="player-cell"></td>
+                    }
                     <td class="player-cell">
                         <div class="cell-content player-info">
                             <img [src]="getAvatarPreview(gamePlayer.avatar)" class="player-avatar" alt="avatar" />
