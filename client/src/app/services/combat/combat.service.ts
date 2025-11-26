@@ -2,7 +2,13 @@ import { Injectable } from '@angular/core';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { PlayerService } from '@app/services/player-service/player.service';
 import { ProfileType, TIME_LIMIT_DELAY } from '@common/constants';
-import { CombatEvents, CombatStartedData, PlayerEnteredObservationModeData } from '@common/events/combat.events';
+import {
+    CombatEvents,
+    CombatFinishedByEvasionData,
+    CombatFinishedData,
+    CombatStartedData,
+    PlayerEnteredObservationModeData,
+} from '@common/events/combat.events';
 import { Player } from '@common/game';
 import { BehaviorSubject, Subscription } from 'rxjs';
 
@@ -43,7 +49,7 @@ export class CombatService {
         visitedTiles: [],
         profile: ProfileType.NORMAL,
     };
-
+    isEvasion: boolean = false;
     socketSubscription: Subscription = new Subscription();
 
     private readonly isCombatModalOpen = new BehaviorSubject<boolean>(false);
@@ -64,6 +70,12 @@ export class CombatService {
     private readonly isCombatOngoing = new BehaviorSubject<boolean>(false);
     public isCombatOngoing$ = this.isCombatOngoing.asObservable();
 
+    private readonly showCombatResultModal = new BehaviorSubject<boolean>(false);
+    public showCombatResultModal$ = this.showCombatResultModal.asObservable();
+
+    private readonly combatWinner = new BehaviorSubject<[Player, boolean] | null>(null);
+    public combatWinner$ = this.combatWinner.asObservable();
+
     constructor(
         private readonly socketService: SocketService,
         private readonly playerService: PlayerService,
@@ -76,12 +88,10 @@ export class CombatService {
         this.socketSubscription.add(
             this.socketService.listen<CombatStartedData>(CombatEvents.CombatStarted).subscribe((data) => {
                 const currentPlayer = this.playerService.player;
-                
+
                 // Check if this player is actually in the combat or just observing
-                const isParticipant = currentPlayer.socketId === data.challenger.socketId || 
-                                     currentPlayer.socketId === data.opponent.socketId;
-                
-                
+                const isParticipant = currentPlayer.socketId === data.challenger.socketId || currentPlayer.socketId === data.opponent.socketId;
+
                 if (isParticipant) {
                     // Player is in the combat
                     if (currentPlayer.socketId === data.challenger.socketId) {
@@ -112,9 +122,18 @@ export class CombatService {
 
     listenForCombatFinish(): void {
         this.socketSubscription.add(
-            this.socketService.listen<Player>(CombatEvents.CombatFinished).subscribe(() => {
+            this.socketService.listen<CombatFinishedData>(CombatEvents.CombatFinished).subscribe((data) => {
                 this.isCombatModalOpen.next(false);
                 this.isCombatOngoing.next(false);
+
+                // Show combat result modal for 2 seconds
+                this.isEvasion = false;
+                this.combatWinner.next([data.winner, this.isEvasion]);
+                this.showCombatResultModal.next(true);
+                setTimeout(() => {
+                    this.showCombatResultModal.next(false);
+                    this.combatWinner.next(null);
+                }, 2000);
             }),
         );
         this.socketSubscription.add(
@@ -134,9 +153,17 @@ export class CombatService {
             }),
         );
         this.socketSubscription.add(
-            this.socketService.listen<Player>(CombatEvents.CombatFinishedByEvasion).subscribe(() => {
+            this.socketService.listen<CombatFinishedByEvasionData>(CombatEvents.CombatFinishedByEvasion).subscribe((data) => {
                 this.isCombatModalOpen.next(false);
                 this.isCombatOngoing.next(false);
+
+                this.isEvasion = true;
+                this.combatWinner.next([data.evadingPlayer, this.isEvasion]);
+                this.showCombatResultModal.next(true);
+                setTimeout(() => {
+                    this.showCombatResultModal.next(false);
+                    this.combatWinner.next(null);
+                }, 2000);
             }),
         );
         // Also listen for game finish to close combat modal when the entire game ends
@@ -185,5 +212,10 @@ export class CombatService {
     closeCombatModal(): void {
         this.isCombatModalOpen.next(false);
         this.isCombatOngoing.next(false);
+    }
+
+    closeCombatResultModal(): void {
+        this.showCombatResultModal.next(false);
+        this.combatWinner.next(null);
     }
 }

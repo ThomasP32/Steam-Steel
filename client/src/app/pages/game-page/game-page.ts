@@ -87,6 +87,8 @@ export class GamePageComponent implements OnInit, OnDestroy {
     isInventoryModalOpen = false;
     isEliminatedModalOpen = false;
     observationModeMessage = '';
+    showCombatResultModal = false;
+    combatResult: [Player, boolean] | null = null;
 
     youFell: boolean = false;
     map: Map;
@@ -164,6 +166,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
             this.listenForCombatModal();
             this.listenForObservationModeModal();
             this.listenForNoActivePlayers();
+            this.listenForCombatResultModal();
 
             this.challengeService.reinitializeListeners();
             this.countDownService.reinitializeListeners();
@@ -299,6 +302,19 @@ export class GamePageComponent implements OnInit, OnDestroy {
 
     closeObservationModeModal(): void {
         this.combatService.closeObservationModeModal();
+    }
+
+    listenForCombatResultModal(): void {
+        this.combatService.showCombatResultModal$.subscribe((showModal) => {
+            this.showCombatResultModal = showModal;
+        });
+        this.combatService.combatWinner$.subscribe((winner) => {
+            this.combatResult = winner;
+        });
+    }
+
+    closeCombatResultModal(): void {
+        this.combatService.closeCombatResultModal();
     }
 
     private listenForNoActivePlayers(): void {
