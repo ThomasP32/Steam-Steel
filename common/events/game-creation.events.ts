@@ -43,6 +43,9 @@ export enum GameCreationEvents {
     LeaveGame = 'leaveGame',
     ResumeGame = 'resumeGame',
     ObserveGame = 'observeGame',
+
+    UpdateAudioSettings = 'updateAudioSettings',
+    AudioSettingsUpdated = 'audioSettingsUpdated',
 }
 
 export interface KickPlayerData {
@@ -58,4 +61,11 @@ export interface JoinGameData {
 export interface ToggleGameLockStateData {
     isLocked: boolean;
     gameId: string;
+}
+
+export interface UpdateAudioSettingsData {
+    gameId: string;
+    musicEnabled: boolean;
+    sfxEnabled: boolean;
+    equippedMusic?: string;
 }

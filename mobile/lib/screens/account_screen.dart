@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/user.dart';
+import 'package:mobile/services/audio_service.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/register/profile_picture_picker.dart';
@@ -22,6 +23,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final AuthService _authService = AuthService();
+  final AudioService _audioService = AudioService();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _usernameCtrl = TextEditingController();
@@ -329,6 +331,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final user = _authService.notifier.value;
+    final audioService = AudioService();
 
     Widget pageContent;
     if (user == null) {
@@ -549,6 +552,119 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                         const SizedBox(width: 8),
                         const ThemeToggleButton(),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                isDark
+                                    ? Colors.black45
+                                    : Colors.white.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('Musique:'),
+                        ),
+                        const SizedBox(width: 8),
+                        ValueListenableBuilder<bool>(
+                          valueListenable: audioService.musicEnabledNotifier,
+                          builder: (context, enabled, _) {
+                            return SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                ),
+                                onPressed:
+                                    () => setState(
+                                      () =>
+                                          audioService.musicEnabled = !enabled,
+                                    ),
+                                child: Icon(
+                                  enabled ? Icons.music_note : Icons.music_off,
+                                  size: 24,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 24),
+                      ],
+                    ),
+                    // Music selector
+                    const SizedBox(height: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                isDark
+                                    ? Colors.black45
+                                    : Colors.white.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('Musique sélectionnée:'),
+                        ),
+                        const SizedBox(height: 4),
+                        ValueListenableBuilder<String>(
+                          valueListenable: audioService.equippedMusicNotifier,
+                          builder: (context, selectedMusic, _) {
+                            // Check if user owns Minecraft music
+                            DebugLogger.log(
+                              'Shop items: ${user.shopItems.map((e) => e.itemId).toList()}',
+                              tag: 'AccountScreen',
+                            );
+                            final ownsMinecraft = user.shopItems.any(
+                              (item) => item.itemId == 'sound_1',
+                            );
+                            DebugLogger.log(
+                              'Owns Minecraft: $ownsMinecraft',
+                              tag: 'AccountScreen',
+                            );
+
+                            final musicItems = <DropdownMenuItem<String>>[
+                              const DropdownMenuItem(
+                                value: 'music2.mp3',
+                                child: Text('Musique par défaut'),
+                              ),
+                            ];
+
+                            if (ownsMinecraft) {
+                              musicItems.add(
+                                const DropdownMenuItem(
+                                  value: 'minecraft.mp3',
+                                  child: Text('Minecraft'),
+                                ),
+                              );
+                            }
+
+                            return DropdownButton<String>(
+                              value: selectedMusic,
+                              isExpanded: true,
+                              items: musicItems,
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  audioService.setEquippedMusic(newValue);
+                                }
+                              },
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ],

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/services/audio_service.dart';
 import 'package:mobile/services/friend_service.dart';
 import 'package:mobile/services/join_game_service.dart';
 import 'package:mobile/services/socket_service.dart';
@@ -315,6 +316,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     final mapName = _joinService.extractMapName(game);
     final settings = _joinService.extractGameSettings(game);
 
+    AudioService().stopMusic();
     context.go(
       '/$gameId/choose-character',
       extra: {'isObserver': false, 'mapName': mapName, 'settings': settings},
@@ -362,12 +364,14 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
       if (game.isNotEmpty) {
         final settings = _joinService.extractGameSettings(game);
         final mapName = _joinService.extractMapName(game);
+        AudioService().stopMusic();
         context.go(
           '/$code/choose-character',
           extra: {'mapName': mapName, 'settings': settings},
         );
       } else {
         // Fallback: navigate without settings, will be fetched via socket
+        AudioService().stopMusic();
         context.go('/$code/choose-character');
       }
     } on Exception catch (e) {
@@ -453,7 +457,9 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
         resizeToAvoidBottomInset: false,
         body: Stack(
           children: [
-            const Positioned.fill(child: ThemeBackground(pageId: 'gamecreation')),
+            const Positioned.fill(
+              child: ThemeBackground(pageId: 'gamecreation'),
+            ),
             Stack(
               children: [
                 Column(
@@ -472,20 +478,20 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                    Padding(
-                      padding: EdgeInsets.only(top: 7),
-                      child: MoneyWidget(),
-                    ),
-                    SizedBox(width: 8),
-                    FriendButton(),
-                    ChatWidget(),
-                  ],
+                      Padding(
+                        padding: EdgeInsets.only(top: 7),
+                        child: MoneyWidget(),
+                      ),
+                      SizedBox(width: 8),
+                      FriendButton(),
+                      ChatWidget(),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
-      ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

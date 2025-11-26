@@ -131,7 +131,7 @@ class GamePreviewWidget extends StatelessWidget {
       return Image.network(
         _imagePreview!,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => Container(color: Colors.grey[300]),
+        errorBuilder: (_, _, _) => Container(color: Colors.grey[300]),
       );
     }
   }

@@ -8,6 +8,7 @@ import 'package:mobile/common/constants.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/common/map_types.dart';
 import 'package:mobile/models/user_models.dart';
+import 'package:mobile/services/audio_service.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/channel_service.dart';
 import 'package:mobile/services/countdown_service.dart';
@@ -97,6 +98,7 @@ class _GameScreenState extends State<GameScreen> {
     _countdownService.initialize();
     _listenToCountdown();
     _listenToObservationMode();
+    _listenToAudioSettings();
     final turnName = _gameTurnService.playerTurnNotifier.value;
     if (turnName.isNotEmpty) {
       _currentPlayerName = turnName;
@@ -150,6 +152,26 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
+  void _listenToAudioSettings() {
+    SocketService().listen<dynamic>('audioSettingsUpdated').listen((data) {
+      if (!mounted) return;
+      if (data is! Map<String, dynamic>) return;
+
+      final musicEnabled = data['musicEnabled'] as bool? ?? false;
+      final sfxEnabled = data['sfxEnabled'] as bool? ?? true;
+
+      AudioService().setHostControlledSettings(
+        musicEnabled: musicEnabled,
+        sfxEnabled: sfxEnabled,
+      );
+
+      DebugLogger.log(
+        'Game: Audio settings received - music=$musicEnabled, sfx=$sfxEnabled',
+        tag: 'GameScreen',
+      );
+    });
+  }
+
   void _listenToPlayerTurnUpdates() {
     _playerTurnListener = () {
       if (!mounted) return;
@@ -172,6 +194,7 @@ class _GameScreenState extends State<GameScreen> {
   void _listenToGameEvents() {
     SocketService().listen<dynamic>('positionToUpdate').listen((data) {
       if (!mounted) return;
+
       if (data is Map<String, dynamic>) {
         final gameData = data['game'] as Map<String, dynamic>?;
         final playerData = data['player'] as Map<String, dynamic>?;
@@ -183,6 +206,63 @@ class _GameScreenState extends State<GameScreen> {
         if (playerData != null) {
           final currentSocketId = SocketService().socketId;
           final updatedSocketId = playerData['socketId']?.toString() ?? '';
+
+          final positionData = playerData['position'];
+
+          Map<String, dynamic>? position;
+          if (positionData is List && positionData.isNotEmpty) {
+            position = positionData.last as Map<String, dynamic>?;
+          } else if (positionData is Map<String, dynamic>) {
+            position = positionData;
+          }
+
+          if (position != null && gameData != null) {
+            final x = position['x'] as int?;
+            final y = position['y'] as int?;
+            final tiles = gameData['tiles'] as List<dynamic>?;
+
+            if (x != null && y != null && tiles != null) {
+              // Check for special tiles (water, ice, wall)
+              final tile = tiles.cast<Map<String, dynamic>>().firstWhere((t) {
+                final coord = t['coordinate'] as Map<String, dynamic>?;
+                return coord?['x'] == x && coord?['y'] == y;
+              }, orElse: () => <String, dynamic>{});
+
+              // Check for doors
+              final doorTiles = gameData['doorTiles'] as List<dynamic>?;
+              final door = doorTiles?.cast<Map<String, dynamic>>().firstWhere((
+                d,
+              ) {
+                final coord = d['coordinate'] as Map<String, dynamic>?;
+                return coord?['x'] == x && coord?['y'] == y;
+              }, orElse: () => <String, dynamic>{});
+
+              String? category;
+              if (tile.isNotEmpty) {
+                final categoryRaw = tile['category'];
+                category = categoryRaw?.toString().split('.').last;
+              } else if (door != null && door.isNotEmpty) {
+                category = 'door';
+              } else {
+                category = 'floor';
+              }
+
+              final random = (DateTime.now().millisecondsSinceEpoch % 4) + 1;
+              final stepNumber = random.toString().padLeft(3, '0');
+
+              if (category == 'water') {
+                AudioService().playSfx(
+                  'SFX_Footsteps_DeepWater_$stepNumber.mp3',
+                );
+              } else if (category == 'ice') {
+                AudioService().playSfx('SFX_Footsteps_Ice_$stepNumber.mp3');
+              } else if (category == 'floor') {
+                AudioService().playSfx(
+                  'SFX_Footsteps_Concrete_$stepNumber.mp3',
+                );
+              }
+            }
+          }
 
           if (currentSocketId != null && updatedSocketId == currentSocketId) {
             PlayerService().setPlayerFromJson(playerData);
@@ -293,6 +373,9 @@ class _GameScreenState extends State<GameScreen> {
             } else if (currentPlayer.socketId == opponent['socketId']) {
               PlayerService().setPlayerFromJson(opponent);
             }
+
+            AudioService().playSfx('SFX_Weapon_Attack.mp3');
+
             setState(() {
               _combatChallenger = challenger;
               _combatOpponent = opponent;
@@ -465,6 +548,32 @@ class _GameScreenState extends State<GameScreen> {
         final playerData = data['player'] as Map<String, dynamic>?;
 
         if (gameData != null) {
+          final doorsManipulated =
+              gameData['nDoorsManipulated'] as List<dynamic>?;
+          if (doorsManipulated != null && doorsManipulated.isNotEmpty) {
+            final lastDoorCoord =
+                doorsManipulated.last as Map<String, dynamic>?;
+            if (lastDoorCoord != null) {
+              final doorTiles = gameData['doorTiles'] as List<dynamic>?;
+              if (doorTiles != null) {
+                final toggledDoor = doorTiles
+                    .cast<Map<String, dynamic>>()
+                    .firstWhere((door) {
+                      final coord = door['coordinate'] as Map<String, dynamic>?;
+                      return coord?['x'] == lastDoorCoord['x'] &&
+                          coord?['y'] == lastDoorCoord['y'];
+                    }, orElse: () => <String, dynamic>{});
+
+                if (toggledDoor.isNotEmpty) {
+                  final isOpened = toggledDoor['isOpened'] as bool? ?? false;
+                  final soundFile =
+                      isOpened ? 'SFX_Door _Open.mp3' : 'SFX_Door _Close.mp3';
+                  AudioService().playSfx(soundFile);
+                }
+              }
+            }
+          }
+
           _gameService.updateFromJson(gameData);
         }
 
@@ -529,6 +638,8 @@ class _GameScreenState extends State<GameScreen> {
     final gameData = _gameTurnService.gameFinishedDataNotifier.value;
     final updatedGame = gameData?['updatedGame'] as Map<String, dynamic>?;
     final moneyRewards = gameData?['moneyRewards'] as Map<String, dynamic>?;
+
+    AudioService().stopMusic();
 
     if (updatedGame != null) {
       _gameService.updateFromJson(updatedGame);
@@ -724,6 +835,10 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
+    FriendService().updateUserStatus(UserStatus.online);
+
+    AudioService().clearHostControl();
+
     _combatNotificationOverlay?.remove();
     _combatNotificationOverlay = null;
     _deleteSubs();

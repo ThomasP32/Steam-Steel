@@ -1,4 +1,5 @@
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { AudioService } from '@app/services/audio/audio.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { CombatCountdownService } from '@app/services/countdown/combat/combat-countdown.service';
 import { GameService } from '@app/services/game/game.service';
@@ -33,13 +34,17 @@ export class CombatModalComponent implements OnInit, OnDestroy {
         private readonly socketService: SocketService,
         private readonly combatCountDownService: CombatCountdownService,
         private readonly gameService: GameService,
+        private readonly audioService: AudioService,
     ) {
         this.socketService = socketService;
         this.combatCountDownService = combatCountDownService;
         this.gameService = gameService;
+        this.audioService = audioService;
     }
 
     ngOnInit() {
+        this.audioService.playSoundEffect('SFX_Weapon_Attack.mp3', 1);
+
         this.listenForAttacks();
         this.listenForCombatTurns();
         this.listenForCountdown();

@@ -219,7 +219,6 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
 
         // Failsafe: Check if game or combat still exists before preparing next turn
         if (!game) {
-            console.warn(`[CombatGateway] prepareNextTurn: Game ${gameId} not found (likely already ended)`);
             if (combat) {
                 this.combatCountdownService.deleteCountdown(gameId);
             }
@@ -547,7 +546,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
         if (updatedGame.hasStarted) {
             // Get the updated player from the game after handlePlayerLeaving
             const updatedPlayer = updatedGame.players.find((p) => p.socketId === client.id);
-            
+
             // If game is in elimination mode, set player as eliminated
             if (updatedGame.settings.isFastElimination && updatedPlayer) {
                 this.setPlayerToEliminated(updatedPlayer, updatedGame);

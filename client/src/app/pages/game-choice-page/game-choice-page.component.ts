@@ -3,6 +3,7 @@ import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { GameOptionsModalComponent } from '@app/components/game-options-modal/game-options-modal.component';
+import { AudioService } from '@app/services/audio/audio.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { MapConversionService } from '@app/services/map-conversion/map-conversion.service';
@@ -47,10 +48,12 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
         private readonly communicationMapService: CommunicationMapService,
         private readonly mapConversionService: MapConversionService,
         private readonly socketService: SocketService,
+        private readonly audioService: AudioService,
     ) {
         this.communicationMapService = communicationMapService;
         this.mapConversionService = mapConversionService;
         this.socketService = socketService;
+        this.audioService = audioService;
     }
 
     async ngOnInit(): Promise<void> {
@@ -140,6 +143,7 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
         this.gameSettings = options;
         this.showGameOptionsModal = false;
         if (this.selectedMap) {
+            this.audioService.stopMusic();
             this.router.navigate([`create-game/${this.selectedMap}/create-character`], {
                 state: { gameSettings: this.gameSettings },
             });

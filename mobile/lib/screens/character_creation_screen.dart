@@ -278,7 +278,6 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
         specs: finalSpecs,
         inventory: [],
         position: [Coordinate(0, 0)],
-        turn: 0,
         visitedTiles: [],
       );
       try {

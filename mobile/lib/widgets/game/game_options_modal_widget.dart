@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile/assets/theme/color_palette.dart';
@@ -81,7 +79,7 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
       _showEntryFeeAlert();
       return;
     }
-    
+
     widget.onNext(
       isFastElimination: _isFastElimination,
       isDropInOut: _isDropInOut,
@@ -153,7 +151,7 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
     final borderColor = AppColors.accentHighlight(context);
     final textColor = isDark ? Colors.white : Colors.black87;
     final textColorSecondary = isDark ? Colors.white70 : Colors.black54;
-    
+
     return ColoredBox(
       color: Colors.black.withValues(alpha: 0.7),
       child: Center(
@@ -201,9 +199,7 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildEntryFeeInput(),
-                    ),
+                    Expanded(child: _buildEntryFeeInput()),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -223,7 +219,8 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
                     Expanded(
                       child: _buildOption(
                         label: 'Amis seulement',
-                        description: 'Seuls vos amis peuvent rejoindre cette partie',
+                        description:
+                            'Seuls vos amis peuvent rejoindre cette partie',
                         value: _isFriendsOnly,
                         onTap: _toggleFriendsOnly,
                       ),
@@ -281,7 +278,7 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
     final textColor = isDark ? Colors.white : Colors.black87;
     final textColorSecondary = isDark ? Colors.white70 : Colors.black54;
     final checkboxBorderColor = isDark ? Colors.white24 : Colors.black26;
-    
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -344,9 +341,7 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
               suffixStyle: TextStyle(color: textColorSecondary),
               filled: true,
               fillColor: Colors.black.withValues(alpha: 0.3),
-              errorText: _hasEntryFeeError
-                  ? 'Maximum 500 pièces'
-                  : null,
+              errorText: _hasEntryFeeError ? 'Maximum 500 pièces' : null,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(
@@ -356,9 +351,10 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(
-                  color: _hasEntryFeeError
-                      ? Colors.red
-                      : (isDark ? Colors.white24 : Colors.black26),
+                  color:
+                      _hasEntryFeeError
+                          ? Colors.red
+                          : (isDark ? Colors.white24 : Colors.black26),
                 ),
               ),
               focusedBorder: OutlineInputBorder(
@@ -403,7 +399,7 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
     final textColor = isDark ? Colors.white : Colors.black87;
     final textColorSecondary = isDark ? Colors.white70 : Colors.black54;
     final checkboxBorderColor = isDark ? Colors.white24 : Colors.black26;
-    
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,

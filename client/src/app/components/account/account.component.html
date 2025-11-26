@@ -72,6 +72,18 @@
             <span class="status-label">Statut:</span>
             <span class="status-value" [class.online]="userInfo.user.status === 'online'">{{ statutInFrench() }}</span>
         </div>
+        <div class="audio-control">
+            <span class="status-label">Musique:</span>
+            <button class="volume-button" aria-label="Toggle music" (click)="toggleMusic()">
+                <span class="material-icons" aria-hidden="true">
+                    {{ (audioService.musicEnabled$ | async) ? 'music_note' : 'music_off' }}
+                </span>
+            </button>
+            <select class="music-dropdown" [(ngModel)]="selectedMusic" (change)="onMusicChange()">
+                <option value="music2.mp3">Musique par défaut</option>
+                <option *ngIf="ownsMinecraftMusic" value="minecraft.mp3">Minecraft</option>
+            </select>
+        </div>
         <h3 class="stats-title">Statistiques</h3>
         <div class="stats-grid">
             <div class="stat-item">

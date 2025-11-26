@@ -132,10 +132,7 @@ class ProfilePictureWidget extends StatelessWidget {
             height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.3),
-                width: 1,
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
               image: DecorationImage(
                 image: _getAvatarImageProvider(),
                 fit: BoxFit.cover,

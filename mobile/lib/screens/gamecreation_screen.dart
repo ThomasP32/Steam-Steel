@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/services/api_client.dart';
+import 'package:mobile/services/audio_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
 import 'package:mobile/widgets/chat_widget.dart';
 import 'package:mobile/widgets/friends/friend_button.dart';
@@ -106,6 +107,7 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
 
     if (selectedMap != null && mounted) {
       final encoded = Uri.encodeComponent(selectedMap!);
+      AudioService().stopMusic();
       context.go('/create-game/$encoded/choose-character', extra: settings);
     }
   }

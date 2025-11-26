@@ -65,10 +65,11 @@ class ThemeToggleButton extends StatelessWidget {
             onPressed ??
             () {
               if (theme == null) return;
-              theme.toggle(clearOverrides: false);
+              theme.toggle();
             },
         child: Icon(
           theme?.isLight ?? false ? Icons.dark_mode : Icons.light_mode,
+          size: 24,
         ),
       ),
     );

@@ -5,6 +5,7 @@ import { AccountComponent } from '@app/components/account/account.component';
 import { AuthenticationComponent } from '@app/components/authentication/authentication.component';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { ShopComponent } from '@app/components/shop/shop.component';
+import { AudioService } from '@app/services/audio/audio.service';
 import { AuthService } from '@app/services/auth/auth.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { Subscription } from 'rxjs';
@@ -13,7 +14,7 @@ import { Subscription } from 'rxjs';
     standalone: true,
     templateUrl: './home-page.component.html',
     styleUrls: ['./home-page.component.scss'],
-    imports: [ AuthenticationComponent, AccountComponent, CommonModule, ChatroomComponent, ShopComponent ],
+    imports: [AuthenticationComponent, AccountComponent, CommonModule, ChatroomComponent, ShopComponent],
 })
 export class HomePageComponent implements OnInit, AfterViewInit, OnDestroy {
     teamNumber = 'Équipe 106';
@@ -32,16 +33,19 @@ export class HomePageComponent implements OnInit, AfterViewInit, OnDestroy {
         private readonly router: Router,
         private readonly socketService: SocketService,
         private readonly authService: AuthService,
+        public readonly audioService: AudioService,
     ) {
         this.router = router;
         this.socketService = socketService;
         this.authService = authService;
+        this.audioService = audioService;
     }
 
     ngOnInit(): void {
         this.authSubscription = this.authService.authState$.subscribe((isLoggedIn: boolean) => {
             this.isLoggedIn = isLoggedIn;
         });
+        this.audioService.playBackgroundMusic('music2.mp3');
     }
 
     ngAfterViewInit(): void {

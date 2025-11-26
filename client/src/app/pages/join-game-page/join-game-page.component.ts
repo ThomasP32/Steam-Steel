@@ -5,6 +5,7 @@ import { ErrorMessageComponent } from '@app/components/error-message-component/e
 import { GamePreviewComponent } from '@app/components/game-preview/game-preview.component';
 import { JoinGameModalComponent } from '@app/components/join-game-modal/join-game-modal.component';
 import { VirtualMoneyComponent } from '@app/components/virtual-money/virtual-money.component';
+import { AudioService } from '@app/services/audio/audio.service';
 import { AuthService } from '@app/services/auth/auth.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { FriendsService } from '@app/services/friends/friends.service';
@@ -43,6 +44,7 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
         private readonly playerService: PlayerService,
         private readonly gameService: GameService,
         private readonly friendsService: FriendsService,
+        private readonly audioService: AudioService,
     ) {
         this.router = router;
         this.authService = authService;
@@ -50,6 +52,7 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
         this.playerService = playerService;
         this.gameService = gameService;
         this.friendsService = friendsService;
+        this.audioService = audioService;
     }
 
     async ngOnInit(): Promise<void> {
@@ -60,7 +63,7 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
         }
         await this.loadUserInfo();
         console.log('INIT join game and load games');
-        
+
         // Listen for games response
         this.socketService
             .listen<Game[]>(GameCreationEvents.GetGames)
@@ -68,10 +71,10 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
             .subscribe((gameRooms: Game[]) => {
                 this.activeGames = gameRooms.filter((game) => this.canSeeGame(game));
             });
-        
+
         // Request games
         await this.loadGames();
-        
+
         this.socketService
             .listen<void>(GameCreationEvents.GameListUpdated)
             .pipe(takeUntil(this.unsubscribe$))
@@ -97,13 +100,13 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
         // If game has no settings or is not friends-only, show it to everyone
         console.log('GAME object in join game: ', game);
         if (!game.settings || !game.settings.isFriendsOnly) return true;
-        
+
         const hostId = game.hostSocketId;
         const hostPlayer = game.players.find((plyr) => plyr.socketId === hostId);
-        
+
         // Check if current user is the host by comparing usernames
         if (hostPlayer && hostPlayer.name === this.currentUsername) return true;
-        
+
         // Check if current user is a friend of the host
         return this.friendIds.some((friend) => friend.username === hostPlayer?.name);
     }
@@ -120,7 +123,7 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
 
     onResume(game: Game) {
         const existingPlayer = game.players.find((plyr) => plyr.name === this.currentUsername);
-        if(existingPlayer){
+        if (existingPlayer) {
             const joinGameData: JoinGameData = { player: existingPlayer, gameId: game.id! };
             this.socketService.sendMessage(GameCreationEvents.ResumeGame, joinGameData);
         }
@@ -179,6 +182,7 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
     configureJoinGameSocketFeatures(): void {
         this.socketSubscription.add(
             this.socketService.listen<string>(GameCreationEvents.GameAccessed).subscribe(async (gameId) => {
+                this.audioService.stopMusic();
                 this.router.navigate([`join-game/${gameId}/create-character`]);
             }),
         );
@@ -186,7 +190,7 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
         this.socketSubscription.add(
             this.socketService.listen<Game>(GameCreationEvents.GameResumed).subscribe(async (game) => {
                 const existingPlayer = game.players.find((plyr) => plyr.name === this.currentUsername);
-                if (existingPlayer){
+                if (existingPlayer) {
                     const joinGameData: JoinGameData = { player: existingPlayer, gameId: game.id! };
                     this.socketService.sendMessage(GameCreationEvents.JoinGame, joinGameData);
                 }
@@ -216,6 +220,7 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
                     if (updatedGame) {
                         this.playerService.setPlayer(updatedPlayer);
                         this.gameService.setGame(updatedGame);
+                        this.audioService.stopMusic();
                         this.router.navigate([`/game/${updatedGame.id}/${updatedGame.name}`], {
                             state: { player: this.playerService.player, gameId: updatedGame.id },
                         });
@@ -238,7 +243,7 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
         if (this.socketSubscription) {
             this.socketSubscription.unsubscribe();
         }
-        
+
         this.unsubscribe$.next();
         this.unsubscribe$.complete();
     }
