@@ -56,6 +56,17 @@
                             </div>
                         </div>
                     </div>
+                    <div *ngIf="getCurrentCategory().id === 'sound'" class="info-icon-container">
+                        <span class="info-icon">ℹ️</span>
+                        <div class="custom-tooltip">
+                            <div class="tooltip-header">🔊 Musique</div>
+                            <div class="tooltip-content">
+                                Personnalise ton expérience sonore avec nos morceaux exclusifs ! Une fois achetée, la musique sera disponible pour
+                                être équipée dans les paramètres de compte. Aussi, les créateurs de parties pourront choisir la musique de fond pour
+                                leurs parties!
+                            </div>
+                        </div>
+                    </div>
                     <span class="items-count">{{ getCurrentCategoryItems().length }} articles</span>
                 </div>
 
@@ -107,7 +118,7 @@
                                     </button>
 
                                     <button
-                                        *ngIf="item.owned && !item.equipped && item.category !== 'characters'"
+                                        *ngIf="item.owned && !item.equipped && item.category !== 'characters' && item.category !== 'sound'"
                                         class="action-btn equip-btn"
                                         (click)="equipItem(item)"
                                     >
@@ -115,7 +126,7 @@
                                     </button>
 
                                     <button
-                                        *ngIf="item.equipped && item.category !== 'characters'"
+                                        *ngIf="item.equipped && item.category !== 'characters' && item.category !== 'sound'"
                                         class="action-btn unequip-btn"
                                         (click)="unequipItem(item)"
                                     >

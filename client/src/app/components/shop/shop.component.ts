@@ -30,15 +30,15 @@ export class ShopComponent implements OnInit, OnDestroy {
         { id: 'characters', name: 'Personnages', icon: '👤' },
         { id: 'profilePicture', name: 'Photo de profil', icon: '📸' },
         { id: 'banner', name: 'Bannières', icon: '🏳️' },
-        { id: 'sound', name: 'Sons', icon: '🔊' },
+        { id: 'sound', name: 'Musique', icon: '🔊' },
     ];
 
     constructor(
-        private socketService: SocketService,
-        private authService: AuthService,
-        private shopHttpService: ShopHttpService,
-        private characterService: CharacterService,
-        private profilePictureService: ProfilePictureService,
+        private readonly socketService: SocketService,
+        private readonly authService: AuthService,
+        private readonly shopHttpService: ShopHttpService,
+        private readonly characterService: CharacterService,
+        private readonly profilePictureService: ProfilePictureService,
     ) {
         this.socketService = socketService;
         this.authService = authService;

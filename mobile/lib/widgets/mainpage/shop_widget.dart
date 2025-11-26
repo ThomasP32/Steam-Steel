@@ -178,17 +178,18 @@ class _ShopWidgetState extends State<ShopWidget> {
         title = '🎭 Personnages';
         message =
             'Personnalise ton identité ! Une fois acheté, ce personnage sera disponible comme personnage jouable en partie.';
-        break;
       case 'profilePicture':
-        title = '📸 Photos de Profil';
+        title = '📸 Photos de profil';
         message =
             "Ces photos de profil uniques apparaîtront partout où ton identité est visible : dans les chats, la liste d'amis, et le compte. Montre qui tu es vraiment ! Si équipé, il deviendra automatiquement ta photo de profil.";
-        break;
       case 'banner':
         title = '✨ Bannières';
         message =
             "Affiche ton style ! Cette bannière décorative encadrera élégamment tes infos dans la salle d'attente, fin de partie et dans la liste d'amis. Tous les autres joueurs pourront admirer ton choix esthétique !";
-        break;
+      case 'sound':
+        title = '🔊 Musique';
+        message =
+            'Personnalise ton expérience sonore avec nos morceaux exclusifs ! Une fois achetée, la musique sera disponible pour être équipée dans les paramètres de compte. Aussi, les créateurs de parties pourront choisir la musique de fond pour leurs parties!';
       default:
         title = 'Information';
         message = 'Catégorie inconnue';
@@ -597,20 +598,18 @@ class _ShopWidgetState extends State<ShopWidget> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (_selectedCategory == 'characters' ||
-                  _selectedCategory == 'profilePicture' ||
-                  _selectedCategory == 'banner')
-                Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: GestureDetector(
-                    onTap: () => _showCategoryInfo(context),
-                    child: Icon(
-                      Icons.info_outline,
-                      color: AppColors.accentHighlight(context),
-                      size: 20,
-                    ),
+
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: GestureDetector(
+                  onTap: () => _showCategoryInfo(context),
+                  child: Icon(
+                    Icons.info_outline,
+                    color: AppColors.accentHighlight(context),
+                    size: 20,
                   ),
                 ),
+              ),
               const Spacer(),
               Text(
                 '${items.length} article${items.length > 1 ? 's' : ''}',
@@ -799,13 +798,16 @@ class _ShopWidgetState extends State<ShopWidget> {
                   ),
                 const SizedBox(height: 8),
 
-                if (!item.owned || item.category != 'characters')
+                if (!item.owned ||
+                    (item.category != 'characters' && item.category != 'sound'))
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
                         if (isLocked) return;
-                        if (item.owned && item.category == 'characters') return;
+                        if (item.owned && item.category == 'characters') {
+                          return;
+                        }
 
                         if (!item.owned && _canAfford(item)) {
                           _buyItem(item);
