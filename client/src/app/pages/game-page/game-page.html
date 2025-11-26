@@ -27,12 +27,7 @@
         <app-game-map [player]="player" [loadedMap]="game" [moves]="moves" [isYourTurn]="isYourTurn" (tileClicked)="onTileClickToMove($event)">
         </app-game-map>
     </div>
-    <app-game-players-list
-        [players]="game.players"
-        [hostSocketId]="game.hostSocketId"
-        [currentPlayerTurn]="currentPlayerTurn"
-    ></app-game-players-list>
-    <div class="top-container">
+    <div class="top-right-panel">
         <div class="countdown-endturn-container">
             <div class="countdown-timer" [ngClass]="{ 'pulse': isPulsing }">
                 <div class="timer-circle">
@@ -53,6 +48,11 @@
                 </div>
             </div>
         </div>
+        <app-game-players-list
+            [players]="game.players"
+            [hostSocketId]="game.hostSocketId"
+            [currentPlayerTurn]="currentPlayerTurn"
+        ></app-game-players-list>
     </div>
 </div>
 @if(!player.isObserver) {
@@ -141,6 +141,17 @@
             <h2>Partie Terminée</h2>
             <p>Le dernier joueur actif a quitté la partie.</p>
             <p>Vous serez redirigé vers la page de statistiques.</p>
+        </div>
+    </div>
+</div>
+} @if(showCombatResultModal) {
+<div class="combat-result-modal">
+    <div class="popup-overlay">
+        <div class="modal combat-result">
+            <h2>🏆 Résultat de Combat !</h2>
+            <p *ngIf="combatResult?.[1]"><strong>{{combatResult?.[0]?.name}}</strong> a évité le combat !</p>
+            <p *ngIf="!combatResult?.[1]"><strong>{{combatResult?.[0]?.name}}</strong> a remporté le combat !</p>
+            <button class="modal-button" (click)="closeCombatResultModal()">Continuer</button>
         </div>
     </div>
 </div>

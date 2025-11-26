@@ -9,45 +9,65 @@
 }
 
 .header {
-    text-align: center;
-    height: 80px;
-    color: white;
-    z-index: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+    color: #c0c0c0;
+    font-size: 2.5em;
+    height: 80px;
+    padding: 20px 40px;
     position: sticky;
-    top: 12px;
+    top: 0;
     z-index: 100;
+
+    .header-buttons {
+        display: flex;
+        align-items: center;
+    }
+
+    h2 {
+        flex-grow: 1;
+        font-size: 20px;
+        text-align: center;
+        margin: 0;
+        white-space: nowrap;
+    }
+
     .user-money {
         display: flex;
+        align-items: center;
         position: relative;
-        left: 640px;
+        right: 110px;
+        top: 6px;
     }
 }
 
 .return-to-previous-page {
-    position: absolute;
-    top: 25px;
-    left: 35px;
-    z-index: 1;
+    position: relative;
 }
 
 .return-button {
+    position: fixed;
+    left: 20px;
+    top: 20px;
+    margin-left: 0;
+    align-items: left;
+    padding: 12px 20px;
     background-color: #2c3e50;
     border: 3px solid #202020;
     color: white;
-    padding: 10px 20px;
+    height: 6vh;
+    width: 15vw;
     cursor: pointer;
-    font-weight: bold;
-    font-size: 12px;
-    font-family: 'Press Start 2P', sans-serif;
-    transition: background-color 0.4s;
+    font-size: 14px;
+    font-family: 'Press Start 2P';
+    z-index: 2000;
 }
 
 .return-button:hover {
     background-color: #3b3f46;
-    border: 3px solid #202020;
 }
 
 .map-view {
@@ -156,6 +176,12 @@
         }
 
         .mode {
+            font-size: 0.9rem;
+            color: #ccc;
+            margin: 0;
+        }
+
+        .size {
             font-size: 0.9rem;
             color: #ccc;
             margin: 0;
@@ -326,7 +352,7 @@
 
 .filters-row .filters-label {
     color: #fff;
-    font-size: 11px;
+    font-size: 15px;
 }
 
 .filters-row .filters-btn {

@@ -37,7 +37,7 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
     };
 
     isFilterOpen: boolean = false;
-    sortBy: 'name' | 'players' | 'mode' | null = null;
+    sortBy: 'name' | 'players' | 'mode' | null = 'name';
     sortOrder: 'asc' | 'desc' = 'asc';
     sortedMaps: Map[];
 
@@ -147,6 +147,19 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
             this.router.navigate([`create-game/${this.selectedMap}/create-character`], {
                 state: { gameSettings: this.gameSettings },
             });
+        }
+    }
+
+    changeHeightMap(mapSize: number): string {
+        switch (mapSize) {
+            case 10:
+                return "Petite";
+            case 15:
+                return "Moyenne";
+            case 20:
+                return "Grande";
+            default:
+                return "Bug";
         }
     }
 
