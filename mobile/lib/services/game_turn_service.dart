@@ -46,6 +46,7 @@ class GameTurnService {
   bool get hasCombatAvailable =>
       _possibleOpponentsNotifier.value.isNotEmpty && isYourTurn;
 
+  // ignore: avoid_setters_without_getters : dont worry
   set pendingInventoryModal(bool value) {
     _pendingInventoryModal = value;
   }

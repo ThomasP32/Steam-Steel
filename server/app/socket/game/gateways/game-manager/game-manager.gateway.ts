@@ -209,7 +209,6 @@ export class GameManagerGateway implements OnGatewayInit {
     prepareNextTurn(gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
         if (!game) {
-            console.warn(`[GameManagerGateway] prepareNextTurn: Game ${gameId} not found (likely already ended)`);
             return;
         }
         const finishingPlayer = game.players.find((player) => player.turn === game.currentTurn);
@@ -254,7 +253,7 @@ export class GameManagerGateway implements OnGatewayInit {
     startTurn(gameId: string, iterationCount: number = 0): void {
         const game = this.gameCreationService.getGameById(gameId);
         if (!game) {
-            console.warn(`[GameManagerGateway] startTurn: Game ${gameId} not found (likely already ended)`);
+            // Game has already ended - return silently to avoid console spam
             return;
         }
         if (!this.gameManagerService.isGameResumable(gameId)) {

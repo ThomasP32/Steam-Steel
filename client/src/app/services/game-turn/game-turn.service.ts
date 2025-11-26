@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { AudioService } from '@app/services/audio/audio.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { GameService } from '@app/services/game/game.service';
 import { PlayerService } from '@app/services/player-service/player.service';
@@ -48,10 +49,12 @@ export class GameTurnService {
         private readonly gameService: GameService,
         private readonly playerService: PlayerService,
         private readonly socketService: SocketService,
+        private readonly audioService: AudioService,
     ) {
         this.gameService = gameService;
         this.playerService = playerService;
         this.socketService = socketService;
+        this.audioService = audioService;
     }
 
     get player(): Player {
@@ -190,9 +193,29 @@ export class GameTurnService {
     listenForPlayerMove(): void {
         this.socketSubscription.add(
             this.socketService.listen<{ game: Game; player: Player }>(GameManagerEvents.PositionToUpdate).subscribe(async (data) => {
-                if (data.player.socketId === this.player.socketId) {
-                        this.playerService.setPlayer(data.player);
+                const playerPosition = data.player.position;
+                if (playerPosition) {
+                    const tile = data.game.tiles.find((t) => t.coordinate.x === playerPosition.x && t.coordinate.y === playerPosition.y);
+
+                    const randomStep = Math.floor(Math.random() * 4) + 1;
+                    const stepNumber = randomStep.toString().padStart(3, '0');
+
+                    if (tile) {
+                        if (tile.category === 'water') {
+                            this.audioService.playSoundEffect(`SFX_Footsteps_DeepWater_${stepNumber}.mp3`, 0.4);
+                        } else if (tile.category === 'ice') {
+                            this.audioService.playSoundEffect(`SFX_Footsteps_Ice_${stepNumber}.mp3`, 0.4);
+                        } else if (tile.category === 'floor') {
+                            this.audioService.playSoundEffect(`SFX_Footsteps_Concrete_${stepNumber}.mp3`, 0.4);
+                        }
+                    } else {
+                        this.audioService.playSoundEffect(`SFX_Footsteps_Concrete_${stepNumber}.mp3`, 0.4);
                     }
+                }
+
+                if (data.player.socketId === this.player.socketId) {
+                    this.playerService.setPlayer(data.player);
+                }
                 this.gameService.setGame(data.game);
                 this.resumeTurn();
             }),
@@ -274,6 +297,19 @@ export class GameTurnService {
     listenForDoorUpdates(): void {
         this.socketSubscription.add(
             this.socketService.listen<{ game: Game; player: Player }>(ItemsEvents.DoorToggled).subscribe((data) => {
+                const doorsManipulated = data.game.nDoorsManipulated;
+                if (doorsManipulated.length > 0) {
+                    const lastDoorCoord = doorsManipulated.slice(-1)[0];
+                    const toggledDoor = data.game.doorTiles.find(
+                        (door) => door.coordinate.x === lastDoorCoord.x && door.coordinate.y === lastDoorCoord.y,
+                    );
+
+                    if (toggledDoor) {
+                        const soundFile = toggledDoor.isOpened ? 'SFX_Door _Open.mp3' : 'SFX_Door _Close.mp3';
+                        this.audioService.playSoundEffect(soundFile, 0.5);
+                    }
+                }
+
                 if (data.player && data.player.socketId === this.player.socketId) {
                     this.playerService.setPlayer(data.player);
                     this.resumeTurn();
@@ -293,16 +329,14 @@ export class GameTurnService {
                         this.resumeTurn();
                     }
                 } else {
-                    this.playerService.setPlayer(data.updatedGame.players.filter((player) => (player.socketId === this.player.socketId))[0]);
+                    this.playerService.setPlayer(data.updatedGame.players.filter((player) => player.socketId === this.player.socketId)[0]);
                 }
                 this.gameService.setGame(data.updatedGame);
             }),
         );
         this.socketSubscription.add(
             this.socketService.listen<CombatFinishedData>(CombatEvents.CombatFinished).subscribe((data) => {
-                const me = data.updatedGame.players.find(
-                    (player) => player.socketId === this.playerService.player.socketId,
-                );
+                const me = data.updatedGame.players.find((player) => player.socketId === this.playerService.player.socketId);
                 if (me) {
                     this.playerService.setPlayer(me);
                 }

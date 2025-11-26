@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AudioService } from '@app/services/audio/audio.service';
 import { AuthService } from '@app/services/auth/auth.service';
 import { ProfilePictureService } from '@app/services/profile-picture/profile-picture.service';
 import { ShopHttpService } from '@app/services/shop-http/shop-http.service';
@@ -23,6 +24,8 @@ export class AccountComponent implements OnInit {
     editCustomProfilePicturePreview: string | undefined;
     editMessage = '';
     equippedShopProfilePreview: string | undefined;
+    selectedMusic = 'music2.mp3';
+    ownsMinecraftMusic = false;
 
     @Output() closed = new EventEmitter<void>();
 
@@ -31,11 +34,13 @@ export class AccountComponent implements OnInit {
         private readonly authService: AuthService,
         private readonly profilePictureService: ProfilePictureService,
         private readonly shopHttpService: ShopHttpService,
+        public readonly audioService: AudioService,
     ) {
         this.appComponent = appComponent;
         this.authService = authService;
         this.profilePictureService = profilePictureService;
         this.shopHttpService = shopHttpService;
+        this.audioService = audioService;
         this.editProfilePicture = ProfilePicture.Profile1;
     }
 
@@ -46,6 +51,8 @@ export class AccountComponent implements OnInit {
     private async loadUserInfo(): Promise<void> {
         this.userInfo = await this.authService.getUserInfo();
         await this.resetEditFields();
+        this.checkMusicOwnership();
+        this.selectedMusic = this.audioService.equippedMusic || 'music2.mp3';
     }
 
     formatAvgTime(seconds: number): string {
@@ -155,5 +162,23 @@ export class AccountComponent implements OnInit {
             this.authService.logout();
             this.closed.emit();
         });
+    }
+
+    toggleMusic(): void {
+        this.audioService.musicEnabled = !this.audioService.isMusicEnabled;
+    }
+
+    toggleSoundEffects(): void {
+        this.audioService.areSoundEffectsEnabled = !this.audioService.areSoundEffectsEnabled;
+    }
+
+    checkMusicOwnership(): void {
+        if (this.userInfo?.user?.shopItems) {
+            this.ownsMinecraftMusic = this.userInfo.user.shopItems.some((item: any) => item.itemId === 'sound_1');
+        }
+    }
+
+    onMusicChange(): void {
+        this.audioService.setEquippedMusic(this.selectedMusic);
     }
 }

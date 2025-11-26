@@ -84,11 +84,9 @@ class _FriendListModalState extends State<FriendListModal>
       );
       if (mounted) {
         setState(() => _allUsers = users);
-        print('Utilisateurs chargés: ${users.length}');
       }
     } catch (e) {
       if (mounted) {
-        print('Erreur lors du chargement des utilisateurs: $e');
         showTopSnackBar(
           Overlay.of(context),
           const CustomSnackBar.error(
@@ -156,7 +154,7 @@ class _FriendListModalState extends State<FriendListModal>
         await _saveSentRequests();
         showTopSnackBar(
           Overlay.of(context),
-          CustomSnackBar.success(message: 'Demande d\'ami envoyée à $username'),
+          CustomSnackBar.success(message: "Demande d'ami envoyée à $username"),
         );
       }
     } catch (e) {
@@ -170,7 +168,7 @@ class _FriendListModalState extends State<FriendListModal>
           showTopSnackBar(
             Overlay.of(context),
             CustomSnackBar.success(
-              message: 'Demande d\'ami envoyée à $username',
+              message: "Demande d'ami envoyée à $username",
             ),
           );
         }
@@ -190,7 +188,7 @@ class _FriendListModalState extends State<FriendListModal>
           showTopSnackBar(
             Overlay.of(context),
             const CustomSnackBar.error(
-              message: 'Erreur lors de l\'envoi de la demande',
+              message: "Erreur lors de l'envoi de la demande",
             ),
           );
         }
@@ -209,14 +207,7 @@ class _FriendListModalState extends State<FriendListModal>
   String getPendingRequestStatus(String username) {
     final request = _friendRequests.firstWhere(
       (req) => req.from == username || req.to == username,
-      orElse:
-          () => FriendRequest(
-            from: '',
-            to: '',
-            status: 'none',
-            avatar: null,
-            avatarCustom: null,
-          ),
+      orElse: () => FriendRequest(from: '', to: '', status: 'none'),
     );
 
     if (request.status == 'rejected') return '';
@@ -340,7 +331,6 @@ class _FriendListModalState extends State<FriendListModal>
         await _saveSentRequests();
       }
     } catch (e) {
-      print('Erreur lors du chargement des demandes: $e');
       if (mounted) {
         showTopSnackBar(
           Overlay.of(context),
@@ -376,7 +366,10 @@ class _FriendListModalState extends State<FriendListModal>
         });
       }
     } catch (e) {
-      print('Erreur lors du chargement des demandes envoyées: $e');
+      DebugLogger.log(
+        'Erreur lors du chargement des demandes envoyées: $e',
+        tag: 'FriendListModal',
+      );
     }
   }
 
@@ -398,7 +391,10 @@ class _FriendListModalState extends State<FriendListModal>
       final encoded = json.encode(data);
       await _storage.write(key: key, value: encoded);
     } catch (e) {
-      print('Erreur lors de la sauvegarde des demandes envoyées: $e');
+      DebugLogger.log(
+        'Erreur lors de la sauvegarde des demandes envoyées: $e',
+        tag: 'FriendListModal',
+      );
     }
   }
 
@@ -654,7 +650,7 @@ class _FriendListModalState extends State<FriendListModal>
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: TextField(
             controller: _searchController,
             focusNode: _searchFocusNode,
@@ -830,7 +826,7 @@ class _FriendListModalState extends State<FriendListModal>
 
   Widget _buildRequestsTab() {
     if (_friendRequests.isEmpty) {
-      return _buildEmptyState('Aucune demande d\'ami en attente');
+      return _buildEmptyState("Aucune demande d'ami en attente");
     }
 
     return ListView.builder(
@@ -1073,7 +1069,7 @@ class _FriendListModalState extends State<FriendListModal>
         showTopSnackBar(
           Overlay.of(context),
           const CustomSnackBar.error(
-            message: 'Erreur lors de la suppression de l\'ami',
+            message: "Erreur lors de la suppression de l'ami",
           ),
         );
       }
@@ -1098,7 +1094,7 @@ class _FriendListModalState extends State<FriendListModal>
         showTopSnackBar(
           Overlay.of(context),
           const CustomSnackBar.error(
-            message: 'Erreur lors de l\'acceptation de la demande',
+            message: "Erreur lors de l'acceptation de la demande",
           ),
         );
       }
@@ -1113,7 +1109,7 @@ class _FriendListModalState extends State<FriendListModal>
         showTopSnackBar(
           Overlay.of(context),
           CustomSnackBar.error(
-            message: 'Demande d\'ami de ${request.from} refusée',
+            message: "Demande d'ami de ${request.from} refusée",
           ),
         );
       }

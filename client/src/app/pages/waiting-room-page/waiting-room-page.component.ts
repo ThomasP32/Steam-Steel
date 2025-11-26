@@ -1,11 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ChallengeComponent } from '@app/components/challenge/challenge.component';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { PlayersListComponent } from '@app/components/players-list/players-list.component';
 import { ProfileModalComponent } from '@app/components/profile-modal/profile-modal.component';
 import { VirtualMoneyComponent } from '@app/components/virtual-money/virtual-money.component';
+import { AudioService } from '@app/services/audio/audio.service';
+import { AuthService } from '@app/services/auth/auth.service';
 import { ChannelService } from '@app/services/channel/channel.service';
 import { CharacterService } from '@app/services/character/character.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
@@ -16,7 +19,7 @@ import { MapConversionService } from '@app/services/map-conversion/map-conversio
 import { PlayerService } from '@app/services/player-service/player.service';
 import { TIME_LIMIT_DELAY, WaitingRoomParameters } from '@common/constants';
 import { FriendsEvents } from '@common/events/friends.events';
-import { GameCreationEvents, ToggleGameLockStateData } from '@common/events/game-creation.events';
+import { GameCreationEvents, ToggleGameLockStateData, UpdateAudioSettingsData } from '@common/events/game-creation.events';
 import { Game, GameCtf, Player } from '@common/game';
 import { Map, Mode } from '@common/map.types';
 import { UserStatus } from '@common/user-friends';
@@ -25,7 +28,7 @@ import { firstValueFrom, Subscription } from 'rxjs';
 @Component({
     selector: 'app-waiting-room-page',
     standalone: true,
-    imports: [CommonModule, PlayersListComponent, ChatroomComponent, ProfileModalComponent, ChallengeComponent, VirtualMoneyComponent],
+    imports: [CommonModule, FormsModule, PlayersListComponent, ChatroomComponent, ProfileModalComponent, ChallengeComponent, VirtualMoneyComponent],
     templateUrl: './waiting-room-page.component.html',
     styleUrls: ['./waiting-room-page.component.scss'],
 })
@@ -43,6 +46,8 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         private readonly mapConversionService: MapConversionService,
         private readonly channelService: ChannelService,
         private readonly friendsService: FriendsService,
+        private readonly authService: AuthService,
+        public readonly audioService: AudioService,
     ) {
         this.communicationMapService = communicationMapService;
         this.gameService = gameService;
@@ -54,6 +59,8 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         this.mapConversionService = mapConversionService;
         this.channelService = channelService;
         this.friendsService = friendsService;
+        this.authService = authService;
+        this.audioService = audioService;
     }
 
     waitingRoomCode: string;
@@ -75,6 +82,8 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     maxPlayers: number;
     showProfileModal: boolean = false;
     isChatVisible: boolean = false;
+    selectedMusic = 'music2.mp3';
+    ownsMinecraftMusic = false;
     gameSettings: { isFastElimination: boolean; isDropInOut: boolean; isFriendsOnly: boolean; entryFee: number } = {
         isFastElimination: false,
         isDropInOut: false,
@@ -115,6 +124,10 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
         }
 
         this.channelService.createPartyChannel(this.waitingRoomCode);
+
+        // Initialize music settings
+        this.selectedMusic = this.audioService.equippedMusic || 'music2.mp3';
+        await this.checkMusicOwnership();
     }
 
     generateRandomNumber(): void {
@@ -142,7 +155,8 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     exitGame(): void {
         this.gameInitializedProcessing = false;
         this.gameInitialized = false;
-        
+
+        this.audioService.clearHostControl();
         this.channelService.removePartyChannel(this.waitingRoomCode);
         this.socketService.sendMessage(GameCreationEvents.LeaveGame, this.waitingRoomCode);
         this.socketService.sendMessage(FriendsEvents.UpdateUserStatus, { status: UserStatus.Online });
@@ -164,6 +178,9 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
     }
 
     startGame(): void {
+        if (this.isHost) {
+            this.broadcastAudioSettings();
+        }
         this.socketService.sendMessage(GameCreationEvents.InitializeGame, this.waitingRoomCode);
     }
 
@@ -197,13 +214,27 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
                 }),
             );
         }
+
+        this.socketSubscription.add(
+            this.socketService
+                .listen<{ musicEnabled: boolean; sfxEnabled: boolean; equippedMusic?: string }>(GameCreationEvents.AudioSettingsUpdated)
+                .subscribe((settings) => {
+                    if (!this.isHost) {
+                        this.audioService.setHostControlledSettings(settings.musicEnabled, settings.sfxEnabled);
+                        if (settings.equippedMusic) {
+                            this.audioService.setEquippedMusic(settings.equippedMusic);
+                        }
+                        this.audioService.setHostControlledSettings(settings.musicEnabled, settings.sfxEnabled);
+                    }
+                }),
+        );
         this.socketSubscription.add(
             this.socketService.listen<Game>(GameCreationEvents.GameInitialized).subscribe((game) => {
                 if (this.gameInitializedProcessing) {
                     console.warn('[WaitingRoom] IGNORING GameInitialized - already processing initialization');
                     return;
                 }
-                
+
                 if (game.id !== this.waitingRoomCode) {
                     console.warn('[WaitingRoom] IGNORING GameInitialized for different game. Event:', game.id, 'vs My game:', this.waitingRoomCode);
                     return;
@@ -329,18 +360,64 @@ export class WaitingRoomPageComponent implements OnInit, OnDestroy {
             this.friendsService.inviteAllOnlineFriends(this.waitingRoomCode, this.mapName);
         }
     }
+    toggleMusic(): void {
+        this.audioService.musicEnabled = !this.audioService.isMusicEnabled;
+        if (this.isHost) {
+            this.broadcastAudioSettings();
+        }
+    }
+
+    toggleSoundEffects(): void {
+        this.audioService.areSoundEffectsEnabled = !this.audioService.areSoundEffectsEnabled;
+        if (this.isHost) {
+            this.broadcastAudioSettings();
+        }
+    }
+
+    private broadcastAudioSettings(): void {
+        const audioSettings: UpdateAudioSettingsData = {
+            gameId: this.waitingRoomCode,
+            musicEnabled: this.audioService.isMusicEnabled,
+            sfxEnabled: this.audioService.areSoundEffectsEnabled,
+            equippedMusic: this.selectedMusic,
+        };
+        this.socketService.sendMessage(GameCreationEvents.UpdateAudioSettings, audioSettings);
+    }
+
+    onMusicChange(): void {
+        this.audioService.setEquippedMusic(this.selectedMusic);
+        // If music is enabled, restart it with the new track
+        if (this.audioService.isMusicEnabled) {
+            this.audioService.playBackgroundMusic(this.selectedMusic);
+        }
+        if (this.isHost) {
+            this.broadcastAudioSettings();
+        }
+    }
+
+    async checkMusicOwnership(): Promise<void> {
+        try {
+            const userInfo = await this.authService.getUserInfo();
+            if (userInfo?.user?.shopItems) {
+                this.ownsMinecraftMusic = userInfo.user.shopItems.some((item: any) => item.itemId === 'sound_1');
+            }
+        } catch (error) {
+            console.error('Error checking music ownership:', error);
+        }
+    }
 
     ngOnDestroy(): void {
         this.gameInitializedProcessing = false;
         this.gameInitialized = false;
-        
+
+        this.audioService.clearHostControl();
+
         if (this.socketSubscription) {
             this.socketSubscription.unsubscribe();
         }
-        
+
         this.socketService.removeListener(GameCreationEvents.GameInitialized);
         this.socketService.removeListener(GameCreationEvents.IsStartable);
         this.socketService.removeListener(GameCreationEvents.PlayerJoined);
-        
     }
 }

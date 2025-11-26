@@ -30,7 +30,7 @@ class _ShopWidgetState extends State<ShopWidget> {
 
     {'id': 'profilePicture', 'name': 'Photo de profil', 'icon': '📸'},
     {'id': 'banner', 'name': 'Bannières', 'icon': '🏳️'},
-    {'id': 'sound', 'name': 'Sons', 'icon': '🔊'},
+    {'id': 'sound', 'name': 'Musique', 'icon': '🔊'},
   ];
 
   @override
@@ -261,6 +261,9 @@ class _ShopWidgetState extends State<ShopWidget> {
             }
           });
         }
+
+        // Refresh user data to update shopItems
+        await _authService.fetchUser();
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -771,7 +774,7 @@ class _ShopWidgetState extends State<ShopWidget> {
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),

@@ -103,7 +103,33 @@
                 <h2>Vérouillez la salle pour commencer</h2>
                 <h1>{{ activePlayers.length }} / {{ maxPlayers }}</h1>
             </div>
-            } }
+            } } @if (isHost) {
+            <div class="audio-toggles-container">
+                <div class="audio-control">
+                    <span class="status-label">Musique:</span>
+                    <button class="volume-button" aria-label="Toggle music" (click)="toggleMusic()">
+                        <span class="material-icons" aria-hidden="true">
+                            {{ (audioService.musicEnabled$ | async) ? 'music_note' : 'music_off' }}
+                        </span>
+                    </button>
+                </div>
+                <div class="music-selector">
+                    <span class="status-label">Sélection:</span>
+                    <select class="music-dropdown" [(ngModel)]="selectedMusic" (change)="onMusicChange()">
+                        <option value="music2.mp3">Musique par défaut</option>
+                        <option *ngIf="ownsMinecraftMusic" value="minecraft.mp3">Minecraft</option>
+                    </select>
+                </div>
+                <div class="audio-control">
+                    <span class="status-label">Effets sonores:</span>
+                    <button class="volume-button" aria-label="Toggle sound effects" (click)="toggleSoundEffects()">
+                        <span class="material-icons" aria-hidden="true">
+                            {{ (audioService.soundEffectsEnabled$ | async) ? 'volume_up' : 'volume_off' }}
+                        </span>
+                    </button>
+                </div>
+            </div>
+            }
         </div>
         <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
             <span class="material-icons">chat_bubble_outline</span>

@@ -9,6 +9,7 @@ import { GamePlayersListComponent } from '@app/components/game-players-list/game
 import { InventoryModalComponent } from '@app/components/inventory-modal/inventory-modal.component';
 import { ObservationModeModalComponent } from '@app/components/observation-mode-modal/observation-mode-modal.component';
 import { PlayerInfosComponent } from '@app/components/player-infos/player-infos.component';
+import { AudioService } from '@app/services/audio/audio.service';
 import { AuthService } from '@app/services/auth/auth.service';
 import { ChallengeService } from '@app/services/challenge/challenge.service';
 import { ChannelService } from '@app/services/channel/channel.service';
@@ -105,6 +106,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         private readonly combatService: CombatService,
         protected readonly imageService: ImageService,
         protected readonly mapConversionService: MapConversionService,
+        private readonly audioService: AudioService,
         private readonly authService: AuthService,
         private readonly channelService: ChannelService,
         private readonly challengeService: ChallengeService,
@@ -120,6 +122,7 @@ export class GamePageComponent implements OnInit, OnDestroy {
         this.combatService = combatService;
         this.imageService = imageService;
         this.mapConversionService = mapConversionService;
+        this.audioService = audioService;
         this.authService = authService;
         this.channelService = channelService;
         this.challengeService = challengeService;
@@ -132,6 +135,8 @@ export class GamePageComponent implements OnInit, OnDestroy {
             return;
         }
         this.listenForGameUpdate();
+
+        this.listenForAudioSettings();
 
         if (this.player && this.game) {
             this.gameTurnService.listenForTurn();
@@ -300,23 +305,23 @@ export class GamePageComponent implements OnInit, OnDestroy {
         this.socketSubscription.add(
             this.socketService.listen(GameCreationEvents.GameEndedNoActivePlayers).subscribe(() => {
                 console.log('[GamePage] GameEndedNoActivePlayers received');
-                
+
                 // Close combat modal if it's open
                 this.combatService.closeCombatModal();
-                
+
                 // Close any other modals and show appropriate message
                 this.showExitModal = false;
                 this.showKickedModal = false;
                 this.showEndGameModal = false;
-                this.showNoActivePlayersModal = true;  // Show "no active players" modal
-                
+                this.showNoActivePlayersModal = true; // Show "no active players" modal
+
                 // Update stats before navigating
                 if (this.game && this.player) {
                     const mode = this.game.mode;
                     const duration = this.game.duration ?? 0;
                     this.authService.updateStats({ mode, isWin: !!this.player.isGameWinner, duration });
                 }
-                
+
                 setTimeout(() => {
                     console.log('[GamePage] Navigating to end-game page');
                     this.navigateToEndOfGame();
@@ -338,20 +343,19 @@ export class GamePageComponent implements OnInit, OnDestroy {
     }
 
     private listenForEndOfGame() {
-        this.socketSubscription.add(
-            this.gameTurnService.playerWon$.subscribe((isGameOver) => {
-                this.showExitModal = false;
-                this.showEndGameModal = isGameOver;
-                if (isGameOver) {
-                    const mode = this.game.mode;
-                    const duration = this.game.duration ?? 0;
-                    this.authService.updateStats({ mode, isWin: !!this.player.isGameWinner, duration });
-                    setTimeout(() => {
-                        this.navigateToEndOfGame();
-                    }, TIME_REDIRECTION);
-                }
-            }),
-        );
+        this.gameTurnService.playerWon$.subscribe((isGameOver) => {
+            this.showExitModal = false;
+            this.showEndGameModal = isGameOver;
+            if (isGameOver) {
+                this.audioService.stopMusic();
+                const mode = this.game.mode;
+                const duration = this.game.duration ?? 0;
+                this.authService.updateStats({ mode, isWin: !!this.player.isGameWinner, duration });
+                setTimeout(() => {
+                    this.navigateToEndOfGame();
+                }, TIME_REDIRECTION);
+            }
+        });
     }
 
     private listenForOpponent() {
@@ -414,7 +418,22 @@ export class GamePageComponent implements OnInit, OnDestroy {
         );
     }
 
+    listenForAudioSettings(): void {
+        this.socketSubscription.add(
+            this.socketService
+                .listen<{ musicEnabled: boolean; sfxEnabled: boolean; equippedMusic?: string }>(GameCreationEvents.AudioSettingsUpdated)
+                .subscribe((settings) => {
+                    if (settings.equippedMusic) {
+                        this.audioService.setEquippedMusic(settings.equippedMusic);
+                    }
+                    this.audioService.setHostControlledSettings(settings.musicEnabled, settings.sfxEnabled);
+                }),
+        );
+    }
+
     ngOnDestroy(): void {
+        this.audioService.clearHostControl();
+        this.audioService.stopMusic();
         this.socketSubscription.unsubscribe();
     }
 

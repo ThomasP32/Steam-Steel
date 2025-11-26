@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/models/user_models.dart';
+import 'package:mobile/services/audio_service.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/channel_service.dart';
 import 'package:mobile/services/friend_service.dart';
@@ -86,6 +87,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
     _listenToGameInitialized();
     _listenToPlayerKicked();
     _listenToMoneyUpdates();
+    _listenToAudioSettings();
     _loadPlayerBanners();
 
     _service.players.addListener(_loadPlayerBanners);
@@ -200,6 +202,22 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
     });
   }
 
+  void _listenToAudioSettings() {
+    _service.hostMusicEnabled.addListener(_applyHostAudioSettings);
+    _service.hostSfxEnabled.addListener(_applyHostAudioSettings);
+  }
+
+  void _applyHostAudioSettings() {
+    if (!mounted) return;
+    if (_service.isHost.value) return;
+
+    final audioService = AudioService()
+    ..setHostControlledSettings(
+      musicEnabled: _service.hostMusicEnabled.value,
+      sfxEnabled: _service.hostSfxEnabled.value,
+    );
+  }
+
   Future<void> _loadPlayerBanners() async {
     final players = _service.players.value;
     if (players.isEmpty) return;
@@ -261,12 +279,17 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
       _playerService.notifier.removeListener(_playerListener!);
     }
     _service.players.removeListener(_loadPlayerBanners);
+    _service.hostMusicEnabled.removeListener(_applyHostAudioSettings);
+    _service.hostSfxEnabled.removeListener(_applyHostAudioSettings);
     _gearController.dispose();
     _closedSub?.cancel();
     _gameInitializedSub?.cancel();
     _playerKickedSub?.cancel();
     _moneyUpdatesSub?.cancel();
     _service.reset();
+
+    AudioService().clearHostControl();
+    unawaited(AudioService().stopMusic());
 
     final gameId = widget.gameId ?? _service.gameId.value;
     if (gameId.isNotEmpty) {
@@ -360,10 +383,12 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final audioService = AudioService();
 
     return WillPopScope(
       onWillPop: () async {
         FriendService().updateUserStatus(UserStatus.online);
+        await AudioService().stopMusic();
         final gameId = widget.gameId ?? _service.gameId.value;
         if (gameId.isNotEmpty) {
           await ChannelService().removeGameChannel(gameId);
@@ -482,6 +507,186 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                 ),
               ),
             ),
+            // Audio toggles on right side (only for host)
+            ValueListenableBuilder(
+              valueListenable: _service.isHost,
+              builder: (context, isHost, _) {
+                if (!isHost) {
+                  return const SizedBox.shrink();
+                }
+                return Positioned(
+                  top: 520,
+                  right: 24,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Musique:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: audioService.musicEnabledNotifier,
+                            builder: (context, enabled, _) {
+                              return SizedBox(
+                                width: 44,
+                                height: 44,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? AppColors.buttonBackgroundDark
+                                            : AppColors.buttonBackgroundLight,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  onPressed: () {
+                                    final newValue = !enabled;
+                                    audioService.musicEnabled = newValue;
+                                    _service.updateAudioSettings(
+                                      musicEnabled: newValue,
+                                      sfxEnabled: audioService.sfxEnabled,
+                                    );
+                                    setState(() {});
+                                  },
+                                  child: Icon(
+                                    enabled
+                                        ? Icons.music_note
+                                        : Icons.music_off,
+                                    color:
+                                        Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? AppColors.buttonTextDark
+                                            : AppColors.buttonTextLight,
+                                    size: 24,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 20),
+                          // Music selector dropdown
+                          ValueListenableBuilder<String>(
+                            valueListenable: audioService.equippedMusicNotifier,
+                            builder: (context, selectedMusic, _) {
+                              final user = _authService.notifier.value;
+                              final ownsMinecraft =
+                                  user?.shopItems.any(
+                                    (item) => item.itemId == 'sound_1',
+                                  ) ??
+                                  false;
+
+                              final musicItems = <DropdownMenuItem<String>>[
+                                const DropdownMenuItem(
+                                  value: 'music2.mp3',
+                                  child: Text('Musique par défaut'),
+                                ),
+                              ];
+
+                              if (ownsMinecraft) {
+                                musicItems.add(
+                                  const DropdownMenuItem(
+                                    value: 'minecraft.mp3',
+                                    child: Text('Minecraft'),
+                                  ),
+                                );
+                              }
+
+                              return SizedBox(
+                                width: 200,
+                                child: DropdownButton<String>(
+                                  value: selectedMusic,
+                                  isExpanded: true,
+                                  items: musicItems,
+                                  onChanged: (String? newValue) {
+                                    if (newValue != null) {
+                                      audioService.setEquippedMusic(newValue);
+                                      _service.updateAudioSettings(
+                                        musicEnabled: audioService.musicEnabled,
+                                        sfxEnabled: audioService.sfxEnabled,
+                                        equippedMusic: newValue,
+                                      );
+                                    }
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Effets sonores:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: audioService.sfxEnabledNotifier,
+                            builder: (context, enabled, _) {
+                              return SizedBox(
+                                width: 44,
+                                height: 44,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? AppColors.buttonBackgroundDark
+                                            : AppColors.buttonBackgroundLight,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  onPressed: () {
+                                    final newValue = !enabled;
+                                    audioService.sfxEnabled = newValue;
+                                    _service.updateAudioSettings(
+                                      musicEnabled: audioService.musicEnabled,
+                                      sfxEnabled: newValue,
+                                    );
+                                    setState(() {});
+                                  },
+                                  child: Icon(
+                                    enabled
+                                        ? Icons.volume_up
+                                        : Icons.volume_off,
+                                    color:
+                                        Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? AppColors.buttonTextDark
+                                            : AppColors.buttonTextLight,
+                                    size: 24,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+
             const Positioned(
               top: 28,
               right: 12,
@@ -830,12 +1035,14 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                         ElevatedButton.icon(
                           onPressed: () {
                             FriendService().updateUserStatus(UserStatus.online);
+                            unawaited(AudioService().stopMusic());
                             final gameId =
                                 widget.gameId ?? _service.gameId.value;
                             if (gameId.isNotEmpty) {
                               ChannelService().removeGameChannel(gameId);
                             }
                             _service.leaveGame();
+                            
                             GoRouter.of(context).go('/');
                           },
                           style: ElevatedButton.styleFrom(

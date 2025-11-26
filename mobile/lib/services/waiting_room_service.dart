@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:mobile/common/game.dart';
 import 'package:mobile/services/api_client.dart';
+import 'package:mobile/services/audio_service.dart';
 import 'package:mobile/services/channel_service.dart';
 import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
@@ -25,6 +26,8 @@ class WaitingRoomService {
   final ValueNotifier<GameSettings> gameSettings = ValueNotifier(
     GameSettings(),
   );
+  final ValueNotifier<bool> hostMusicEnabled = ValueNotifier(false);
+  final ValueNotifier<bool> hostSfxEnabled = ValueNotifier(true);
 
   final _playerService = PlayerService();
 
@@ -98,6 +101,10 @@ class WaitingRoomService {
     _subscriptions['gameLockToggled'] = SocketService()
         .listen<dynamic>('gameLockToggled')
         .listen(_handleGameLockToggled);
+
+    _subscriptions['audioSettingsUpdated'] = SocketService()
+        .listen<dynamic>('audioSettingsUpdated')
+        .listen(_handleAudioSettingsUpdated);
   }
 
   void _handleCurrentPlayers(dynamic data) {
@@ -197,6 +204,33 @@ class WaitingRoomService {
         (payload is bool && payload) ||
         (payload is String && payload.toLowerCase() == 'true');
     isLocked.value = locked;
+  }
+
+  void _handleAudioSettingsUpdated(dynamic data) {
+    try {
+      if (data is! Map<String, dynamic>) return;
+
+      final musicEnabled = data['musicEnabled'] as bool? ?? false;
+      final sfxEnabled = data['sfxEnabled'] as bool? ?? true;
+      final equippedMusic = data['equippedMusic'] as String?;
+
+      hostMusicEnabled.value = musicEnabled;
+      hostSfxEnabled.value = sfxEnabled;
+
+      if (equippedMusic != null) {
+        AudioService().setEquippedMusic(equippedMusic);
+      }
+
+      DebugLogger.log(
+        'Audio settings updated: music=$musicEnabled, sfx=$sfxEnabled, equippedMusic=$equippedMusic',
+        tag: 'WaitingRoomService',
+      );
+    } on Exception catch (e) {
+      DebugLogger.log(
+        'audioSettingsUpdated parse failed: $e',
+        tag: 'WaitingRoomService',
+      );
+    }
   }
 
   int _getMaxPlayersFromMapSize(int size) {
@@ -354,6 +388,36 @@ class WaitingRoomService {
     }
   }
 
+  void updateAudioSettings({
+    required bool musicEnabled,
+    required bool sfxEnabled,
+    String? equippedMusic,
+  }) {
+    if (gameId.value.isEmpty) return;
+    if (!isHost.value) return;
+
+    try {
+      final payload = <String, dynamic>{
+        'gameId': gameId.value,
+        'musicEnabled': musicEnabled,
+        'sfxEnabled': sfxEnabled,
+        if (equippedMusic != null) 'equippedMusic': equippedMusic,
+      };
+      hostMusicEnabled.value = musicEnabled;
+      hostSfxEnabled.value = sfxEnabled;
+      SocketService().send('updateAudioSettings', payload);
+      DebugLogger.log(
+        'Audio settings sent: music=$musicEnabled, sfx=$sfxEnabled',
+        tag: 'WaitingRoomService',
+      );
+    } on Exception catch (e) {
+      DebugLogger.log(
+        'updateAudioSettings emit failed: $e',
+        tag: 'WaitingRoomService',
+      );
+    }
+  }
+
   void kickPlayer(String playerSocketId) {
     if (gameId.value.isEmpty || playerSocketId.isEmpty) return;
 
@@ -446,6 +510,8 @@ class WaitingRoomService {
     isLocked.value = false;
     maxPlayers.value = 2;
     isHost.value = false;
+    hostMusicEnabled.value = false;
+    hostSfxEnabled.value = true;
     gameId.value = '';
     selectedPlayerSocketId.value = null;
     gameSettings.value = GameSettings();

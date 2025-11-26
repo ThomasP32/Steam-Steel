@@ -10,7 +10,13 @@ import { TIME_LIMIT_DELAY } from '@common/constants';
 import { ChallengeEvent } from '@common/events/challenge.events';
 import { CombatEvents, CombatFinishedData } from '@common/events/combat.events';
 import { CountdownEvents } from '@common/events/countdown.events';
-import { GameCreationEvents, JoinGameData, KickPlayerData, ToggleGameLockStateData } from '@common/events/game-creation.events';
+import {
+    GameCreationEvents,
+    JoinGameData,
+    KickPlayerData,
+    ToggleGameLockStateData,
+    UpdateAudioSettingsData,
+} from '@common/events/game-creation.events';
 import { GameTurnEvents } from '@common/events/game-turn.events';
 import { Game, GameCtf, GameEndReason, Player } from '@common/game';
 import { Mode } from '@common/map.types';
@@ -309,6 +315,18 @@ export class GameGateway {
         }
     }
 
+    @SubscribeMessage(GameCreationEvents.UpdateAudioSettings)
+    handleUpdateAudioSettings(client: Socket, data: UpdateAudioSettingsData): void {
+        const game = this.gameCreationService.getGameById(data.gameId);
+        if (game && game.hostSocketId === client.id) {
+            this.server.to(game.id).emit(GameCreationEvents.AudioSettingsUpdated, {
+                musicEnabled: data.musicEnabled,
+                sfxEnabled: data.sfxEnabled,
+                ...(data.equippedMusic && { equippedMusic: data.equippedMusic }),
+            });
+        }
+    }
+
     @SubscribeMessage(GameCreationEvents.IfStartable)
     isStartable(client: Socket, gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
@@ -331,11 +349,10 @@ export class GameGateway {
         const isHost = this.gameCreationService.isPlayerHost(client.id, game.id);
         if (!game.hasStarted) {
             if (isHost) {
-                const { totalRefunded, refundedUsers } = await this.gameCreationService.refundAllPlayersInGame(gameId);
+                const { refundedUsers } = await this.gameCreationService.refundAllPlayersInGame(gameId);
                 for (const refundedUserId of refundedUsers) {
                     await this.shopGateway.notifyMoneyUpdate(refundedUserId);
                 }
-                console.log(`[GameCreationGateway] Host leaving - refunded ${totalRefunded} to ${refundedUsers.length} players`);
                 this.server.to(game.id).emit(GameCreationEvents.GameClosed);
                 await this.gameCreationService.deleteRoom(game.id);
                 this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);

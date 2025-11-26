@@ -124,19 +124,11 @@ export class ShopService {
         // Sons (pour le futur)
         {
             id: 'sound_1',
-            name: 'Pack Médiéval',
-            price: 50,
+            name: 'Musique thème - Minecraft',
+            price: 500,
             category: 'sound',
-            imagePath: 'assets/icons/shield_icon.png',
-            description: "Sons d'ambiance médiévale (À venir)",
-        },
-        {
-            id: 'sound_2',
-            name: 'Pack Fantastique',
-            price: 60,
-            category: 'sound',
-            imagePath: 'assets/icons/fighting.png',
-            description: 'Sons magiques et fantastiques (À venir)',
+            imagePath: 'assets/icons/minecraft.png',
+            description: 'Musique emblématique de Minecraft',
         },
 
         {

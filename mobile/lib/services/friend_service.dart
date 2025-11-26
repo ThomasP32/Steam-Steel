@@ -406,7 +406,7 @@ class FriendService {
       return _cachedRequests;
     } catch (e) {
       if (_cachedRequests.isNotEmpty) return _cachedRequests;
-      throw Exception('Erreur lors du chargement des demandes d\'ami: $e');
+      throw Exception("Erreur lors du chargement des demandes d'ami: $e");
     }
   }
 
@@ -425,7 +425,7 @@ class FriendService {
       final data = await _processResponse(response);
       return (data['success'] as bool?) ?? false;
     } catch (e) {
-      throw Exception('Erreur lors de l\'ajout d\'ami: $e');
+      throw Exception("Erreur lors de l'ajout d'ami: $e");
     }
   }
 
@@ -444,7 +444,7 @@ class FriendService {
       final data = await _processResponse(response);
       return (data['success'] as bool?) ?? false;
     } catch (e) {
-      throw Exception('Erreur lors de l\'acceptation de la demande: $e');
+      throw Exception("Erreur lors de l'acceptation de la demande: $e");
     }
   }
 
@@ -482,7 +482,7 @@ class FriendService {
       final data = await _processResponse(response);
       return (data['success'] as bool?) ?? false;
     } catch (e) {
-      throw Exception('Erreur lors de la suppression de l\'ami: $e');
+      throw Exception("Erreur lors de la suppression de l'ami: $e");
     }
   }
 
