@@ -6,6 +6,7 @@ import 'package:mobile/services/game_service.dart';
 import 'package:mobile/services/player_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
+import 'package:mobile/common/game.dart';
 
 class GameTurnService {
   factory GameTurnService() => _instance;
@@ -20,6 +21,7 @@ class GameTurnService {
   final _possibleWallsNotifier = ValueNotifier<List<Tile>>([]);
   final _gameFinishedNotifier = ValueNotifier<bool>(false);
   final _gameFinishedDataNotifier = ValueNotifier<Map<String, dynamic>?>(null);
+  final _gameEndReasonNotifier = ValueNotifier<GameEndReason?>(null);
   final _observationModeNotifier = ValueNotifier<bool>(false);
   final _observationMessageNotifier = ValueNotifier<String>('');
   String _currentGameId = '';
@@ -37,6 +39,8 @@ class GameTurnService {
   ValueNotifier<bool> get gameFinishedNotifier => _gameFinishedNotifier;
   ValueNotifier<Map<String, dynamic>?> get gameFinishedDataNotifier =>
       _gameFinishedDataNotifier;
+  ValueNotifier<GameEndReason?> get gameEndReasonNotifier =>
+      _gameEndReasonNotifier;
   ValueNotifier<bool> get observationModeNotifier => _observationModeNotifier;
   ValueNotifier<String> get observationMessageNotifier =>
       _observationMessageNotifier;
@@ -186,6 +190,11 @@ class GameTurnService {
         SocketService().listen<dynamic>('gameFinished').listen((data) {
           if (data is Map<String, dynamic>) {
             _gameFinishedDataNotifier.value = data;
+            
+            final reasonString = data['reason'] as String?;
+            if (reasonString != null) {
+              _gameEndReasonNotifier.value = GameEndReason.fromString(reasonString);
+            }
           }
           _gameFinishedNotifier.value = true;
         }),
@@ -389,6 +398,7 @@ class GameTurnService {
     _possibleWallsNotifier.value = [];
     _gameFinishedNotifier.value = false;
     _gameFinishedDataNotifier.value = null;
+    _gameEndReasonNotifier.value = null;
     _observationModeNotifier.value = false;
     _observationMessageNotifier.value = '';
     _pendingInventoryModal = false;

@@ -630,7 +630,6 @@ export class GameManagerService {
         }
         console.log(`  Total active count: ${count}`);
 
-
         // Only terminate if less than 2 players total
         if (count < 2) {
             const lastPlayer = this.getActiveNonObservers(gameId);
@@ -726,9 +725,9 @@ export class GameManagerService {
             this.userSocketService.getSocketId(userId),
         );
 
-        server.to(gameId).emit(CombatEvents.GameFinished, { updatedGame: game, moneyRewards: rewardsObject });
-        server.to(gameId).emit(CombatEvents.GameFinishedPlayerWon, endResult.winner);
-        
+        server.to(gameId).emit(CombatEvents.GameFinished, { updatedGame: game, moneyRewards: rewardsObject, reason: endResult.reason });
+        server.to(gameId).emit(CombatEvents.GameFinishedPlayerWon, { winner: endResult.winner, reason: endResult.reason });
+
         // Delete the room and notify all clients to update their game list
         await this.gameCreationService.deleteRoom(gameId);
         server.emit(GameCreationEvents.GameListUpdated);

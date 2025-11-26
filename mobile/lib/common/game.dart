@@ -222,3 +222,22 @@ class GameCtf extends GameClassic {
   });
   final List<Player> nPlayersCtf;
 }
+
+enum GameEndReason {
+  noWinnerTermination('no_winner_termination'),
+  victoryElimination('victory_elimination'),
+  victoryCombatWins('victory_combat_wins'),
+  victoryCtfFlag('victory_ctf_flag'),
+  victoryLastPlayerStanding('victory_last_player_standing'),
+  ongoing('ongoing');
+
+  const GameEndReason(this.value);
+  final String value;
+
+  static GameEndReason fromString(String value) {
+    return GameEndReason.values.firstWhere(
+      (e) => e.value == value,
+      orElse: () => GameEndReason.ongoing,
+    );
+  }
+}

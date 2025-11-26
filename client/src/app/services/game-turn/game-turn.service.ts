@@ -9,7 +9,7 @@ import { CombatEvents, CombatFinishedByEvasionData, CombatFinishedData } from '@
 import { GameManagerEvents } from '@common/events/game-manager.events';
 import { GameTurnEvents } from '@common/events/game-turn.events';
 import { ItemsEvents } from '@common/events/items.events';
-import { Game, Player } from '@common/game';
+import { Game, GameEndReason, Player } from '@common/game';
 import { Coordinate, DoorTile, ItemCategory, Tile } from '@common/map.types';
 import { BehaviorSubject, Subscription } from 'rxjs';
 
@@ -40,6 +40,9 @@ export class GameTurnService {
 
     private readonly possibleWalls = new BehaviorSubject<Tile[]>([]);
     public possibleWalls$ = this.possibleWalls.asObservable();
+
+    private readonly gameEndReason = new BehaviorSubject<GameEndReason | null>(null);
+    public gameEndReason$ = this.gameEndReason.asObservable();
 
     isMoving = false;
 
@@ -359,13 +362,13 @@ export class GameTurnService {
         );
     }
 
-    listenForEndOfGame() {
+ listenForEndOfGame() {
         let gameFinishedHandled = false;
         let playerWonHandled = false;
 
         this.socketSubscription.add(
             this.socketService
-                .listen<{ updatedGame: Game; moneyRewards?: { [key: string]: number } }>(CombatEvents.GameFinished)
+                .listen<{ updatedGame: Game; moneyRewards?: { [key: string]: number }; reason?: GameEndReason }>(CombatEvents.GameFinished)
                 .subscribe((data) => {
                     if (gameFinishedHandled) return;
                     gameFinishedHandled = true;
@@ -379,6 +382,10 @@ export class GameTurnService {
                     const reward = data.moneyRewards?.[currentSocketId] || 0;
                     this.moneyReward.next(reward);
 
+                    if (data.reason) {
+                        this.gameEndReason.next(data.reason);
+                    }
+
                     if (!playerWonHandled) {
                         playerWonHandled = true;
                         this.playerWon.next(true);
@@ -387,9 +394,12 @@ export class GameTurnService {
         );
 
         this.socketSubscription.add(
-            this.socketService.listen<Player>(CombatEvents.GameFinishedPlayerWon).subscribe(() => {
+            this.socketService.listen<{ winner: Player; reason: GameEndReason }>(CombatEvents.GameFinishedPlayerWon).subscribe((data) => {
                 if (playerWonHandled) return;
                 playerWonHandled = true;
+                if (data.reason) {
+                    this.gameEndReason.next(data.reason);
+                }
                 this.playerWon.next(true);
             }),
         );

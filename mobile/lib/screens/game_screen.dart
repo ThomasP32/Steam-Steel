@@ -1305,7 +1305,15 @@ class _GameScreenState extends State<GameScreen> {
               ),
             if (_showPlayerLeftModal) const PlayerLeftModalWidget(),
             if (isGameFinished)
-              EndGameAlertWidget(game: _gameService.currentGame),
+              ValueListenableBuilder<GameEndReason?>(
+                valueListenable: _gameTurnService.gameEndReasonNotifier,
+                builder: (context, reason, _) {
+                  return EndGameAlertWidget(
+                    game: _gameService.currentGame,
+                    reason: reason,
+                  );
+                },
+              ),
 
             if (_showObservationModal)
               ObservationModeModalWidget(
