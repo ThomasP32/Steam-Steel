@@ -75,6 +75,12 @@ class ChatService {
     final authorAvatarCustom =
         (msgMap['authorAvatarCustom'] as String?) ??
         (m['authorAvatarCustom'] as String?);
+    final authorProfilePicture =
+        (msgMap['authorProfilePicture'] as int?) ??
+        (m['authorProfilePicture'] as int?);
+    final authorProfilePictureCustom =
+        (msgMap['authorProfilePictureCustom'] as String?) ??
+        (m['authorProfilePictureCustom'] as String?);
     final authorStatus =
         (msgMap['authorStatus'] as String?) ?? (m['authorStatus'] as String?);
 
@@ -89,6 +95,8 @@ class ChatService {
       channel: channel,
       authorAvatar: authorAvatar,
       authorAvatarCustom: authorAvatarCustom,
+      authorProfilePicture: authorProfilePicture,
+      authorProfilePictureCustom: authorProfilePictureCustom,
       authorStatus: authorStatus,
     );
   }

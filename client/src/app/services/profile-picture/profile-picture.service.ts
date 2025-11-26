@@ -85,6 +85,30 @@ export class ProfilePictureService {
             isShopProfile: true,
             shopItemId: 'profile_10',
         },
+        {
+            id: ProfilePicture.Profile11,
+            image: './assets/profile/11.png',
+            preview: './assets/profile/11.png',
+            isAvailable: false,
+            isShopProfile: true,
+            shopItemId: 'profile_11',
+        },
+        {
+            id: ProfilePicture.Profile12,
+            image: './assets/profile/12.png',
+            preview: './assets/profile/12.png',
+            isAvailable: false,
+            isShopProfile: true,
+            shopItemId: 'profile_12',
+        },
+        {
+            id: ProfilePicture.Profile13,
+            image: './assets/profile/13.png',
+            preview: './assets/profile/13.png',
+            isAvailable: false,
+            isShopProfile: true,
+            shopItemId: 'profile_13',
+        },
     ];
 
     private _availableProfilePictures: ProfilePictureData[] = [];

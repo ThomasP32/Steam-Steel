@@ -14,6 +14,7 @@ import { ProfilePicture } from '@common/game';
 export class ProfilePictureComponent implements OnInit {
     @Input() selectedProfilePicture: ProfilePicture = ProfilePicture.Profile1;
     @Input() customProfilePicturePreview: string | undefined;
+    @Input() showOnlyFree: boolean = false;
     @Output() selectedProfilePictureChange = new EventEmitter<ProfilePicture>();
     @Output() customProfilePicturePreviewChange = new EventEmitter<string | undefined>();
 
@@ -21,6 +22,9 @@ export class ProfilePictureComponent implements OnInit {
     userOwnedItems: { itemId: string; equipped: boolean }[] = [];
 
     get profilePictures() {
+        if (this.showOnlyFree) {
+            return this.allProfilePictures.filter((profile) => !profile.isShopProfile);
+        }
         return this.allProfilePictures;
     }
 

@@ -11,6 +11,8 @@ class ProfilePictureWidget extends StatelessWidget {
     super.key,
     this.avatar,
     this.avatarCustom,
+    this.profilePicture,
+    this.profilePictureCustom,
     this.status,
     this.showStatusIndicator = true,
     this.username,
@@ -19,6 +21,8 @@ class ProfilePictureWidget extends StatelessWidget {
   final double size;
   final int? avatar;
   final String? avatarCustom;
+  final int? profilePicture;
+  final String? profilePictureCustom;
   final UserStatus? status;
   final bool showStatusIndicator;
   final String? username;
@@ -38,6 +42,8 @@ class ProfilePictureWidget extends StatelessWidget {
   }
 
   int _getDefaultAvatar() {
+    // Priority: profilePicture > avatar > default
+    if (profilePicture != null) return profilePicture!;
     if (avatar != null) return avatar!;
     if (username == null || username!.isEmpty) return 1;
 
@@ -52,6 +58,39 @@ class ProfilePictureWidget extends StatelessWidget {
   }
 
   ImageProvider _getAvatarImageProvider() {
+    // If username is [supprimé], don't show any image - let parent handle icon
+    if (username == '[supprimé]') {
+      // Return a transparent placeholder that won't be visible
+      return const AssetImage('lib/assets/profile/1.png');
+    }
+
+    // Priority: profilePictureCustom > profilePicture > avatarCustom > avatar > default
+    if (profilePictureCustom != null && profilePictureCustom!.isNotEmpty) {
+      if (_isUrl(profilePictureCustom!)) {
+        if (profilePictureCustom!.startsWith('data:')) {
+          try {
+            final base64String = profilePictureCustom!.split(',')[1];
+            final bytes = base64Decode(base64String);
+            return MemoryImage(bytes);
+          } catch (e) {
+            DebugLogger.log(
+              'Failed to decode base64 profile picture: $e',
+              tag: 'ProfilePictureWidget',
+            );
+            // Fallback to avatar if profile picture fails
+          }
+        } else {
+          return NetworkImage(profilePictureCustom!);
+        }
+      } else {
+        return FileImage(File(profilePictureCustom!));
+      }
+    }
+
+    if (profilePicture != null) {
+      return AssetImage('lib/assets/profile/$profilePicture.png');
+    }
+
     if (avatarCustom != null && avatarCustom!.isNotEmpty) {
       if (_isUrl(avatarCustom!)) {
         if (avatarCustom!.startsWith('data:')) {
@@ -73,6 +112,7 @@ class ProfilePictureWidget extends StatelessWidget {
         return FileImage(File(avatarCustom!));
       }
     }
+
     final avatarNumber = _getDefaultAvatar();
     return AssetImage('lib/assets/characters/$avatarNumber.png');
   }

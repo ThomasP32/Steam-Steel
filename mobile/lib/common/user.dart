@@ -11,6 +11,8 @@ class User {
     ),
     this.avatar = '',
     this.avatarCustom,
+    this.profilePicture,
+    this.profilePictureCustom,
     this.virtualMoney = 0,
     this.shopItems = const [],
   });
@@ -25,6 +27,16 @@ class User {
             )
             .toList() ??
         [];
+
+    // Parse profilePicture as int
+    final profilePictureValue = j['profilePicture'];
+    final profilePictureInt =
+        profilePictureValue is int
+            ? profilePictureValue
+            : (profilePictureValue is String
+                ? int.tryParse(profilePictureValue)
+                : null);
+
     return User(
       id: j['_id']?.toString() ?? j['id']?.toString() ?? '',
       username: j['username']?.toString() ?? '',
@@ -32,6 +44,9 @@ class User {
       status: j['status']?.toString() ?? 'offline',
       avatar: j['avatar']?.toString() ?? '',
       avatarCustom: j['avatarCustom']?.toString(),
+      profilePicture: profilePictureInt,
+      profilePictureCustom: j['profilePictureCustom']?.toString(),
+
       stats: stats,
       virtualMoney:
           (j['virtualMoney'] is int)
@@ -48,6 +63,8 @@ class User {
   final String avatar;
   final UserStats stats;
   final String? avatarCustom;
+  final int? profilePicture;
+  final String? profilePictureCustom;
   final int virtualMoney;
   final List<ShopItemOwnership> shopItems;
 
@@ -59,6 +76,8 @@ class User {
     String? avatar,
     UserStats? stats,
     String? avatarCustom,
+    int? profilePicture,
+    String? profilePictureCustom,
     int? virtualMoney,
     List<ShopItemOwnership>? shopItems,
   }) {
@@ -70,6 +89,8 @@ class User {
       avatar: avatar ?? this.avatar,
       stats: stats ?? this.stats,
       avatarCustom: avatarCustom ?? this.avatarCustom,
+      profilePicture: profilePicture ?? this.profilePicture,
+      profilePictureCustom: profilePictureCustom ?? this.profilePictureCustom,
       virtualMoney: virtualMoney ?? this.virtualMoney,
       shopItems: shopItems ?? this.shopItems,
     );

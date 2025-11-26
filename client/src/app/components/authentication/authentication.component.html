@@ -19,9 +19,9 @@
                 (keydown.enter)="register()"
                 (input)="onInput($event, 'registerPassword')"
             />
-            <button 
-                type="button" 
-                class="password-toggle" 
+            <button
+                type="button"
+                class="password-toggle"
                 (mousedown)="onRegisterPasswordMouseDown()"
                 (mouseup)="onRegisterPasswordMouseUp()"
                 (mouseleave)="onRegisterPasswordMouseUp()"
@@ -46,6 +46,7 @@
             <app-profile-picture
                 [selectedProfilePicture]="registerProfilePicture"
                 [customProfilePicturePreview]="registerCustomProfilePicturePreview"
+                [showOnlyFree]="true"
                 (selectedProfilePictureChange)="registerProfilePicture = $event"
                 (customProfilePicturePreviewChange)="registerCustomProfilePicturePreview = $event"
             ></app-profile-picture>
@@ -73,9 +74,9 @@
                 (keydown.enter)="login()"
                 (input)="onInput($event, 'loginPassword')"
             />
-            <button 
-                type="button" 
-                class="password-toggle" 
+            <button
+                type="button"
+                class="password-toggle"
                 (mousedown)="onLoginPasswordMouseDown()"
                 (mouseup)="onLoginPasswordMouseUp()"
                 (mouseleave)="onLoginPasswordMouseUp()"

@@ -142,7 +142,7 @@ export class ShopService {
         {
             id: 'profile_4',
             name: 'Daphné',
-            price: 300,
+            price: 150,
             category: 'profilePicture',
             imagePath: 'assets/profile/4.png',
             description: 'Une photo de profil feminine',
@@ -150,10 +150,34 @@ export class ShopService {
         {
             id: 'profile_5',
             name: 'Pascal',
-            price: 350,
+            price: 200,
             category: 'profilePicture',
             imagePath: 'assets/profile/5.png',
             description: 'Une photo de profil Pascal',
+        },
+        {
+            id: 'profile_11',
+            name: 'Fée',
+            price: 250,
+            category: 'profilePicture',
+            imagePath: 'assets/profile/11.png',
+            description: 'Une photo de profil Fée',
+        },
+        {
+            id: 'profile_12',
+            name: 'Pingouin',
+            price: 300,
+            category: 'profilePicture',
+            imagePath: 'assets/profile/12.png',
+            description: 'Une photo de profil Pingouin',
+        },
+        {
+            id: 'profile_13',
+            name: 'Marty',
+            price: 350,
+            category: 'profilePicture',
+            imagePath: 'assets/profile/13.png',
+            description: 'Une photo de profil Marty',
         },
         {
             id: 'profile_6',
@@ -544,6 +568,9 @@ export class ShopService {
             profile_8: 8,
             profile_9: 9,
             profile_10: 10,
+            profile_11: 11,
+            profile_12: 12,
+            profile_13: 13,
         };
 
         return mapping[itemId] || null;

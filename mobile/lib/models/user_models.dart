@@ -11,9 +11,12 @@ class Friend {
     this.status = UserStatus.unknown,
     this.avatar,
     this.avatarCustom,
+    this.profilePicture,
+    this.profilePictureCustom,
   });
   factory Friend.fromJson(Map<String, dynamic> json) {
     final avatarValue = json['avatar'];
+    final profilePictureValue = json['profilePicture'];
     return Friend(
       username: json['username'] as String,
       status: _parseStatus(json['status'] as String?),
@@ -22,24 +25,37 @@ class Friend {
               ? avatarValue
               : (avatarValue is String ? int.tryParse(avatarValue) : null),
       avatarCustom: json['avatarCustom'] as String?,
+      profilePicture:
+          profilePictureValue is int
+              ? profilePictureValue
+              : (profilePictureValue is String
+                  ? int.tryParse(profilePictureValue)
+                  : null),
+      profilePictureCustom: json['profilePictureCustom'] as String?,
     );
   }
   final String username;
   final UserStatus status;
   final int? avatar;
   final String? avatarCustom;
+  final int? profilePicture;
+  final String? profilePictureCustom;
 
   Friend copyWith({
     String? username,
     UserStatus? status,
     int? avatar,
     String? avatarCustom,
+    int? profilePicture,
+    String? profilePictureCustom,
   }) {
     return Friend(
       username: username ?? this.username,
       status: status ?? this.status,
       avatar: avatar ?? this.avatar,
       avatarCustom: avatarCustom ?? this.avatarCustom,
+      profilePicture: profilePicture ?? this.profilePicture,
+      profilePictureCustom: profilePictureCustom ?? this.profilePictureCustom,
     );
   }
 
@@ -64,10 +80,13 @@ class FriendRequest {
     required this.status,
     this.avatar,
     this.avatarCustom,
+    this.profilePicture,
+    this.profilePictureCustom,
   });
 
   factory FriendRequest.fromJson(Map<String, dynamic> json) {
     final avatarValue = json['avatar'];
+    final profilePictureValue = json['profilePicture'];
     return FriendRequest(
       from: json['from'] as String,
       to: json['to'] as String,
@@ -77,6 +96,13 @@ class FriendRequest {
               ? avatarValue
               : (avatarValue is String ? int.tryParse(avatarValue) : null),
       avatarCustom: json['avatarCustom'] as String?,
+      profilePicture:
+          profilePictureValue is int
+              ? profilePictureValue
+              : (profilePictureValue is String
+                  ? int.tryParse(profilePictureValue)
+                  : null),
+      profilePictureCustom: json['profilePictureCustom'] as String?,
     );
   }
   final String from;
@@ -84,4 +110,6 @@ class FriendRequest {
   final String status;
   final int? avatar;
   final String? avatarCustom;
+  final int? profilePicture;
+  final String? profilePictureCustom;
 }

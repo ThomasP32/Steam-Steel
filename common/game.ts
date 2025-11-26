@@ -32,6 +32,9 @@ export enum ProfilePicture {
     Profile8 = 8,
     Profile9 = 9,
     Profile10 = 10,
+    Profile11 = 11,
+    Profile12 = 12,
+    Profile13 = 13,
 }
 
 export enum BotName {

@@ -8,7 +8,7 @@ import 'package:mobile/common/game.dart';
 import 'package:mobile/common/user.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/utils/debug_logger.dart';
-import 'package:mobile/widgets/register/avatar_picker.dart';
+import 'package:mobile/widgets/register/profile_picture_picker.dart';
 import 'package:mobile/widgets/theme/theme_widget.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -27,8 +27,10 @@ class _AuthScreenState extends State<AuthScreen> {
   final _usernameCtrl = TextEditingController();
   bool _loading = false;
   bool _showRegister = false;
-  Avatar _selectedAvatar = Avatar.avatar1;
-  String? _customAvatarPreview;
+  ProfilePicture _selectedProfilePicture = ProfilePicture.profile1;
+  String? _customProfilePicturePreview;
+  bool _showLoginPassword = false;
+  bool _showRegisterPassword = false;
   late VoidCallback _authListener;
 
   @override
@@ -70,8 +72,8 @@ class _AuthScreenState extends State<AuthScreen> {
         _emailCtrl.text,
         _passCtrl.text,
         _usernameCtrl.text,
-        _selectedAvatar,
-        _customAvatarPreview,
+        _selectedProfilePicture,
+        _customProfilePicturePreview,
       );
       await _authService.login(_usernameCtrl.text, _passCtrl.text);
       if (mounted) {
@@ -199,20 +201,21 @@ class _AuthScreenState extends State<AuthScreen> {
     final usernameEditCtrl = TextEditingController(text: user.username);
     final emailEditCtrl = TextEditingController(text: user.email);
 
-    var selectedAvatar = Avatar.values.firstWhere(
-      (a) => a.value == int.tryParse(user.avatar),
-      orElse: () => Avatar.avatar1,
+    var selectedProfilePicture = ProfilePicture.values.firstWhere(
+      (a) => a.value == user.profilePicture,
+      orElse: () => ProfilePicture.profile1,
     );
-    var customPreview = user.avatarCustom;
+    var customPreview = user.profilePictureCustom;
 
-    final unlockedAvatars = <int>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+    final unlockedProfilePictures = <int>{1, 2, 3};
 
     for (final item in user.shopItems) {
-      if (item.itemId.startsWith('avatar_')) {
-        final avatarNum = int.tryParse(item.itemId.replaceFirst('avatar_', ''));
-        if (avatarNum != null) {
-          final characterId = avatarNum + 12;
-          unlockedAvatars.add(characterId);
+      if (item.itemId.startsWith('profile_')) {
+        final profileNum = int.tryParse(
+          item.itemId.replaceFirst('profile_', ''),
+        );
+        if (profileNum != null) {
+          unlockedProfilePictures.add(profileNum);
         }
       }
     }
@@ -255,18 +258,18 @@ class _AuthScreenState extends State<AuthScreen> {
                         const Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            'Avatar :',
+                            'Photo de profil :',
                             style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ),
                         const SizedBox(height: 8),
-                        AvatarPicker(
-                          selected: selectedAvatar,
+                        ProfilePicturePicker(
+                          selected: selectedProfilePicture,
                           customPreview: customPreview,
-                          unlockedAvatars: unlockedAvatars.toList(),
-                          onAvatarChanged: (a) {
+                          showOnlyFree: false,
+                          onProfilePictureChanged: (pp) {
                             setModalState(() {
-                              selectedAvatar = a;
+                              selectedProfilePicture = pp;
                               customPreview = null;
                             });
                           },
@@ -287,8 +290,8 @@ class _AuthScreenState extends State<AuthScreen> {
                           () => Navigator.of(ctx).pop({
                             'username': usernameEditCtrl.text.trim(),
                             'email': emailEditCtrl.text.trim(),
-                            'avatar': selectedAvatar,
-                            'avatarCustom': customPreview,
+                            'profilePicture': selectedProfilePicture,
+                            'profilePictureCustom': customPreview,
                           }),
                       child: const Text('Sauvegarder'),
                     ),
@@ -304,8 +307,8 @@ class _AuthScreenState extends State<AuthScreen> {
       await _authService.updateAccount(
         username: result['username'] as String,
         email: result['email'] as String,
-        avatar: result['avatar'] as Avatar,
-        avatarCustom: result['avatarCustom'] as String?,
+        profilePicture: result['profilePicture'] as ProfilePicture,
+        profilePictureCustom: result['profilePictureCustom'] as String?,
       );
       if (mounted) {
         ScaffoldMessenger.of(
@@ -350,42 +353,42 @@ class _AuthScreenState extends State<AuthScreen> {
         },
       );
     } else {
-      Widget avatarWidget;
-      final custom = user.avatarCustom;
+      Widget profilePictureWidget;
+      final custom = user.profilePictureCustom;
       if (custom != null && custom.isNotEmpty) {
         if (custom.startsWith('data:')) {
           try {
             final parts = custom.split(',');
             final payload = parts.length > 1 ? parts.last : parts.first;
             final bytes = base64Decode(payload);
-            avatarWidget = Image.memory(
+            profilePictureWidget = Image.memory(
               bytes,
-              width: 80,
-              height: 80,
+              width: 250,
+              height: 250,
               fit: BoxFit.cover,
             );
           } on Object catch (_) {
-            avatarWidget = const SizedBox(width: 80, height: 80);
+            profilePictureWidget = const SizedBox(width: 250, height: 250);
           }
         } else if (custom.startsWith('http')) {
-          avatarWidget = Image.network(
+          profilePictureWidget = Image.network(
             custom,
-            width: 80,
-            height: 80,
+            width: 250,
+            height: 250,
             fit: BoxFit.cover,
           );
         } else {
           final file = File(custom);
-          avatarWidget =
+          profilePictureWidget =
               file.existsSync()
-                  ? Image.file(file, width: 80, height: 80, fit: BoxFit.cover)
-                  : const SizedBox(width: 80, height: 80);
+                  ? Image.file(file, width: 250, height: 250, fit: BoxFit.cover)
+                  : const SizedBox(width: 250, height: 250);
         }
       } else {
-        var idx = int.tryParse(user.avatar) ?? 1;
-        if (idx < 1 || idx > 17) idx = 1;
-        avatarWidget = Image.asset(
-          'lib/assets/characters/$idx.png',
+        var idx = user.profilePicture ?? 1;
+        if (idx < 1 || idx > 13) idx = 1;
+        profilePictureWidget = Image.asset(
+          'lib/assets/profile/$idx.png',
           width: 250,
           height: 250,
           fit: BoxFit.cover,
@@ -428,8 +431,8 @@ class _AuthScreenState extends State<AuthScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              avatarWidget,
-              const SizedBox(width: 50),
+              profilePictureWidget,
+              const SizedBox(width: 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -792,12 +795,21 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                 ),
                 prefixIcon: const Icon(Icons.lock),
+                suffixIcon: GestureDetector(
+                  onTapDown: (_) => setState(() => _showLoginPassword = true),
+                  onTapUp: (_) => setState(() => _showLoginPassword = false),
+                  onTapCancel: () => setState(() => _showLoginPassword = false),
+                  child: const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text('👁', style: TextStyle(fontSize: 20)),
+                  ),
+                ),
                 contentPadding: const EdgeInsets.symmetric(
                   vertical: 12,
                   horizontal: 12,
                 ),
               ),
-              obscureText: true,
+              obscureText: !_showLoginPassword,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _loading ? null : _login(),
             ),
@@ -893,12 +905,23 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                 ),
                 prefixIcon: const Icon(Icons.lock),
+                suffixIcon: GestureDetector(
+                  onTapDown:
+                      (_) => setState(() => _showRegisterPassword = true),
+                  onTapUp: (_) => setState(() => _showRegisterPassword = false),
+                  onTapCancel:
+                      () => setState(() => _showRegisterPassword = false),
+                  child: const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text('👁', style: TextStyle(fontSize: 20)),
+                  ),
+                ),
                 contentPadding: const EdgeInsets.symmetric(
                   vertical: 12,
                   horizontal: 12,
                 ),
               ),
-              obscureText: true,
+              obscureText: !_showRegisterPassword,
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
@@ -925,17 +948,19 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Choisissez un avatar :',
+              'Choisissez une photo de profil :',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            AvatarPicker(
-              selected: _selectedAvatar,
-              customPreview: _customAvatarPreview,
-              onAvatarChanged: (a) => setState(() => _selectedAvatar = a),
+            ProfilePicturePicker(
+              selected: _selectedProfilePicture,
+              customPreview: _customProfilePicturePreview,
+              showOnlyFree: true,
+              onProfilePictureChanged:
+                  (pp) => setState(() => _selectedProfilePicture = pp),
               onCustomPreviewChanged:
-                  (p) => setState(() => _customAvatarPreview = p),
+                  (p) => setState(() => _customProfilePicturePreview = p),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
