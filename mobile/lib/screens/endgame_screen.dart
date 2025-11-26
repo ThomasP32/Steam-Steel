@@ -169,26 +169,22 @@ class _EndgameScreenState extends State<EndgameScreen> {
                           const SizedBox(height: 12),
                           _buildGlobalStats(),
                           const SizedBox(height: 12),
-                          _buildMoneyReward(),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.accentHighlight(
-                                context,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 12,
-                              ),
-                            ),
-                            onPressed: _navigateToMainMenu,
-                            child: const Text(
-                              'Menu principal',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
-                            ),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Expanded(child: _buildMoneyReward()),
+                                  const SizedBox(width: 24),
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 140,
+                                      child: Center(child: _buildMenuButton()),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -411,12 +407,11 @@ class _EndgameScreenState extends State<EndgameScreen> {
 
   Widget _buildPlayerRow(Player player) {
     final totalTiles = widget.game.mapSize.x * widget.game.mapSize.y;
-    final tilePercentage =
-        totalTiles > 0
-            ? ((player.visitedTiles.length / totalTiles) * 100).toStringAsFixed(
-              0,
-            )
-            : '0';
+    final tilePercentage = () {
+      if (totalTiles <= 0) return '0';
+      final pct = ((player.visitedTiles.length / totalTiles) * 100).floor();
+      return pct.toString();
+    }();
     final bannerPath = _playerBanners[player.name];
     final isVirtual = player.socketId.startsWith('virtualPlayer');
 
@@ -523,94 +518,134 @@ class _EndgameScreenState extends State<EndgameScreen> {
     final challengeReward =
         (challenge != null && challenge.completed) ? challenge.reward : 0;
     final totalReward = widget.moneyReward + challengeReward;
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
         color: const Color(0xFFFFD700),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFFFC107), width: 3),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFFD700).withValues(alpha: 0.5),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: const Color(0xFFFFD700).withValues(alpha: 0.45),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Image.asset(
-            'lib/assets/icons/money.png',
-            width: 40,
-            height: 40,
-            errorBuilder: (context, error, stackTrace) {
-              return const Icon(
-                Icons.monetization_on,
-                size: 40,
-                color: Color(0xFF7D4F00),
-              );
-            },
+          Padding(
+            padding: const EdgeInsets.only(left: 4, right: 12),
+            child: Image.asset(
+              'lib/assets/icons/money.png',
+              width: 64,
+              height: 64,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(
+                  Icons.monetization_on,
+                  size: 64,
+                  color: Color(0xFF7D4F00),
+                );
+              },
+            ),
           ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Récompenses',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF7D4F00),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Récompenses',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF7D4F00).withValues(alpha: 0.95),
+                  ),
                 ),
-              ),
-              Text(
-                '+$totalReward pièces',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF7D4F00),
-                  shadows: [
-                    Shadow(
-                      color: Colors.white54,
-                      offset: Offset(0, 1),
-                      blurRadius: 2,
-                    ),
+                const SizedBox(height: 6),
+                Text(
+                  '+$totalReward pièces',
+                  style: const TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF7D4F00),
+                    shadows: [
+                      Shadow(
+                        color: Colors.white54,
+                        offset: Offset(0, 1),
+                        blurRadius: 2,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    if (widget.moneyReward > 0)
+                      Expanded(
+                        child: Text(
+                          'Partie: +${widget.moneyReward}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF7D4F00),
+                          ),
+                        ),
+                      ),
+                    if (challengeReward > 0)
+                      Expanded(
+                        child: Text(
+                          'Défi: +$challengeReward',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF7D4F00),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
-              ),
-              if (widget.moneyReward > 0)
-                Text(
-                  'Partie: +${widget.moneyReward}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF7D4F00),
-                  ),
-                ),
-              if (challengeReward > 0)
-                Text(
-                  'Défi: +$challengeReward',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF7D4F00),
-                  ),
-                ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
+  Widget _buildMenuButton() {
+    final accent = AppColors.accentHighlight(context);
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: accent,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      onPressed: _navigateToMainMenu,
+      child: const FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          'Menu principal',
+          style: TextStyle(
+            fontSize: 20,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildGlobalStats() {
     final totalTiles = widget.game.mapSize.x * widget.game.mapSize.y;
-    final visitedTiles =
-        widget.game.players.expand((p) => p.visitedTiles).toSet().length;
+    final uniqueVisited = <String>{};
+    for (final p in widget.game.players) {
+      for (final t in p.visitedTiles) {
+        uniqueVisited.add('${t.x},${t.y}');
+      }
+    }
+    final visitedTiles = uniqueVisited.length;
     final tilePercentage =
         totalTiles > 0
-            ? ((visitedTiles / totalTiles) * 100).toStringAsFixed(0)
-            : '0.0';
+            ? ((visitedTiles / totalTiles) * 100).floor().toString()
+            : '0';
 
     final totalDoors = widget.game.doorTiles.length;
     final doorPercentage =
