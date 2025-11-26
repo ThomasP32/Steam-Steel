@@ -425,11 +425,11 @@ class _ChatWidgetState extends State<ChatWidget>
 
   @override
   void dispose() {
-    _hideOverlay();
     _prevSub?.cancel();
     _newSub?.cancel();
     _deletedSub?.cancel();
     _activeChannelSub?.cancel();
+    _hideOverlay();
     if (_authListener != null) {
       try {
         AuthService().notifier.removeListener(_authListener!);
@@ -480,16 +480,18 @@ class _ChatWidgetState extends State<ChatWidget>
   }
 
   void _hideOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-
     if (mounted) {
+      _overlayEntry?.remove();
+      _overlayEntry = null;
       setState(() {
         _visible = false;
       });
+      _inputFocusNode.unfocus();
+    } else {
+      _overlayEntry?.remove();
+      _overlayEntry = null;
     }
 
-    _inputFocusNode.unfocus();
     widget.onClose?.call();
   }
 
@@ -739,39 +741,69 @@ class _ChatWidgetState extends State<ChatWidget>
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      ProfilePictureWidget(
-                                        size: 32,
-                                        username: m.author,
-                                        avatar:
-                                            mine
-                                                ? (currentUser?.avatar !=
-                                                            null &&
-                                                        currentUser!
-                                                            .avatar
-                                                            .isNotEmpty
-                                                    ? int.tryParse(
-                                                      currentUser.avatar,
-                                                    )
-                                                    : null)
-                                                : (isFriend
-                                                    ? friendInfo.avatar
-                                                    : m.authorAvatar),
-                                        avatarCustom:
-                                            mine
-                                                ? currentUser?.avatarCustom
-                                                : (isFriend
-                                                    ? friendInfo.avatarCustom
-                                                    : m.authorAvatarCustom),
-                                        status:
-                                            mine
-                                                ? _parseUserStatus(
-                                                  currentUser?.status,
-                                                )
-                                                : (isFriend
-                                                    ? friendInfo.status
-                                                    : null),
-                                        showStatusIndicator: mine || isFriend,
-                                      ),
+                                      if (m.author == '[supprimé]')
+                                        Container(
+                                          width: 32,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.grey[700],
+                                          ),
+                                          child: const Icon(
+                                            Icons.person,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                        )
+                                      else
+                                        ProfilePictureWidget(
+                                          size: 32,
+                                          username: m.author,
+                                          avatar:
+                                              mine
+                                                  ? (currentUser?.avatar !=
+                                                              null &&
+                                                          currentUser!
+                                                              .avatar
+                                                              .isNotEmpty
+                                                      ? int.tryParse(
+                                                        currentUser.avatar,
+                                                      )
+                                                      : null)
+                                                  : (isFriend
+                                                      ? friendInfo.avatar
+                                                      : m.authorAvatar),
+                                          avatarCustom:
+                                              mine
+                                                  ? currentUser?.avatarCustom
+                                                  : (isFriend
+                                                      ? friendInfo.avatarCustom
+                                                      : m.authorAvatarCustom),
+                                          profilePicture:
+                                              mine
+                                                  ? currentUser?.profilePicture
+                                                  : (isFriend
+                                                      ? friendInfo
+                                                          .profilePicture
+                                                      : m.authorProfilePicture),
+                                          profilePictureCustom:
+                                              mine
+                                                  ? currentUser
+                                                      ?.profilePictureCustom
+                                                  : (isFriend
+                                                      ? friendInfo
+                                                          .profilePictureCustom
+                                                      : m.authorProfilePictureCustom),
+                                          status:
+                                              mine
+                                                  ? _parseUserStatus(
+                                                    currentUser?.status,
+                                                  )
+                                                  : (isFriend
+                                                      ? friendInfo.status
+                                                      : null),
+                                          showStatusIndicator: mine || isFriend,
+                                        ),
                                       const SizedBox(width: 8),
                                       // Message
                                       Flexible(

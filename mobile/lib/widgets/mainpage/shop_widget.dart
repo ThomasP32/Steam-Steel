@@ -20,13 +20,15 @@ class _ShopWidgetState extends State<ShopWidget> {
 
   List<ShopItem> _allItems = [];
   int _currentMoney = 0;
-  String _selectedCategory = 'avatar';
+  String _selectedCategory = 'characters';
   bool _isLoading = true;
   StreamSubscription<int>? _moneySub;
   VoidCallback? _userListener;
 
   final List<Map<String, dynamic>> _categories = [
-    {'id': 'avatar', 'name': 'Avatars', 'icon': '👤'},
+    {'id': 'characters', 'name': 'Personnages', 'icon': '👤'},
+
+    {'id': 'profilePicture', 'name': 'Photo de profil', 'icon': '📸'},
     {'id': 'banner', 'name': 'Bannières', 'icon': '🏳️'},
     {'id': 'sound', 'name': 'Sons', 'icon': '🔊'},
   ];
@@ -73,7 +75,7 @@ class _ShopWidgetState extends State<ShopWidget> {
       final currentAvatarId = int.tryParse(user.avatar);
 
       for (final item in _allItems) {
-        if (item.category == 'avatar') {
+        if (item.category == 'characters') {
           final shopAvatarMatch = RegExp(r'avatar_(\d+)').firstMatch(item.id);
           if (shopAvatarMatch != null) {
             final shopAvatarNum = int.parse(shopAvatarMatch.group(1)!);
@@ -133,7 +135,7 @@ class _ShopWidgetState extends State<ShopWidget> {
       );
 
       for (final item in items) {
-        if (item.category == 'avatar') {
+        if (item.category == 'characters') {
           final shopAvatarMatch = RegExp(r'avatar_(\d+)').firstMatch(item.id);
           if (shopAvatarMatch != null) {
             final shopAvatarNum = int.parse(shopAvatarMatch.group(1)!);
@@ -168,11 +170,29 @@ class _ShopWidgetState extends State<ShopWidget> {
   void _showCategoryInfo(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final title = _selectedCategory == 'avatar' ? '🎭 Avatars' : '✨ Bannières';
-    final message =
-        _selectedCategory == 'avatar'
-            ? 'Personnalise ton identité ! Une fois acheté, ce personnage sera disponible comme photo de profil et comme avatar jouable en partie. Si équipé, il deviendra automatiquement ta photo de profil.'
-            : "Affiche ton style ! Cette bannière décorative encadrera élégamment ton pseudo dans l'application. Tous les autres joueurs pourront admirer ton choix esthétique !";
+    String title;
+    String message;
+
+    switch (_selectedCategory) {
+      case 'characters':
+        title = '🎭 Personnages';
+        message =
+            'Personnalise ton identité ! Une fois acheté, ce personnage sera disponible comme personnage jouable en partie.';
+        break;
+      case 'profilePicture':
+        title = '📸 Photos de Profil';
+        message =
+            "Ces photos de profil uniques apparaîtront partout où ton identité est visible : dans les chats, la liste d'amis, et le compte. Montre qui tu es vraiment ! Si équipé, il deviendra automatiquement ta photo de profil.";
+        break;
+      case 'banner':
+        title = '✨ Bannières';
+        message =
+            "Affiche ton style ! Cette bannière décorative encadrera élégamment tes infos dans la salle d'attente, fin de partie et dans la liste d'amis. Tous les autres joueurs pourront admirer ton choix esthétique !";
+        break;
+      default:
+        title = 'Information';
+        message = 'Catégorie inconnue';
+    }
 
     showDialog<void>(
       context: context,
@@ -231,6 +251,8 @@ class _ShopWidgetState extends State<ShopWidget> {
       final result = await _shopService.purchaseItem(user.id, item.id);
 
       if (result['success'] == true) {
+        await _authService.fetchUser();
+
         if (mounted) {
           setState(() {
             item.owned = true;
@@ -265,6 +287,10 @@ class _ShopWidgetState extends State<ShopWidget> {
   Future<void> _equipItem(ShopItem item) async {
     if (!item.owned) return;
 
+    if (item.category == 'characters') {
+      return;
+    }
+
     try {
       final user = _authService.notifier.value;
       if (user == null) return;
@@ -272,15 +298,6 @@ class _ShopWidgetState extends State<ShopWidget> {
       final result = await _shopService.equipItem(user.id, item.id);
 
       if (result['success'] == true) {
-        if (item.category == 'avatar') {
-          DebugLogger.log(
-            'Refreshing user data after avatar equip',
-            tag: 'ShopWidget',
-          );
-          await _authService.fetchUser();
-          DebugLogger.log('User data refreshed', tag: 'ShopWidget');
-        }
-
         if (mounted) {
           setState(() {
             for (final i in _allItems) {
@@ -299,6 +316,8 @@ class _ShopWidgetState extends State<ShopWidget> {
 
   Future<void> _unequipItem(ShopItem item) async {
     if (!item.equipped) return;
+    // Les characters ne peuvent pas être déséquipés depuis la boutique
+    if (item.category == 'characters') return;
 
     try {
       final user = _authService.notifier.value;
@@ -307,9 +326,9 @@ class _ShopWidgetState extends State<ShopWidget> {
       final result = await _shopService.unequipItem(user.id, item.id);
 
       if (result['success'] == true) {
-        if (item.category == 'avatar') {
+        if (item.category == 'profilePicture') {
           DebugLogger.log(
-            'Refreshing user data after avatar unequip',
+            'Refreshing user data after profile picture unequip',
             tag: 'ShopWidget',
           );
           await _authService.fetchUser();
@@ -486,6 +505,7 @@ class _ShopWidgetState extends State<ShopWidget> {
                           child: Text(
                             category['name'] as String,
                             style: TextStyle(
+                              fontSize: 11,
                               color:
                                   isSelected
                                       ? Colors.white
@@ -574,7 +594,8 @@ class _ShopWidgetState extends State<ShopWidget> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (_selectedCategory == 'avatar' ||
+              if (_selectedCategory == 'characters' ||
+                  _selectedCategory == 'profilePicture' ||
                   _selectedCategory == 'banner')
                 Padding(
                   padding: const EdgeInsets.only(left: 8),
@@ -653,7 +674,8 @@ class _ShopWidgetState extends State<ShopWidget> {
                     child: Center(
                       child: Padding(
                         padding:
-                            item.category == 'banner'
+                            item.category == 'banner' ||
+                                    item.category == 'profilePicture'
                                 ? const EdgeInsets.all(12)
                                 : EdgeInsets.zero,
                         child: _buildItemImage(item),
@@ -773,65 +795,74 @@ class _ShopWidgetState extends State<ShopWidget> {
                     ],
                   ),
                 const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (isLocked) return;
-                      if (!item.owned && _canAfford(item)) {
-                        _buyItem(item);
-                      } else if (item.owned && !item.equipped) {
-                        _equipItem(item);
-                      } else if (item.equipped) {
-                        _unequipItem(item);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          isLocked
-                              ? Colors.grey
-                              : !item.owned
-                              ? (_canAfford(item)
-                                  ? const Color(0xFF27AE60)
-                                  : Colors.grey)
-                              : (item.equipped
-                                  ? AppColors.accentHighlight(context)
-                                  : const Color(0xFF3498DB)),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+
+                if (!item.owned || item.category != 'characters')
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (isLocked) return;
+                        if (item.owned && item.category == 'characters') return;
+
+                        if (!item.owned && _canAfford(item)) {
+                          _buyItem(item);
+                        } else if (item.owned &&
+                            !item.equipped &&
+                            item.category != 'characters') {
+                          _equipItem(item);
+                        } else if (item.equipped &&
+                            item.category != 'characters') {
+                          _unequipItem(item);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            isLocked
+                                ? Colors.grey
+                                : !item.owned
+                                ? (_canAfford(item)
+                                    ? const Color(0xFF27AE60)
+                                    : Colors.grey)
+                                : (item.equipped
+                                    ? AppColors.accentHighlight(context)
+                                    : const Color(0xFF3498DB)),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                    ),
-                    child:
-                        isLocked
-                            ? Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.lock, size: 16),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Niveau ${item.levelRequired} requis',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
+                      child:
+                          isLocked
+                              ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.lock, size: 16),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Niveau ${item.levelRequired} requis',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
+                                ],
+                              )
+                              : Text(
+                                !item.owned
+                                    ? (_canAfford(item)
+                                        ? 'Acheter'
+                                        : 'Fonds insuffisants')
+                                    : (item.equipped
+                                        ? 'Déséquiper'
+                                        : 'Équiper'),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ],
-                            )
-                            : Text(
-                              !item.owned
-                                  ? (_canAfford(item)
-                                      ? 'Acheter'
-                                      : 'Fonds insuffisants')
-                                  : (item.equipped ? 'Déséquiper' : 'Équiper'),
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
                               ),
-                            ),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -843,8 +874,11 @@ class _ShopWidgetState extends State<ShopWidget> {
   Widget _buildItemImage(ShopItem item) {
     final imagePath = item.imagePath;
     final isBanner = item.category == 'banner';
-    final boxFit = isBanner ? BoxFit.contain : BoxFit.cover;
-    final alignment = isBanner ? Alignment.center : Alignment.topCenter;
+    final isProfilePicture = item.category == 'profilePicture';
+    final boxFit =
+        (isBanner || isProfilePicture) ? BoxFit.contain : BoxFit.cover;
+    final alignment =
+        (isBanner || isProfilePicture) ? Alignment.center : Alignment.topCenter;
 
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
       return Image.network(

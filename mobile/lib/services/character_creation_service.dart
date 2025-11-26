@@ -11,7 +11,9 @@ import 'package:mobile/utils/debug_logger.dart';
 
 class CharacterCreationService {
   factory CharacterCreationService() => _instance;
-  CharacterCreationService._internal();
+  CharacterCreationService._internal() {
+    AuthService().notifier.addListener(_onUserChanged);
+  }
   static final CharacterCreationService _instance =
       CharacterCreationService._internal();
 
@@ -24,6 +26,10 @@ class CharacterCreationService {
   String? _currentGameId;
 
   int get totalAvatars => 17;
+
+  void _onUserChanged() {
+    initializeOwnedAvatars();
+  }
 
   void initializeOwnedAvatars() {
     final user = AuthService().notifier.value;

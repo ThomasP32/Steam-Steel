@@ -68,6 +68,25 @@ enum Bonus {
   final int value;
 }
 
+enum ProfilePicture {
+  profile1(1),
+  profile2(2),
+  profile3(3),
+  profile4(4),
+  profile5(5),
+  profile6(6),
+  profile7(7),
+  profile8(8),
+  profile9(9),
+  profile10(10),
+  profile11(11),
+  profile12(12),
+  profile13(13);
+
+  const ProfilePicture(this.value);
+  final int value;
+}
+
 class Specs {
   Specs({
     this.life = 0,

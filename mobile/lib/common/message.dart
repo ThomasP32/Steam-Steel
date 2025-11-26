@@ -10,6 +10,8 @@ class Message {
     this.channel,
     this.authorAvatar,
     this.authorAvatarCustom,
+    this.authorProfilePicture,
+    this.authorProfilePictureCustom,
     this.authorStatus,
   });
   final String? id;
@@ -27,5 +29,7 @@ class Message {
   // Author info
   final int? authorAvatar;
   final String? authorAvatarCustom;
+  final int? authorProfilePicture;
+  final String? authorProfilePictureCustom;
   final String? authorStatus;
 }

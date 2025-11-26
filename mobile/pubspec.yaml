@@ -43,6 +43,7 @@ flutter:
         - lib/assets/main-menu/SteamSteel.png
         - lib/assets/characters/
         - lib/assets/icons/
+        - lib/assets/profile/
         - lib/assets/previewcharacters/
         - lib/assets/pixelcharacters/
         - lib/assets/items/

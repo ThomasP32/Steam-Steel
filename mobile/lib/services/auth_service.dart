@@ -92,28 +92,28 @@ class AuthService {
     String email,
     String password,
     String username,
-    Avatar avatar,
-    String? avatarCustom,
+    ProfilePicture profilePicture,
+    String? profilePictureCustom,
   ) async {
     final uri = Uri.parse('${ApiClient.baseUrl}/api/auth/register');
-    final avatarPayload = avatar.value;
+    final profilePicturePayload = profilePicture.value;
 
-    var avatarCustomPayload = avatarCustom;
+    var profilePictureCustomPayload = profilePictureCustom;
     try {
-      if (avatarCustom != null && avatarCustom.isNotEmpty) {
-        final f = File(avatarCustom);
+      if (profilePictureCustom != null && profilePictureCustom.isNotEmpty) {
+        final f = File(profilePictureCustom);
         if (f.existsSync()) {
           final bytes = f.readAsBytesSync();
           final b64 = base64Encode(bytes);
-          avatarCustomPayload = 'data:image/png;base64,$b64';
+          profilePictureCustomPayload = 'data:image/png;base64,$b64';
         }
       }
     } on Object catch (e) {
       DebugLogger.log(
-        'Register avatarCustom conversion failed: $e',
+        'Register profilePictureCustom conversion failed: $e',
         tag: 'AuthService',
       );
-      avatarCustomPayload = avatarCustom;
+      profilePictureCustomPayload = profilePictureCustom;
     }
 
     final r = await _client.post(
@@ -123,8 +123,8 @@ class AuthService {
         'email': email,
         'password': password,
         'username': username,
-        'avatar': avatarPayload,
-        'avatarCustom': avatarCustomPayload,
+        'profilePicture': profilePicturePayload,
+        'profilePictureCustom': profilePictureCustomPayload,
       }),
     );
     DebugLogger.log(
@@ -279,41 +279,43 @@ class AuthService {
   Future<void> updateAccount({
     required String username,
     required String email,
-    Avatar? avatar,
-    String? avatarCustom,
+    ProfilePicture? profilePicture,
+    String? profilePictureCustom,
   }) async {
     final t = await token;
     if (t == null) throw Exception('Not authenticated');
     final uri = Uri.parse('${ApiClient.baseUrl}/api/auth/update');
 
-    var avatarCustomPayload = avatarCustom;
+    var profilePictureCustomPayload = profilePictureCustom;
     try {
-      if (avatarCustom != null &&
-          avatarCustom.isNotEmpty &&
-          !avatarCustom.startsWith('data:') &&
-          !avatarCustom.startsWith('http')) {
-        final f = File(avatarCustom);
+      if (profilePictureCustom != null &&
+          profilePictureCustom.isNotEmpty &&
+          !profilePictureCustom.startsWith('data:') &&
+          !profilePictureCustom.startsWith('http')) {
+        final f = File(profilePictureCustom);
         if (f.existsSync()) {
           final bytes = f.readAsBytesSync();
           final b64 = base64Encode(bytes);
-          avatarCustomPayload = 'data:image/png;base64,$b64';
+          profilePictureCustomPayload = 'data:image/png;base64,$b64';
         }
       }
     } on Object catch (e) {
       DebugLogger.log(
-        'Update avatarCustom conversion failed: $e',
+        'Update profilePictureCustom conversion failed: $e',
         tag: 'AuthService',
       );
-      avatarCustomPayload = avatarCustom;
+      profilePictureCustomPayload = profilePictureCustom;
     }
 
     final body = <String, dynamic>{'username': username, 'email': email};
 
-    if (avatar != null) {
-      body['avatar'] = avatar.value;
+    if (profilePicture != null) {
+      body['profilePicture'] = profilePicture.value;
     }
 
-    body['avatarCustom'] = avatarCustomPayload ?? '';
+    if (profilePictureCustomPayload != null) {
+      body['profilePictureCustom'] = profilePictureCustomPayload;
+    }
 
     final r = await _client.patch(
       uri,
