@@ -29,10 +29,14 @@
             </div>
         </div>
 
+        <div class="theme-row">
+            <button class="button toggle-theme-btn" (click)="toggleTheme()">Theme</button>
+        </div>
         <div class="button-row">
             <button class="button modify-button" (click)="enableEdit()">Modifier</button>
             <button class="button delete-button" (click)="deleteAccount()">Supprimer le compte</button>
         </div>
+        
     </ng-container>
 
     <ng-template #editForm>

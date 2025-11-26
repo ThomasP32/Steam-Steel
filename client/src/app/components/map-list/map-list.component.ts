@@ -103,7 +103,7 @@ export class MapListComponent implements OnInit, OnDestroy {
             case MapState.Public:
                 return 'Publique';
             case MapState.Private:
-                return 'Privée';
+                return 'Privé';
             case MapState.Share:
                 return 'Privé-Partagé';
             default:

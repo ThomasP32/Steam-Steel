@@ -6,6 +6,7 @@ import { ProfilePictureService } from '@app/services/profile-picture/profile-pic
 import { ShopHttpService } from '@app/services/shop-http/shop-http.service';
 import { ProfilePicture } from '@common/game';
 import { ProfilePictureComponent } from '../profile-picture/profile-picture.component';
+import { AppComponent } from '@app/pages/app/app.component';
 @Component({
     selector: 'app-account',
     standalone: true,
@@ -26,10 +27,12 @@ export class AccountComponent implements OnInit {
     @Output() closed = new EventEmitter<void>();
 
     constructor(
+        private readonly appComponent: AppComponent,
         private readonly authService: AuthService,
         private readonly profilePictureService: ProfilePictureService,
         private readonly shopHttpService: ShopHttpService,
     ) {
+        this.appComponent = appComponent;
         this.authService = authService;
         this.profilePictureService = profilePictureService;
         this.shopHttpService = shopHttpService;
@@ -94,6 +97,10 @@ export class AccountComponent implements OnInit {
 
     getProfilePicturePreview(profilePicture: ProfilePicture): string {
         return this.userInfo?.user?.profilePictureCustom || this.profilePictureService.getProfilePicturePreview(profilePicture);
+    }
+
+    async toggleTheme() {
+        this.appComponent.toggleTheme();
     }
 
     enableEdit() {

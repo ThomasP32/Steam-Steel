@@ -3,10 +3,10 @@ import { Component, HostBinding, OnInit } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { FriendsListComponent } from '@app/components/friends-list/friends-list.component';
 import { GameInfoComponent } from '@app/components/game-info/game-info.component';
-import { ThemeService } from '@app/services/theme/theme.service';
 import { FriendsEvents } from '@common/events/friends.events';
 import { GameCreationEvents } from '@common/events/game-creation.events';
 import { GameInvitation, GameInvitationModalComponent } from '../../components/game-invitation-modal/game-invitation-modal.component';
+import { ThemeService } from '../../services/theme/theme.service';
 import { AuthService } from '../../services/auth/auth.service';
 import { SocketService } from '../../services/communication-socket/communication-socket.service';
 import { FriendsService } from '../../services/friends/friends.service';
@@ -70,6 +70,10 @@ export class AppComponent implements OnInit {
         this.checkAndSetupFriendsFeatures();
     }
 
+    setTheme(theme: string) {
+        this.themeClass = theme;
+    }
+    
     async toggleTheme() {
         const next = this.themeClass === 'theme-dark' ? 'theme-light' : 'theme-dark';
         try {

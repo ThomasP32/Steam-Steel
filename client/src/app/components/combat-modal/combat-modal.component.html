@@ -2,18 +2,18 @@
     <span class="versus">VS</span>
 
     <div class="countdown">{{ countdown }}</div>
-    <div class="player-stats">
-        <div class="player-info">
-            <p class="player-name">{{ player.name }}</p>
+    <div class="player-combat-stats">
+        <div class="player-combat-info">
+            <p class="player-combat-name">{{ player.name }}</p>
 
-            <p class="player-attack">Attaque: {{ player.specs.attack }}</p>
-            <p class="player-defense">Défense: {{ player.specs.defense }}</p>
+            <p class="player-combat-attack">Attaque: {{ player.specs.attack }}</p>
+            <p class="player-combat-defense">Défense: {{ player.specs.defense }}</p>
         </div>
         <div class="opponent-info">
-            <p class="player-name">{{ opponent.name }}</p>
+            <p class="player-combat-name">{{ opponent.name }}</p>
 
-            <p class="player-attack">{{ opponent.specs.attack }} : Attaque</p>
-            <p class="player-defense">{{ opponent.specs.defense }} : Défense</p>
+            <p class="player-combat-attack">{{ opponent.specs.attack }} : Attaque</p>
+            <p class="player-combat-defense">{{ opponent.specs.defense }} : Défense</p>
         </div>
     </div>
 
