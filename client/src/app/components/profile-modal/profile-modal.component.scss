@@ -30,11 +30,11 @@
 }
 
 .profile-button:hover {
-    background-color: rgba(243, 156, 18, 0.6);
+    background-color: var(--profile-button-hover, rgba(243, 156, 18, 0.6));
 }
 
 .profile-button--active {
-    background-color: rgba(243, 156, 18, 0.6);
+    background-color: var(--profile-button-hover, rgba(243, 156, 18, 0.6));
 }
 
 .action-buttons {

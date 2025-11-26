@@ -1,7 +1,7 @@
 <body>
     <div class="waiting-room-container">
         <div class="player">
-            <div class="avatar-container">
+            <div class="waiting-avatar-container">
                 <img [src]="playerPreview" alt="Player Avatar" />
             </div>
             <div class="player-name">
@@ -106,7 +106,7 @@
             } }
         </div>
         <button class="chat-toggle-button" aria-label="Toggle global chat" (click)="isChatVisible = !isChatVisible">
-            <i class="fas fa-comments" aria-hidden="true"></i>
+            <span class="material-icons">chat_bubble_outline</span>
         </button>
         <div class="global-chat-wrapper" [hidden]="!isChatVisible">
             <app-chatroom [gameId]="waitingRoomCode" [isInGame]="true" (closed)="isChatVisible = false"></app-chatroom>

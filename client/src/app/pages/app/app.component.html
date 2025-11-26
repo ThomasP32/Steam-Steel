@@ -2,10 +2,8 @@
 <button class="friends-list-toggle-button" aria-label="Toggle friends list" (click)="toggleFriendsListVisibility()">
     <i class="fas fa-user-friends" aria-hidden="true"></i>
 </button>
-<button class="toggle-theme-btn" (click)="toggleTheme()">
-    <span class="material-icons">{{ themeClass === 'theme-dark' ? 'light_mode' : 'mode_night' }}</span>
-</button>
-} @if(isLoggedIn && isGamePage){
+}
+@if(isLoggedIn && isGamePage){
 <button class="game-info-toggle-button" aria-label="Toggle game info" (click)="toggleGameInfoVisibility()">
     <i class="fas fa-info-circle" aria-hidden="true"></i>
 </button>

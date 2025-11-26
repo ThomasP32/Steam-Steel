@@ -8,32 +8,11 @@ button {
     color: #d4af37; /* Burnished Gold */
     border: 2px solid #d9a760; /* Brass border */
 }
-.toggle-theme-btn {
-    position: fixed;
-    top: 22px;
-    right: 82px;
-    z-index: 1200;
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #2c3e50;
-    border: 3px solid #202020;
-    color: #c0c0c0;
-    cursor: pointer;
-    &:hover {
-        background-color: #555;
-        color: white;
-    }
-}
 
 .friends-list-toggle-button {
     position: fixed;
     top: 22px;
-    right: 142px;
+    right: 82px;
     z-index: 1200;
     width: 44px;
     height: 44px;
