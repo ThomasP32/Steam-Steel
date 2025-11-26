@@ -1,36 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/common/game.dart';
-import 'package:mobile/common/map_types.dart';
 
 class EndGameAlertWidget extends StatelessWidget {
-  const EndGameAlertWidget({required this.game, super.key});
+  const EndGameAlertWidget({
+    required this.game,
+    this.reason,
+    super.key,
+  });
 
   final GameClassic? game;
+  final GameEndReason? reason;
 
   @override
   Widget build(BuildContext context) {
-    var winnerName = 'Un joueur';
-    var winMessage = 'a gagné la partie';
+    final winnerName = _getWinnerName();
+    final winMessage = _getEndGameMessage(winnerName);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    if (game != null && game!.players.isNotEmpty) {
-      final winner = game!.players.firstWhere(
-        (p) => p.isGameWinner,
-        orElse: () => game!.players.first,
-      );
-
-      if (winner.isGameWinner) {
-        winnerName = winner.name.isNotEmpty ? winner.name : 'Un joueur';
-        final gameMode = game!.mode;
-
-        if (gameMode == Mode.ctf) {
-          winMessage = '$winnerName a capturé le drapeau';
-        } else {
-          winMessage = '$winnerName a gagné';
-        }
-      }
-    }
 
     return ColoredBox(
       color: Colors.black.withValues(alpha: 0.85),
@@ -69,5 +55,37 @@ class EndGameAlertWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getWinnerName() {
+    if (game == null || game!.players.isEmpty) {
+      return 'Un joueur';
+    }
+
+    final winner = game!.players.firstWhere(
+      (p) => p.isGameWinner,
+      orElse: () => game!.players.first,
+    );
+
+    return winner.name.isNotEmpty ? winner.name : 'Un joueur';
+  }
+
+  String _getEndGameMessage(String winnerName) {
+    if (reason == null) {
+      return '$winnerName a gagné.';
+    }
+
+    switch (reason!) {
+      case GameEndReason.victoryCtfFlag:
+        return '$winnerName a capturé le drapeau';
+      case GameEndReason.victoryCombatWins:
+        return '$winnerName a gagné 3 combats';
+      case GameEndReason.victoryElimination:
+        return 'Tous les joueurs sont éliminés, $winnerName a gagné.';
+      case GameEndReason.victoryLastPlayerStanding:
+        return 'Tous les joueurs ont abandonné, $winnerName a gagné';
+      default:
+        return '$winnerName a gagné.';
+    }
   }
 }

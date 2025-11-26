@@ -137,3 +137,14 @@ export interface GameEndResult {
     winner?: Player;
     moneyRewards?: { [key: string]: number };
 }
+
+export interface GameFinishedData {
+    updatedGame: Game;
+    moneyRewards?: { [socketId: string]: number };
+    reason?: GameEndReason;
+}
+
+export interface GameFinishedPlayerWonData {
+    winner: Player;
+    reason: GameEndReason;
+}

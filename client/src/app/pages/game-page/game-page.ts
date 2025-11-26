@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ChallengeComponent } from '@app/components/challenge/challenge.component';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
@@ -30,7 +30,7 @@ import { FriendsEvents } from '@common/events/friends.events';
 import { GameCreationEvents } from '@common/events/game-creation.events';
 import { GameManagerEvents } from '@common/events/game-manager.events';
 import { ItemDroppedData, ItemsEvents } from '@common/events/items.events';
-import { Game, Player, Specs } from '@common/game';
+import { Game, GameEndReason, Player, Specs } from '@common/game';
 import { GamePageActiveView } from '@common/game-page';
 import { Coordinate, Map } from '@common/map.types';
 import { UserStatus } from '@common/user-friends';
@@ -52,7 +52,7 @@ import { Subscription } from 'rxjs';
     templateUrl: './game-page.html',
     styleUrl: './game-page.scss',
 })
-export class GamePageComponent implements OnInit, OnDestroy {
+export class GamePageComponent implements OnInit, AfterViewInit, OnDestroy {
     private readonly socketSubscription: Subscription = new Subscription();
 
     isChatVisible: boolean = false;
@@ -95,6 +95,8 @@ export class GamePageComponent implements OnInit, OnDestroy {
     specs: Specs;
     combatAvailable: boolean = false;
     gameMapComponent: GameMapComponent;
+
+    gameEndReason: GameEndReason | null = null;
 
     constructor(
         private readonly router: Router,
@@ -178,6 +180,14 @@ export class GamePageComponent implements OnInit, OnDestroy {
                 this.socketService.sendMessage(GameManagerEvents.StartGame, this.gameService.game.id);
             }
         }
+    }
+
+    ngAfterViewInit(): void {
+        this.socketSubscription.add(
+            this.gameTurnService.gameEndReason$.subscribe((reason) => {
+                this.gameEndReason = reason;
+            }),
+        );
     }
 
     get player(): Player {
@@ -459,5 +469,28 @@ export class GamePageComponent implements OnInit, OnDestroy {
 
     openExitModal(): void {
         this.showExitModal = true;
+    }
+
+    getEndGameMessage(): string {
+        if (!this.winnerName) {
+            return 'La partie est terminée.';
+        }
+
+        if (!this.gameEndReason) {
+            return `${this.winnerName} a gagné.`;
+        }
+
+        switch (this.gameEndReason) {
+            case GameEndReason.Victory_CtfFlag:
+                return `${this.winnerName} a capturé le drapeau`;
+            case GameEndReason.Victory_CombatWins:
+                return `${this.winnerName} a gagné 3 combats`;
+            case GameEndReason.Victory_Elimination:
+                 return `Tous les joueurs sont éliminés, ${this.winnerName} a gagné.`;
+            case GameEndReason.Victory_LastPlayerStanding:
+                return `Tous les joueurs ont abandonné, ${this.winnerName} a gagné`;
+            default:
+                return `${this.winnerName} a gagné.`;
+        }
     }
 }
