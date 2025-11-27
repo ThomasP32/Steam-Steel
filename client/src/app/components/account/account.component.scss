@@ -3,8 +3,7 @@
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
     padding: 2rem;
-    width: 100%;
-    max-width: 600px;
+    width: 1200px;
     margin: 0 auto;
     text-align: left;
     display: flex;
@@ -16,31 +15,43 @@
     color: #c0c0c0;
 }
 
-.title-section {
-    position: relative;
-    margin-bottom: 1.5rem;
-    border-bottom: 2px solid #7d7f7d;
-    padding-bottom: 1rem;
+.account-content-wrapper {
+    display: flex;
+    flex-direction: row;
+    gap: 2rem;
+    align-items: stretch;
+    min-height: 100%;
+}
+
+.account-left {
+    flex: 0 0 calc(50% - 1rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.account-right {
+    flex: 0 0 calc(50% - 1rem);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
 }
 
 .account-title {
-    margin: 0;
+    margin: 0 0 1rem 0;
     color: #c0c0c0;
     font-size: 1.3rem;
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 1px;
-    text-align: center;
+    text-align: left;
 }
 
 .user-level {
-    width: 45px;
-    height: 45px;
+    width: 48px;
+    height: 48px;
     object-fit: contain;
-    position: absolute;
-    right: 0;
-    top: 25%;
-    transform: translateY(-50%);
+    margin-left: 8px;
 }
 
 .account-main-row {
@@ -49,25 +60,12 @@
     align-items: center;
     justify-content: flex-start;
     gap: 1.5rem;
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    border: 2px solid #3b3f46;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    border: 2px solid #3b3f46;
+    padding: 0.5rem;
 }
 
 .profile-picture-square {
-    width: 80px;
-    height: 80px;
-    background: #1c242c;
-    width: 80px;
-    height: 80px;
+    width: 250px;
+    height: 250px;
     background: #1c242c;
     border-radius: 8px;
     display: flex;
@@ -75,16 +73,12 @@
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     border: 2px solid #7d7f7d;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    border: 2px solid #7d7f7d;
     flex-shrink: 0;
 }
 
 .profile-img-square {
-    width: 72px;
-    height: 72px;
-    width: 72px;
-    height: 72px;
+    width: 242px;
+    height: 242px;
     border-radius: 6px;
     object-fit: cover;
     display: block;
@@ -94,46 +88,60 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.8rem;
-    justify-content: center;
-    flex: 1;
-    gap: 0.8rem;
-    justify-content: center;
+    gap: 1rem;
+    justify-content: flex-start;
     flex: 1;
 }
 
 .info-row {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.4rem;
     font-size: 0.75rem;
     line-height: 1.4;
-    gap: 0.3rem;
-    font-size: 0.75rem;
-    line-height: 1.4;
+}
+
+.info-row-horizontal {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.username-with-level {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.email-section {
+    margin-top: 0.5rem;
+}
+
+.music-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
 }
 
 .info-label {
     color: #c0c0c0;
     font-weight: bold;
+    font-size: 0.9rem;
     margin-bottom: 0.2rem;
 }
 
 .info-value {
     color: #e0e0e0;
     word-break: break-word;
+    font-size: 1.1rem;
 }
 
-.button-row, .theme-row {
+.button-row {
     display: flex;
-    gap: 1rem;
+    flex-direction: column;
+    gap: 0.8rem;
     margin-top: 1rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-top: 1rem;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
+    align-items: flex-start;
 }
 
 .button {
@@ -150,6 +158,7 @@
     font-family: 'Press Start 2P', cursive;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    width: auto;
 }
 
 .button:hover {
@@ -159,36 +168,31 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
-.theme-row {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    margin-top: 0.5rem;
-    margin-bottom: -0.5rem;
-}
-
-.toggle-theme-btn, .modify-button, .delete-button {
+.toggle-theme-btn, .modify-button, .delete-button, .logout-button {
     background-color: #2c3e50;
     border: 3px solid #202020;
     color: #c0c0c0;
 }
+
 .toggle-theme-btn:hover,
 .modify-button:hover,
-.delete-button:hover {
-    background-color: #555;
-    color: white;
-}
-
-.logout-button {
-    margin-top: 20px;
-    background-color: #2c3e50;
-    border: 3px solid #202020;
-    color: #c0c0c0;
-}
-
+.delete-button:hover,
 .logout-button:hover {
     background-color: #555;
     color: white;
+}
+
+.toggle-theme-btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toggle-theme-btn .material-icons {
+    font-size: 24px;
 }
 
 .save-button {
@@ -284,30 +288,6 @@
     margin-bottom: 0.8rem;
 }
 
-.stats-section {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 2px solid #7d7f7d;
-}
-
-.stats-section {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 2px solid #7d7f7d;
-}
-
-.status-block {
-    display: flex;
-    align-items: center;
-    align-items: center;
-    justify-content: center;
-    gap: 0.8rem;
-    padding: 0.8rem;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 6px;
-    border: 2px solid #3b3f46;
-    margin-bottom: 1.2rem;
-}
 
 .status-label {
     color: #c0c0c0;
@@ -315,39 +295,17 @@
     font-weight: bold;
 }
 
-.status-value {
+.info-value.status-value {
     color: #c0c0c0;
-    font-size: 0.7rem;
+    font-size: 1.1rem;
     text-transform: uppercase;
 }
 
-.status-value.online {
+.info-value.status-value.online {
     color: #27ae60;
+    font-weight: bold;
 }
 
-.audio-control {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.8rem;
-    padding: 0.8rem;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 6px;
-    border: 2px solid #3b3f46;
-    margin-bottom: 1.2rem;
-}
-
-.music-selector {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.8rem;
-    padding: 0.8rem;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 6px;
-    border: 2px solid #3b3f46;
-    margin-bottom: 1.2rem;
-}
 
 .music-dropdown {
     padding: 0.5rem;
@@ -358,7 +316,8 @@
     font-family: 'Press Start 2P', cursive;
     font-size: 0.6rem;
     cursor: pointer;
-    min-width: 200px;
+    flex: 1;
+    min-width: 150px;
 
     &:hover {
         background-color: #34495e;
@@ -406,7 +365,9 @@
     color: #c0c0c0;
     font-size: 1rem;
     margin-bottom: 1rem;
-    text-align: center;
+    margin-top: 0;
+    margin-left: 1rem;
+    text-align: left;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -415,6 +376,9 @@
     display: flex;
     flex-direction: column;
     gap: 0.8rem;
+    flex: 1;
+    justify-content: stretch;
+    padding: 1rem;
 }
 
 .stat-item {
@@ -427,17 +391,41 @@
     border: 2px solid #3b3f46;
     font-size: 0.65rem;
     line-height: 1.5;
+    flex: 1;
+    justify-content: center;
 }
 
 .stat-label {
     color: #c0c0c0;
     font-weight: bold;
+    font-size: 0.9rem;
     margin-bottom: 0.2rem;
 }
 
 .stat-value {
     color: #e0e0e0;
     word-break: break-word;
+}
+
+@media (max-width: 900px) {
+    .account-content-wrapper {
+        flex-direction: column;
+    }
+
+    .account-left,
+    .account-right {
+        width: 100%;
+    }
+
+    .profile-picture-square {
+        width: 150px;
+        height: 150px;
+    }
+
+    .profile-img-square {
+        width: 142px;
+        height: 142px;
+    }
 }
 
 @media (max-width: 600px) {

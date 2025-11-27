@@ -148,18 +148,21 @@ export class ThemeService {
         color: ${C.stat_label_text} !important;
       }
 
-      ${scope} .modify-button, ${scope} .delete-button{
-        background:${C.friends_border_accent} !important;
+      ${scope} .modify-button, ${scope} .delete-button, ${scope} .save-button, ${scope} .cancel-button, ${scope} .logout-button, ${scope} .toggle-theme-btn{
+        background: ${C.button_bg} !important;
         border: 3px solid ${C.button_border} !important;
-        color: white !important;
+        color: ${C.button_text} !important;
         transition: filter .15s ease, transform .05s ease !important;
       }
-      ${scope} .modify-button:hover, ${scope} .delete-button:hover{
+      ${scope} .modify-button:hover, ${scope} .delete-button:hover, ${scope} .save-button:hover, ${scope} .cancel-button:hover, ${scope} .logout-button:hover, ${scope} .toggle-theme-btn:hover{
         filter: brightness(0.90) !important; 
       }
-      ${scope} .modify-button:active, ${scope} .delete-button:active{
+      ${scope} .modify-button:active, ${scope} .delete-button:active, ${scope} .save-button:active, ${scope} .cancel-button:active, ${scope} .logout-button:active, ${scope} .toggle-theme-btn:active{
         filter: brightness(0.90) !important;
         transform: translateY(1px) !important;
+      }
+      ${scope} .toggle-theme-btn .material-icons{
+        color: ${C.button_text} !important;
       }
 
       ${scope} ${S.form_input}{
@@ -204,7 +207,13 @@ export class ThemeService {
       ${scope} ${S.account_card} h2, ${scope} ${S.account_card} h3{
         color: ${C.button_text} !important; 
       }
-      ${scope} .status-value.online{
+      ${scope} ${S.account_card} ${S.info_label}, ${scope} ${S.account_card} ${S.info_value}, ${scope} ${S.account_card} ${S.stat_label}, ${scope} ${S.account_card} .stat-value, ${scope} ${S.account_card} .account-title, ${scope} ${S.account_card} .stats-title, ${scope} ${S.account_card} .username-with-level, ${scope} ${S.account_card} .email-section{
+        color: ${C.button_text} !important; 
+      }
+      ${scope} ${S.account_card} span:not(${S.buttons_all} *):not(${S.buttons_all}), ${scope} ${S.account_card} div:not(${S.buttons_all} *):not(${S.buttons_all}), ${scope} ${S.account_card} h2, ${scope} ${S.account_card} h3 {
+        color: ${C.button_text} !important; 
+      }
+      ${scope} ${S.account_card} .status-value.online{
         color: ${C.status_online} !important;
         font-weight: bold !important;
       }

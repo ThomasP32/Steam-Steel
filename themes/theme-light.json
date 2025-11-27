@@ -21,8 +21,8 @@
         "map_grad_from": "#b0bac5",
 
         "info_item_bg": "rgba(224,224,224,0.8)",
-        "modal_bg": "#E0E0E0",
-        "input_bg": "#FFFFFF",
+        "modal_bg": "#F5F5F5",
+        "input_bg": "#F5F5F5",
         "input_border_focus": "#087093",
         "status_online": "#1D8348",
         "stat_label_text": "#2c3e50",
@@ -34,7 +34,7 @@
         "section_header_text": "#2c3e50",
         "status_neutral": "#4A4A4A",
 
-        "modal_bg": "#FFFFFF",
+        "modal_bg": "#F5F5F5",
         "modal_border": "#333333",
         "modal_overlay_bg": "rgba(0, 0, 0, 0.4)",
         "shop_header_bg": "#C0C0C0",
