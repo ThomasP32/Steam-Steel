@@ -81,6 +81,8 @@ class _GameScreenState extends State<GameScreen> {
   bool _isCombatEvasion = false;
   StreamSubscription<dynamic>? _combatFinishedSub;
   StreamSubscription<dynamic>? _combatFinishedByEvasionSub;
+  bool _isFriendModalOpen = false;
+  bool _combatActive = false;
 
   @override
   void initState() {
@@ -374,6 +376,9 @@ class _GameScreenState extends State<GameScreen> {
           final opponent = data['opponent'] as Map<String, dynamic>?;
 
           if (challenger != null && opponent != null) {
+            // mark that a combat is active (server authoritative)
+            _combatActive = true;
+
             final currentPlayer = PlayerService().player;
             if (currentPlayer.socketId == challenger['socketId']) {
               PlayerService().setPlayerFromJson(challenger);
@@ -404,6 +409,7 @@ class _GameScreenState extends State<GameScreen> {
       } else {}
       setState(() {
         _showCombatModal = false;
+        _combatActive = false;
         _combatChallenger = null;
         _combatOpponent = null;
       });
@@ -424,6 +430,7 @@ class _GameScreenState extends State<GameScreen> {
       }
       setState(() {
         _showCombatModal = false;
+        _combatActive = false;
         _combatChallenger = null;
         _combatOpponent = null;
       });
@@ -452,92 +459,123 @@ class _GameScreenState extends State<GameScreen> {
       }
       setState(() {
         _showCombatModal = false;
+        _combatActive = false;
         _combatChallenger = null;
         _combatOpponent = null;
       });
     });
-
     // Listen for combat started signal (when other players are in combat)
     SocketService().listen<dynamic>('combatStartedSignal').listen((data) {
       DebugLogger.log(
-        'combatStartedSignal received: $data, showCombatModal: $_showCombatModal',
+        'combatStartedSignal received: $data, showCombatModal: $_showCombatModal, friendModalOpen: $_isFriendModalOpen',
         tag: 'GameScreen',
       );
       if (!mounted) return;
-      if (!_showCombatModal) {
-        DebugLogger.log('Showing combat notification', tag: 'GameScreen');
-        _combatNotificationOverlay?.remove();
+        // server signals that a combat exists somewhere -> track active state
+        _combatActive = true;
+        if (!_showCombatModal && !_isFriendModalOpen) {
+          DebugLogger.log('Showing combat notification', tag: 'GameScreen');
+          _showCombatNotification();
+        }
+      });
 
-        final overlay = Overlay.of(context);
-        _combatNotificationOverlay = OverlayEntry(
-          builder:
-              (context) => Positioned(
-                top: 100,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
+      // Listen for combat ended signals to remove the notification
+      final combatEndEvents = [
+        'combatFinished',
+        'combatFinishedNormally',
+        'combatFinishedByEvasion',
+        'combatFinishedByDisconnection',
+      ];
+
+      for (final event in combatEndEvents) {
+        SocketService().listen<dynamic>(event).listen((data) {
+          DebugLogger.log('Combat ended event: $event', tag: 'GameScreen');
+          if (!mounted) return;
+          // no more active combat
+          _combatActive = false;
+          _combatNotificationOverlay?.remove();
+          _combatNotificationOverlay = null;
+        });
+      }
+    }
+
+  void _showCombatNotification() {
+  _combatNotificationOverlay?.remove();
+
+    final overlay = Overlay.of(context);
+    _combatNotificationOverlay = OverlayEntry(
+      builder:
+          (context) => Positioned(
+            top: 100,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade700,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        blurRadius: 10,
+                        spreadRadius: 2,
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade700,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white, width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.5),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                          ),
-                        ],
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.white,
+                        size: 28,
                       ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.warning_amber_rounded,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                          SizedBox(width: 12),
-                          Text(
-                            '⚔️ Combat en cours !',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                      SizedBox(width: 12),
+                      Text(
+                        '⚔️ Combat en cours !',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ),
-        );
-        overlay.insert(_combatNotificationOverlay!);
-      }
+            ),
+          ),
+    );
+    overlay.insert(_combatNotificationOverlay!);
+  }
+
+  void _onFriendModalStateChanged(bool isOpen) {
+    setState(() {
+      _isFriendModalOpen = isOpen;
     });
 
-    // Listen for combat ended signals to remove the notification
-    final combatEndEvents = [
-      'combatFinished',
-      'combatFinishedNormally',
-      'combatFinishedByEvasion',
-      'combatFinishedByDisconnection',
-    ];
+    if (isOpen) {
+      _combatNotificationOverlay?.remove();
+      _combatNotificationOverlay = null;
+    } else if (!_showCombatModal) {
+       try {
+        SocketService().send('getCombats', widget.gameId);
+        
+      } catch (e) {
+        DebugLogger.log('Failed to request combats: $e', tag: 'GameScreen');
+      }
 
-    for (final event in combatEndEvents) {
-      SocketService().listen<dynamic>(event).listen((data) {
-        DebugLogger.log('Combat ended event: $event', tag: 'GameScreen');
-        if (!mounted) return;
-        _combatNotificationOverlay?.remove();
-        _combatNotificationOverlay = null;
-      });
+      if (_combatActive && !_showCombatModal && !_isFriendModalOpen) {
+        DebugLogger.log('Re-showing combat notification after friend modal close', tag: 'GameScreen');
+        _showCombatNotification();
+      }
     }
   }
 
@@ -676,6 +714,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _navigateToMainMenu() {
+    _combatNotificationOverlay?.remove();
+    _combatNotificationOverlay = null;
+    
     try {
       SocketService().send('leaveGame', widget.gameId);
     } on Exception catch (e) {
@@ -960,7 +1001,7 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
-  void quitGame() {
+   void quitGame() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog<void>(
@@ -988,6 +1029,10 @@ class _GameScreenState extends State<GameScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
+                
+                _combatNotificationOverlay?.remove();
+                _combatNotificationOverlay = null;
+                
                 await ChannelService().removeGameChannel(widget.gameId);
 
                 FriendService().updateUserStatus(UserStatus.online);
@@ -1189,7 +1234,10 @@ class _GameScreenState extends State<GameScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const FriendButton(withPadding: false),
+                      FriendButton(
+                        withPadding: false,
+                        onModalStateChanged: _onFriendModalStateChanged,
+                      ),
                       const SizedBox(width: 8),
                       const Padding(
                         padding: EdgeInsets.only(bottom: 18),
