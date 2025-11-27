@@ -1337,7 +1337,7 @@ class _GameScreenState extends State<GameScreen> {
                   valueListenable: _gameService.notifier,
                   builder: (context, game, _) {
                     final activePlayerCount =
-                        game?.players.where((p) => p.isActive).length ?? 0;
+                        game?.players.where((p) => p.isActive || p.isEliminated).length ?? 0;
                     return Container(
                       width: 400,
                       padding: const EdgeInsets.all(20),
