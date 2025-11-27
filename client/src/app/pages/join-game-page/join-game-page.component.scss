@@ -118,11 +118,19 @@
 
 .game-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 50px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 40px 60px;
     width: 100%;
     padding: 8px 12px;
     box-sizing: border-box;
+
+    app-game-preview {
+        display: block;
+        margin: 0;
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
+    }
 }
 
 .chat-toggle-button {
