@@ -200,11 +200,16 @@ export class GameCreationService {
             } else {
                 game.players = game.players.map((player) => {
                     if (player.socketId === client.id) {
+                        // CRITICAL: Invalidate socketId to prevent turn events from being sent to this socket
+                        // The socketId is used to send events directly, so we must invalidate it when player leaves
+                        const invalidatedSocketId = `DISCONNECTED-${Date.now()}-${client.id}`;
+                        console.log(`[GameCreationService] Invalidating socketId for ${player.name} in game ${gameId}: ${client.id} -> ${invalidatedSocketId}`);
+                        
                         // If game is in elimination mode, set player as eliminated (only if they were an active player)
                         if (game.settings.isFastElimination) {
-                            return { ...player, isActive: false, isEliminated: true, isObserver: false };
+                            return { ...player, isActive: false, isEliminated: true, isObserver: false, socketId: invalidatedSocketId };
                         }
-                        return { ...player, isActive: false, isObserver: false  };
+                        return { ...player, isActive: false, isObserver: false, socketId: invalidatedSocketId };
                     }
                     return player;
                 });

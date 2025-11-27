@@ -218,6 +218,7 @@ export class GamePageComponent implements OnInit, AfterViewInit, OnDestroy {
         this.playerService.resetPlayer();
         this.channelService.removePartyChannel(this.game.id);
         this.challengeService.resetChallenge();
+        this.combatService.resetCombatState();
         this.socketService.sendMessage(FriendsEvents.UpdateUserStatus, { status: UserStatus.Online });
 
         setTimeout(() => {
@@ -232,6 +233,7 @@ export class GamePageComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     navigateToEndOfGame(): void {
+        this.combatService.resetCombatState();
         this.router.navigate(['/end-game']);
     }
 
@@ -461,6 +463,8 @@ export class GamePageComponent implements OnInit, AfterViewInit, OnDestroy {
         this.audioService.clearHostControl();
         this.audioService.stopMusic();
         this.socketSubscription.unsubscribe();
+        // Reset combat state to ensure clean state when re-entering a game
+        this.combatService.resetCombatState();
     }
 
     onShowExitModalChange(newValue: boolean) {

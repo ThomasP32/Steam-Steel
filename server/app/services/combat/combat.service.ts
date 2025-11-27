@@ -297,10 +297,22 @@ export class CombatService {
             return undefined;
         }
 
-        this.server.to(combat.currentTurnSocketId).emit(CombatEvents.YourTurnCombat);
+        // Safety check: Don't emit to invalidated/disconnected socketIds
+        if (!combat.currentTurnSocketId.startsWith('DISCONNECTED-')) {
+            this.server.to(combat.currentTurnSocketId).emit(CombatEvents.YourTurnCombat);
+        } else {
+            console.warn(`[CombatService] Skipping YourTurnCombat emission to invalidated socketId: ${combat.currentTurnSocketId}`);
+        }
+        
         const currentPlayer = combat.currentTurnSocketId === combat.challenger.socketId ? combat.challenger : combat.opponent;
         const otherPlayer = combat.currentTurnSocketId === combat.challenger.socketId ? combat.opponent : combat.challenger;
-        this.server.to(otherPlayer.socketId).emit(CombatEvents.PlayerTurnCombat);
+        
+        // Safety check: Don't emit to invalidated/disconnected socketIds
+        if (!otherPlayer.socketId.startsWith('DISCONNECTED-')) {
+            this.server.to(otherPlayer.socketId).emit(CombatEvents.PlayerTurnCombat);
+        } else {
+            console.log(`[CombatService] Skipping PlayerTurnCombat emission to invalidated socketId: ${otherPlayer.socketId} (player: ${otherPlayer.name})`);
+        }
         combatCountdownService.startTurnCounter(game, currentPlayer.specs.evasions !== 0);
 
         return { currentPlayer, otherPlayer };

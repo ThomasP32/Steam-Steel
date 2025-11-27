@@ -218,4 +218,23 @@ export class CombatService {
         this.showCombatResultModal.next(false);
         this.combatWinner.next(null);
     }
+
+    /**
+     * Resets all combat state when leaving a game.
+     * This ensures the combat modal from a previous game doesn't appear in a new game.
+     */
+    resetCombatState(): void {
+        this.isCombatModalOpen.next(false);
+        this.isCombatOngoing.next(false);
+        this.opponent.next(this.defaultPlayer);
+        this.combatPlayer.next(this.defaultPlayer);
+        this.showObservationModeModal.next(false);
+        this.observationModeMessage.next('');
+        
+        // Unsubscribe from all combat event listeners to prevent receiving events from old game
+        if (this.socketSubscription) {
+            this.socketSubscription.unsubscribe();
+            this.socketSubscription = new Subscription();
+        }
+    }
 }
