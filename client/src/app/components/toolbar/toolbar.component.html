@@ -39,7 +39,7 @@
                 {{ isItemsVisible ? '-' : '+' }}
             </button>
         </div>
-        @if(isTilesVisible) {
+        @if(isItemsVisible) {
         <div class="item-section">
             <div class="item-grid">
                 <div class="item" [class.disabled]="mapCounterService.isItemUsed(ItemCategory.Armor) || mapCounterService.itemsCounter === 0">
@@ -131,12 +131,14 @@
                 <span class="counter" draggable="false">{{ mapCounterService.startingPointCounter }}</span>
             </div>
         </div>
+    }
         <div class="toggle-section" *ngIf="mode === 'ctf'">
             <h3>Drapeau</h3>
             <button (click)="toggleFlag()">
                 {{ isFlagVisible ? '-' : '+' }}
             </button>
         </div>
+        @if(isFlagVisible) {
         <div class="flag-section" *ngIf="isFlagVisible && mode === 'ctf'">
             <div class="item" (click)="selectItem('flag')" [class.disabled]="mapCounterService.isItemUsed(ItemCategory.Flag)">
                 <img
