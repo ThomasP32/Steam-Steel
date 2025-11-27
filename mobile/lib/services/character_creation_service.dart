@@ -67,6 +67,7 @@ class CharacterCreationService {
     stopListening();
     _currentGameId = gameId;
     initializeOwnedAvatars();
+    unavailableAvatars.value = {};
     _listenToCurrentPlayers();
     _listenToPlayerLeft();
     SocketService().send('getPlayers', gameId);
@@ -81,7 +82,9 @@ class CharacterCreationService {
 
   void reset() {
     stopListening();
+    unavailableAvatars.value = {};
     selectedAvatar.value = 1;
+    _currentGameId = null;
   }
 
   bool isAvatarAvailable(int avatarId) =>
