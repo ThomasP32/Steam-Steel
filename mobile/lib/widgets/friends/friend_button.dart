@@ -3,17 +3,22 @@ import 'package:mobile/assets/theme/color_palette.dart';
 import 'package:mobile/widgets/friends/friend_list_modal.dart';
 
 class FriendButton extends StatelessWidget {
-  const FriendButton({super.key, this.withPadding = true});
+  const FriendButton({super.key, this.withPadding = true, this.onModalStateChanged});
 
   final bool withPadding;
+  final void Function(bool isOpen)? onModalStateChanged;
 
-  void _showFriendList(BuildContext context) {
-    showModalBottomSheet<void>(
+  void _showFriendList(BuildContext context) async {
+    onModalStateChanged?.call(true);
+    
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const FriendListModal(),
     );
+    
+    onModalStateChanged?.call(false);
   }
 
   @override
