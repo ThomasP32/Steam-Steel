@@ -25,6 +25,7 @@
     animation: slideInDown 0.3s ease-out;
     max-width: 80%;
     text-align: center;
+    z-index: 2001;
 }
 
 @keyframes slideInDown {
@@ -691,4 +692,112 @@ input#messageInput {
     border-bottom: 2px solid #b85c38;
     text-align: center;
     z-index: 30;
+}
+
+// Create Channel Modal
+.create-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.create-modal {
+    width: 90%;
+    max-width: 400px;
+    padding: 24px;
+    background-color: #2e3136;
+    border-radius: 8px;
+    border: 2px solid #b5651d;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.modal-title {
+    color: white;
+    font-size: 1rem;
+    font-weight: bold;
+    margin: 0 0 20px 0;
+    font-family: 'Press Start 2P', cursive;
+}
+
+.modal-input-container {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.modal-input {
+    width: 100%;
+    padding: 12px;
+    background-color: #1e2124;
+    color: white;
+    border: 1px solid #444;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-family: 'Press Start 2P', cursive;
+    box-sizing: border-box;
+
+    &::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.7rem;
+    }
+
+    &:focus {
+        outline: none;
+        border-color: #b5651d;
+        box-shadow: 0 0 5px rgba(181, 101, 29, 0.3);
+    }
+}
+
+.char-counter {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.7rem;
+    font-family: 'Press Start 2P', cursive;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.modal-cancel-btn {
+    padding: 10px 16px;
+    background: transparent;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-family: 'Press Start 2P', cursive;
+    transition: background-color 0.2s;
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+.modal-create-btn {
+    padding: 10px 16px;
+    background-color: #b5651d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-family: 'Press Start 2P', cursive;
+    transition: background-color 0.2s;
+
+    &:hover {
+        background-color: #d9a760;
+    }
 }
