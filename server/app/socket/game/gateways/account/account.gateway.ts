@@ -36,13 +36,22 @@ export class AccountGateway implements OnGatewayConnection, OnGatewayDisconnect,
             client.disconnect();
             return;
         }
+
         (client as any).userId = userId;
+
         const oldSocketId = this.userSocketSession.getSocketId(userId);
         if (oldSocketId && oldSocketId !== client.id) {
-            client.emit('auth_error', 'Ce compte est déjà connecté ailleurs.');
-            client.disconnect();
-            return;
+            if (this.server?.sockets?.sockets) {
+                const oldSocket = this.server.sockets.sockets.get(oldSocketId);
+                if (oldSocket && oldSocket.connected) {
+                    client.emit('auth_error', 'Ce compte est déjà connecté ailleurs.');
+                    client.disconnect();
+                    return;
+                }
+            }
+            this.userSocketSession.removeUser(userId);
         }
+
         this.userSocketSession.setUserSocket(userId, client.id);
     }
 
