@@ -1,8 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { CommunicationMapService } from '@app/services/communication/communication.map.service';
 import { ChatEvents } from '@common/events/chat.events';
-import { BehaviorSubject, firstValueFrom } from 'rxjs';
+import { BehaviorSubject, firstValueFrom, Subscription } from 'rxjs';
 
 export interface Channel {
     _id?: string;
@@ -15,7 +15,7 @@ export interface Channel {
 @Injectable({
     providedIn: 'root',
 })
-export class ChannelService {
+export class ChannelService implements OnDestroy {
     private availableChannelsSubject = new BehaviorSubject<Channel[]>([]);
     private joinedChannelsSubject = new BehaviorSubject<Channel[]>([]);
     private activeChannelSubject = new BehaviorSubject<string | null>(null);
@@ -24,37 +24,111 @@ export class ChannelService {
     public joinedChannels$ = this.joinedChannelsSubject.asObservable();
     public activeChannel$ = this.activeChannelSubject.asObservable();
 
+    private subscriptions: Subscription[] = [];
+    private channelListenersSub: Subscription[] = [];
+    private setupRetryInterval: any = null;
+
     constructor(
         private socketService: SocketService,
         private communicationService: CommunicationMapService,
     ) {
-        this.socketService = socketService;
-        this.communicationService = communicationService;
-
-        this.setupSocketListeners();
-
         this.joinedChannelsSubject.next([{ name: 'global', creator: 'system', isPublic: true }]);
         this.activeChannelSubject.next('global');
-
+        this.socketService = socketService;
+        this.communicationService = communicationService;
+        this.setupSocketListeners();
         this.loadChannels();
     }
 
+    ngOnDestroy(): void {
+        this.cleanupSubscriptions();
+        if (this.setupRetryInterval) {
+            clearInterval(this.setupRetryInterval);
+        }
+    }
+
+    private cleanupSubscriptions(): void {
+        this.subscriptions.forEach((sub) => sub.unsubscribe());
+        this.subscriptions = [];
+        this.channelListenersSub.forEach((sub) => sub.unsubscribe());
+        this.channelListenersSub = [];
+    }
+
     private setupSocketListeners(): void {
-        this.socketService.listen<Channel[]>(ChatEvents.ChannelsList).subscribe((channels: Channel[]) => {
-            this.updateAvailableChannels(channels);
-        });
+        if (!this.socketService.socket) {
+            if (!this.setupRetryInterval) {
+                this.setupRetryInterval = setInterval(() => {
+                    if (this.socketService.socket) {
+                        clearInterval(this.setupRetryInterval);
+                        this.setupRetryInterval = null;
+                        this.setupChannelListeners();
+                    }
+                }, 500);
+            }
+            return;
+        }
 
-        this.socketService.listen<Channel>(ChatEvents.ChannelCreated).subscribe(() => {
-            this.loadChannels();
-        });
+        this.setupChannelListeners();
+    }
 
-        this.socketService.listen<{ name: string }>(ChatEvents.ChannelDeleted).subscribe((data) => {
-            this.removeChannelFromAll(data.name);
-        });
+    private setupChannelListeners(): void {
+        this.channelListenersSub.forEach((sub) => sub.unsubscribe());
+        this.channelListenersSub = [];
 
-        this.socketService.listen<any>('connect').subscribe(() => {
-            this.loadChannels();
-        });
+        if (!this.socketService.socket) {
+            console.log('[ChannelService] Socket not available, will retry...');
+            return;
+        }
+
+        console.log('[ChannelService] Setting up channel listeners...');
+
+        this.channelListenersSub.push(
+            this.socketService.listen<any>('connect').subscribe(() => {
+                console.log('[ChannelService] Socket connected, loading channels...');
+                this.loadChannels();
+            }),
+        );
+
+        this.channelListenersSub.push(
+            this.socketService.listen<Channel[]>(ChatEvents.ChannelsList).subscribe((channels: Channel[]) => {
+                console.log('[ChannelService] ChannelsList received:', channels?.length);
+                this.updateAvailableChannels(channels);
+            }),
+        );
+
+        this.channelListenersSub.push(
+            this.socketService.listen<Channel>(ChatEvents.ChannelCreated).subscribe((channel: Channel) => {
+                console.log('[ChannelService] ChannelCreated received:', channel);
+                if (channel && channel.name) {
+                    const currentAvailable = this.availableChannelsSubject.value;
+                    const joined = this.joinedChannelsSubject.value;
+
+                    const alreadyExists = currentAvailable.some((c) => c.name === channel.name) || joined.some((c) => c.name === channel.name);
+
+                    if (!alreadyExists) {
+                        const newList = [channel, ...currentAvailable];
+                        console.log(
+                            '[ChannelService] Adding channel, new list:',
+                            newList.map((c) => c.name),
+                        );
+                        this.availableChannelsSubject.next(newList);
+                    } else {
+                        console.log('[ChannelService] Channel already exists:', channel.name);
+                    }
+                }
+            }),
+        );
+
+        this.channelListenersSub.push(
+            this.socketService.listen<{ name: string }>(ChatEvents.ChannelDeleted).subscribe((data) => {
+                console.log('[ChannelService] ChannelDeleted received:', data);
+                if (data && data.name) {
+                    this.removeChannelFromAll(data.name);
+                }
+            }),
+        );
+
+        console.log('[ChannelService] Channel listeners setup complete');
     }
 
     private updateAvailableChannels(channels: Channel[]): void {
@@ -89,7 +163,7 @@ export class ChannelService {
                 }
             },
             error: (error) => {
-                console.error('Error loading channels:', error);
+                console.error('[ChannelService] Error loading channels:', error);
             },
         });
     }
@@ -116,13 +190,10 @@ export class ChannelService {
                 const newChannel: Channel = { name, creator, isPublic };
                 const currentAvailable = this.availableChannelsSubject.value;
                 if (!currentAvailable.find((c) => c.name === name)) {
-                    this.availableChannelsSubject.next([...currentAvailable, newChannel]);
+                    this.availableChannelsSubject.next([newChannel, ...currentAvailable]);
                 }
 
                 this.joinChannel(name);
-                this.setActiveChannel(name);
-
-                this.loadChannels();
 
                 return { success: true, message: body.message };
             } else {
@@ -260,13 +331,15 @@ export class ChannelService {
     }
 
     resetChannelState(): void {
+        console.log('[ChannelService] Resetting channel state...');
         this.availableChannelsSubject.next([]);
         this.joinedChannelsSubject.next([{ name: 'global', creator: 'system', isPublic: true }]);
         this.activeChannelSubject.next('global');
-        this.loadChannels();
-    }
 
-    isPartyChannel(channelName: string): boolean {
-        return channelName.startsWith('partie-');
+        // Re-setup socket listeners after socket reconnection
+        setTimeout(() => {
+            this.setupSocketListeners();
+            this.loadChannels();
+        }, 200);
     }
 }

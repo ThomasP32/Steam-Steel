@@ -89,10 +89,18 @@ class ChannelService {
           DebugLogger.log('Channel created: $data');
           if (data is Map<String, dynamic>) {
             final channel = Channel.fromJson(data);
-            final current = List<Channel>.from(_availableChannelsSubject.value);
-            if (!current.any((c) => c.name == channel.name)) {
-              current.insert(0, channel);
-              _availableChannelsSubject.add(current);
+            final currentAvailable = List<Channel>.from(
+              _availableChannelsSubject.value,
+            );
+            final joined = _joinedChannelsSubject.value;
+
+            final alreadyExists =
+                currentAvailable.any((c) => c.name == channel.name) ||
+                joined.any((c) => c.name == channel.name);
+
+            if (!alreadyExists) {
+              currentAvailable.insert(0, channel);
+              _availableChannelsSubject.add(currentAvailable);
             }
           }
         });
@@ -102,7 +110,7 @@ class ChannelService {
         .listen((data) {
           DebugLogger.log('Channel deleted: $data');
           if (data is Map<String, dynamic>) {
-            final channelName = data['channelName'] as String?;
+            final channelName = data['name'] as String?;
             if (channelName != null) {
               final current = List<Channel>.from(
                 _availableChannelsSubject.value,
@@ -114,7 +122,11 @@ class ChannelService {
               _joinedChannelsSubject.add(joined);
 
               if (_activeChannelSubject.value?.name == channelName) {
-                _activeChannelSubject.add(null);
+                final globalChannel = joined.firstWhere(
+                  (c) => c.name.toLowerCase() == 'global',
+                  orElse: () => Channel(name: 'global', creator: 'System'),
+                );
+                setActiveChannel(globalChannel);
               }
             }
           }
@@ -212,6 +224,12 @@ class ChannelService {
       await _apiClient.createChannel(name, creator);
       DebugLogger.log('Channel created: $name');
 
+      _socketService.send(ChatEvents.createChannel, {
+        'name': name,
+        'creator': creator,
+        'isPublic': true,
+      });
+
       final newChannel = Channel(name: name, creator: creator);
 
       final available = List<Channel>.from(_availableChannelsSubject.value);
@@ -229,6 +247,8 @@ class ChannelService {
     try {
       await _apiClient.deleteChannel(name);
       DebugLogger.log('Channel deleted: $name');
+
+      _socketService.send(ChatEvents.deleteChannel, {'name': name});
 
       final available = List<Channel>.from(_availableChannelsSubject.value)
         ..removeWhere((c) => c.name == name);

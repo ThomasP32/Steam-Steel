@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, NgZone, OnDestroy, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '@app/services/auth/auth.service';
 import { Channel, ChannelService } from '@app/services/channel/channel.service';
@@ -53,12 +53,16 @@ export class ChatroomComponent implements OnInit, OnDestroy {
         private readonly authService: AuthService,
         private readonly friendsService: FriendsService,
         private readonly profilePictureService: ProfilePictureService,
+        private readonly cdr: ChangeDetectorRef,
+        private readonly ngZone: NgZone,
     ) {
         this.socketService = socketService;
         this.channelService = channelService;
         this.authService = authService;
         this.friendsService = friendsService;
         this.profilePictureService = profilePictureService;
+        this.cdr = cdr;
+        this.ngZone = ngZone;
     }
 
     ngOnInit(): void {
@@ -74,11 +78,17 @@ export class ChatroomComponent implements OnInit, OnDestroy {
         });
 
         this.channelService.availableChannels$.subscribe((channels) => {
-            this.availableChannels = channels;
+            this.ngZone.run(() => {
+                this.availableChannels = [...channels];
+                this.cdr.detectChanges();
+            });
         });
 
         this.channelService.joinedChannels$.subscribe((channels) => {
-            this.joinedChannels = channels;
+            this.ngZone.run(() => {
+                this.joinedChannels = [...channels];
+                this.cdr.detectChanges();
+            });
         });
 
         this.channelService.activeChannel$.subscribe((channel) => {
@@ -390,5 +400,9 @@ export class ChatroomComponent implements OnInit, OnDestroy {
                 }
             });
         }
+    }
+
+    isDeletedAccount(author: string): boolean {
+        return author === '[supprimé]';
     }
 }
