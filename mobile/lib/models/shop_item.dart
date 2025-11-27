@@ -10,6 +10,8 @@ class ShopItem {
     this.equipped = false,
     this.levelRequired,
     this.canPurchase = true,
+    this.challengeRequired,
+    this.userChallengesCompleted,
   });
 
   factory ShopItem.fromJson(Map<String, dynamic> json) {
@@ -24,6 +26,8 @@ class ShopItem {
       equipped: json['equipped'] as bool? ?? false,
       levelRequired: json['levelRequired'] as int?,
       canPurchase: json['canPurchase'] as bool? ?? true,
+      challengeRequired: json['ChallengeRequired'] as int?,
+      userChallengesCompleted: json['userChallengesCompleted'] as int?,
     );
   }
   final String id;
@@ -33,6 +37,8 @@ class ShopItem {
   final String imagePath;
   final String description;
   final int? levelRequired;
+  final int? challengeRequired;
+  final int? userChallengesCompleted;
   final bool canPurchase;
   bool owned;
   bool equipped;

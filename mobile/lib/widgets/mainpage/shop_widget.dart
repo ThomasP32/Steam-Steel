@@ -239,7 +239,9 @@ class _ShopWidgetState extends State<ShopWidget> {
   bool _canAfford(ShopItem item) {
     final hasEnoughMoney = _currentMoney >= item.price && !item.owned;
     final hasRequiredLevel = item.levelRequired == null || item.canPurchase;
-    return hasEnoughMoney && hasRequiredLevel;
+    final hasRequiredChallenges =
+        item.challengeRequired == null || item.canPurchase;
+    return hasEnoughMoney && hasRequiredLevel && hasRequiredChallenges;
   }
 
   Future<void> _buyItem(ShopItem item) async {
@@ -642,7 +644,9 @@ class _ShopWidgetState extends State<ShopWidget> {
 
   Widget _buildItemCard(ShopItem item) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isLocked = item.levelRequired != null && !item.canPurchase;
+    final isLocked =
+        (item.levelRequired != null && !item.canPurchase) ||
+        (item.challengeRequired != null && !item.canPurchase);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -845,7 +849,10 @@ class _ShopWidgetState extends State<ShopWidget> {
                                   const Icon(Icons.lock, size: 16),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'Niveau ${item.levelRequired} requis',
+                                    item.levelRequired != null &&
+                                            !item.canPurchase
+                                        ? 'Niveau ${item.levelRequired} requis'
+                                        : '${item.challengeRequired} Défis requis',
                                     style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
