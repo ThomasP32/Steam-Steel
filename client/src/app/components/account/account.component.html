@@ -1,42 +1,104 @@
 <div *ngIf="userInfo" class="account-card">
-    <div class="title-section">
-        <h2 class="account-title">Mon Compte</h2>
-        <img class="user-level" [src]="'assets/level-badges/level-' + (userInfo.user.stats.level ?? 1) + '.png'" alt="Niveau" />
-    </div>
-
     <ng-container *ngIf="!editMode; else editForm">
-        <div class="account-main-row">
-            <div class="profile-picture-square">
-                <img
-                    *ngIf="userInfo.user.profilePictureCustom; else defaultProfilePicture"
-                    [src]="userInfo.user.profilePictureCustom"
-                    alt="Photo de profil personnalisée"
-                    class="profile-img-square"
-                />
-                <ng-template #defaultProfilePicture>
-                    <img [src]="getProfilePicturePreview(userInfo.user.profilePicture)" alt="Photo de profil" class="profile-img-square" />
-                </ng-template>
-            </div>
-            <div class="info-side">
-                <div class="info-row">
-                    <span class="info-label">Email:</span>
-                    <span class="info-value">{{ userInfo.user.email }}</span>
+        <div class="account-content-wrapper">
+            <!-- Left Column: Profile Section -->
+            <div class="account-left">
+                <h2 class="account-title">Mon Compte</h2>
+                
+                <div class="account-main-row">
+                    <div class="profile-picture-square">
+                        <img
+                            *ngIf="userInfo.user.profilePictureCustom; else defaultProfilePicture"
+                            [src]="userInfo.user.profilePictureCustom"
+                            alt="Photo de profil personnalisée"
+                            class="profile-img-square"
+                        />
+                        <ng-template #defaultProfilePicture>
+                            <img [src]="getProfilePicturePreview(userInfo.user.profilePicture)" alt="Photo de profil" class="profile-img-square" />
+                        </ng-template>
+                    </div>
+                    <div class="info-side">
+                        <div class="info-row">
+                            <span class="info-label">Pseudonyme:</span>
+                            <div class="username-with-level">
+                                <span class="info-value">{{ userInfo.user.username }}</span>
+                                <img class="user-level" [src]="'assets/level-badges/level-' + (userInfo.user.stats.level ?? 1) + '.png'" alt="Niveau" />
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Statut:</span>
+                            <span class="info-value status-value" [class.online]="userInfo.user.status === 'online'">{{ statutInFrench() }}</span>
+                        </div>
+                        <div class="info-row info-row-horizontal">
+                            <span class="info-label">Thème:</span>
+                            <button class="button toggle-theme-btn" (click)="toggleTheme()" aria-label="Toggle theme">
+                                <span class="material-icons" aria-hidden="true">{{ themeIcon }}</span>
+                            </button>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Musique:</span>
+                            <div class="music-controls">
+                                <button class="volume-button" aria-label="Toggle music" (click)="toggleMusic()">
+                                    <span class="material-icons" aria-hidden="true">
+                                        {{ (audioService.musicEnabled$ | async) ? 'music_note' : 'music_off' }}
+                                    </span>
+                                </button>
+                                <select class="music-dropdown" [(ngModel)]="selectedMusic" (change)="onMusicChange()">
+                                    <option value="music2.mp3">Musique par défaut</option>
+                                    <option *ngIf="ownsMinecraftMusic" value="minecraft.mp3">Minecraft</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">Pseudonyme:</span>
-                    <span class="info-value">{{ userInfo.user.username }}</span>
-                </div>
-            </div>
-        </div>
 
-        <div class="theme-row">
-            <button class="button toggle-theme-btn" (click)="toggleTheme()">Theme</button>
+                <div class="email-section">
+                    <div class="info-row">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value">{{ userInfo.user.email }}</span>
+                    </div>
+                </div>
+
+                <div class="button-row">
+                    <button class="button modify-button" (click)="enableEdit()">Modifier mon compte</button>
+                    <button class="button delete-button" (click)="deleteAccount()">Supprimer mon compte</button>
+                    <button class="button logout-button" (click)="logoutAccount()">Déconnexion</button>
+                </div>
+            </div>
+
+            <!-- Right Column: Statistics Section -->
+            <div *ngIf="userInfo?.user?.stats" class="account-right">
+                <h3 class="stats-title">Statistiques</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Classique</span>
+                        <span class="stat-value"
+                            >Jouées: {{ userInfo.user.stats.classique.gamesPlayed }}</span
+                        >
+                        <span class="stat-value"
+                        >Gagnées: {{ userInfo.user.stats.classique.gamesWon }}</span
+                    >
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">CTF</span>
+                        <span class="stat-value"
+                            >Jouées: {{ userInfo.user.stats.ctf.gamesPlayed }}</span
+                        >
+                        <span class="stat-value"
+                            >Gagnées: {{ userInfo.user.stats.ctf.gamesWon }}</span>
+                        
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Temps moyen</span>
+                        <span class="stat-value">{{ formatAvgTime(userInfo.user.stats.avgTime) }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Défis complétés</span>
+                        <span class="stat-value">{{ userInfo.user.stats.challengesCompleted ?? 0 }}</span>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="button-row">
-            <button class="button modify-button" (click)="enableEdit()">Modifier</button>
-            <button class="button delete-button" (click)="deleteAccount()">Supprimer le compte</button>
-        </div>
-        
     </ng-container>
 
     <ng-template #editForm>
@@ -66,47 +128,4 @@
             </div>
         </div>
     </ng-template>
-
-    <div *ngIf="userInfo?.user?.stats && !editMode" class="stats-section">
-        <div class="status-block">
-            <span class="status-label">Statut:</span>
-            <span class="status-value" [class.online]="userInfo.user.status === 'online'">{{ statutInFrench() }}</span>
-        </div>
-        <div class="audio-control">
-            <span class="status-label">Musique:</span>
-            <button class="volume-button" aria-label="Toggle music" (click)="toggleMusic()">
-                <span class="material-icons" aria-hidden="true">
-                    {{ (audioService.musicEnabled$ | async) ? 'music_note' : 'music_off' }}
-                </span>
-            </button>
-            <select class="music-dropdown" [(ngModel)]="selectedMusic" (change)="onMusicChange()">
-                <option value="music2.mp3">Musique par défaut</option>
-                <option *ngIf="ownsMinecraftMusic" value="minecraft.mp3">Minecraft</option>
-            </select>
-        </div>
-        <h3 class="stats-title">Statistiques</h3>
-        <div class="stats-grid">
-            <div class="stat-item">
-                <span class="stat-label">Classique:</span>
-                <span class="stat-value"
-                    >{{ userInfo.user.stats.classique.gamesPlayed }} parties jouées, {{ userInfo.user.stats.classique.gamesWon }} gagnées</span
-                >
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">CTF:</span>
-                <span class="stat-value"
-                    >{{ userInfo.user.stats.ctf.gamesPlayed }} parties jouées, {{ userInfo.user.stats.ctf.gamesWon }} gagnées</span
-                >
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Temps moyen:</span>
-                <span class="stat-value">{{ formatAvgTime(userInfo.user.stats.avgTime) }}</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Défis complétés:</span>
-                <span class="stat-value">{{ userInfo.user.stats.challengesCompleted ?? 0 }}</span>
-            </div>
-        </div>
-    </div>
-    <button class="button logout-button" (click)="logoutAccount()">Deconnexion</button>
 </div>

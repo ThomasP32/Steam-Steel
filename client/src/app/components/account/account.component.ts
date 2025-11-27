@@ -1,13 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AppComponent } from '@app/pages/app/app.component';
 import { AudioService } from '@app/services/audio/audio.service';
 import { AuthService } from '@app/services/auth/auth.service';
 import { ProfilePictureService } from '@app/services/profile-picture/profile-picture.service';
 import { ShopHttpService } from '@app/services/shop-http/shop-http.service';
 import { ProfilePicture } from '@common/game';
 import { ProfilePictureComponent } from '../profile-picture/profile-picture.component';
-import { AppComponent } from '@app/pages/app/app.component';
 @Component({
     selector: 'app-account',
     standalone: true,
@@ -42,6 +42,14 @@ export class AccountComponent implements OnInit {
         this.shopHttpService = shopHttpService;
         this.audioService = audioService;
         this.editProfilePicture = ProfilePicture.Profile1;
+    }
+
+    get isDarkMode(): boolean {
+        return this.appComponent.themeClass === 'theme-dark';
+    }
+
+    get themeIcon(): string {
+        return this.isDarkMode ? 'light_mode' : 'dark_mode';
     }
 
     ngOnInit(): void {
