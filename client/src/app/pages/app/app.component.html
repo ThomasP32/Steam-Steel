@@ -2,8 +2,7 @@
 <button class="friends-list-toggle-button" aria-label="Toggle friends list" (click)="toggleFriendsListVisibility()">
     <i class="fas fa-user-friends" aria-hidden="true"></i>
 </button>
-}
-@if(isLoggedIn && isGamePage){
+} @if(isLoggedIn && isGamePage){
 <button class="game-info-toggle-button" aria-label="Toggle game info" (click)="toggleGameInfoVisibility()">
     <i class="fas fa-info-circle" aria-hidden="true"></i>
 </button>
@@ -30,6 +29,7 @@
 }
 <app-game-invitation-modal
     [invitation]="currentInvitation"
+    [userMoney]="userMoney"
     (accepted)="onInvitationAccepted($event)"
     (rejected)="onInvitationRejected($event)"
     (closed)="onInvitationClosed()"

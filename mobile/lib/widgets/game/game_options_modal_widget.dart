@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile/assets/theme/color_palette.dart';
+import 'package:mobile/services/auth_service.dart';
 
 class GameOptionsModalWidget extends StatefulWidget {
   const GameOptionsModalWidget({
@@ -32,6 +33,7 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
     text: '0',
   );
   bool _hasEntryFeeError = false;
+  bool _hasInsufficientFunds = false;
 
   @override
   void initState() {
@@ -50,8 +52,12 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
     }
 
     final value = int.tryParse(text) ?? 0;
+    final user = AuthService().notifier.value;
+    final userMoney = user?.virtualMoney ?? 0;
+
     setState(() {
       _hasEntryFeeError = value > 500;
+      _hasInsufficientFunds = value > userMoney && value <= 500;
     });
   }
 
@@ -77,6 +83,13 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
     final raw = int.tryParse(_entryFeeController.text) ?? 0;
     if (raw > 500) {
       _showEntryFeeAlert();
+      return;
+    }
+
+    final user = AuthService().notifier.value;
+    final userMoney = user?.virtualMoney ?? 0;
+
+    if (raw > userMoney) {
       return;
     }
 
@@ -137,6 +150,16 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
     );
   }
 
+  bool _canProceed() {
+    final raw = int.tryParse(_entryFeeController.text) ?? 0;
+    if (raw > 500) return false;
+
+    final user = AuthService().notifier.value;
+    final userMoney = user?.virtualMoney ?? 0;
+
+    return raw <= userMoney;
+  }
+
   @override
   void dispose() {
     _entryFeeController.removeListener(_handleTextChange);
@@ -152,119 +175,123 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
     final textColor = isDark ? Colors.white : Colors.black87;
     final textColorSecondary = isDark ? Colors.white70 : Colors.black54;
 
-    return ColoredBox(
-      color: Colors.black.withValues(alpha: 0.7),
-      child: Center(
-        child: SingleChildScrollView(
-          child: Container(
-            width: 800,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: bgColor,
-              border: Border.all(color: borderColor, width: 2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Options de jeu',
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Carte: ${widget.selectedMapName}',
-                  style: TextStyle(color: textColorSecondary, fontSize: 16),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _buildOption(
-                        label: 'Elimination rapide',
-                        description:
-                            'Les joueurs éliminés en combat passent en mode observation',
-                        value: _isFastElimination,
-                        onTap: _toggleFastElimination,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(child: _buildEntryFeeInput()),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _buildOption(
-                        label: 'Drop In/Drop Out',
-                        description:
-                            'Les joueurs peuvent rejoindre ou quitter la partie à tout moment',
-                        value: _isDropInOut,
-                        onTap: _toggleDropInDropOut,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildOption(
-                        label: 'Amis seulement',
-                        description:
-                            'Seuls vos amis peuvent rejoindre cette partie',
-                        value: _isFriendsOnly,
-                        onTap: _toggleFriendsOnly,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    TextButton(
-                      onPressed: widget.onClose,
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                      ),
-                      child: Text(
-                        'Retour',
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: ColoredBox(
+        color: Colors.black.withValues(alpha: 0.7),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Container(
+              width: 800,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: bgColor,
+                border: Border.all(color: borderColor, width: 2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Options de jeu',
                         style: TextStyle(
-                          color: textColorSecondary,
-                          fontSize: 16,
+                          color: textColor,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    ElevatedButton(
-                      onPressed: _handleNext,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: borderColor,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Carte: ${widget.selectedMapName}',
+                    style: TextStyle(color: textColorSecondary, fontSize: 16),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _buildOption(
+                          label: 'Elimination rapide',
+                          description:
+                              'Les joueurs éliminés en combat passent en mode observation',
+                          value: _isFastElimination,
+                          onTap: _toggleFastElimination,
                         ),
                       ),
-                      child: const Text(
-                        'Suivant',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      const SizedBox(width: 16),
+                      Expanded(child: _buildEntryFeeInput()),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _buildOption(
+                          label: 'Drop In/Drop Out',
+                          description:
+                              'Les joueurs peuvent rejoindre ou quitter la partie à tout moment',
+                          value: _isDropInOut,
+                          onTap: _toggleDropInDropOut,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildOption(
+                          label: 'Amis seulement',
+                          description:
+                              'Seuls vos amis peuvent rejoindre cette partie',
+                          value: _isFriendsOnly,
+                          onTap: _toggleFriendsOnly,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton(
+                        onPressed: widget.onClose,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: Text(
+                          'Retour',
+                          style: TextStyle(
+                            color: textColorSecondary,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        onPressed: _handleNext,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              _canProceed() ? borderColor : Colors.grey,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: const Text(
+                          'Suivant',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -352,7 +379,7 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(
                   color:
-                      _hasEntryFeeError
+                      _hasEntryFeeError || _hasInsufficientFunds
                           ? Colors.red
                           : (isDark ? Colors.white24 : Colors.black26),
                 ),
@@ -360,7 +387,10 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(
-                  color: _hasEntryFeeError ? Colors.red : borderColor,
+                  color:
+                      _hasEntryFeeError || _hasInsufficientFunds
+                          ? Colors.red
+                          : borderColor,
                   width: 2,
                 ),
               ),
@@ -378,6 +408,14 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
               ),
             ),
           ),
+          if (_hasInsufficientFunds)
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                'Vous n\'avez pas assez de monnaie virtuelle pour payer ces frais d\'entrée',
+                style: TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            ),
           const SizedBox(height: 8),
           Text(
             'Montant que chaque joueur doit payer pour rejoindre',

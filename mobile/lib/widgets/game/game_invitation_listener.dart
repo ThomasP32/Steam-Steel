@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/common/events/friends_events.dart';
 import 'package:mobile/common/events/game_creation_events.dart';
 import 'package:mobile/router/app_router.dart';
+import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/friend_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/widgets/game/game_invitation_modal_widget.dart';
@@ -21,6 +22,7 @@ class _GameInvitationListenerState extends State<GameInvitationListener> {
   StreamSubscription<dynamic>? _invitationSub;
   StreamSubscription<dynamic>? _gameAccessedSub;
   GameInvitation? _currentInvitation;
+  int _userMoney = 0;
 
   @override
   void initState() {
@@ -45,8 +47,10 @@ class _GameInvitationListenerState extends State<GameInvitationListener> {
 
     if (data is Map<String, dynamic>) {
       final invitation = GameInvitation.fromJson(data);
+      final user = AuthService().notifier.value;
       setState(() {
         _currentInvitation = invitation;
+        _userMoney = user?.virtualMoney ?? 0;
       });
     }
   }
@@ -124,6 +128,7 @@ class _GameInvitationListenerState extends State<GameInvitationListener> {
         if (_currentInvitation != null)
           GameInvitationModalWidget(
             invitation: _currentInvitation!,
+            userMoney: _userMoney,
             onAccept: _onAccept,
             onReject: _onReject,
             onClose: _onClose,

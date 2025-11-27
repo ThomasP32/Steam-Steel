@@ -6,11 +6,18 @@
                 <strong>{{ invitation.inviterName }}</strong> vous invite à rejoindre une partie
             </p>
             <p class="game-name">Partie: {{ invitation.gameName }}</p>
+            <p class="entry-fee" *ngIf="hasEntryFee">
+                Frais d'entrée: <strong>{{ invitation.entryFee }}</strong> <i class="fas fa-coins"></i>
+            </p>
+            <p class="error-message" *ngIf="hasEntryFee && !canAfford">Vous n'avez pas assez de monnaie virtuelle pour rejoindre cette partie</p>
         </div>
 
-        <div class="button-group">
+        <div class="button-group" *ngIf="canAfford">
             <button class="action-button reject-button" (click)="onReject()">Refuser</button>
             <button class="action-button accept-button" (click)="onAccept()">Rejoindre</button>
+        </div>
+        <div class="button-group" *ngIf="!canAfford">
+            <button class="action-button accept-button" (click)="onReject()">OK</button>
         </div>
     </div>
 </div>

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/services/audio_service.dart';
+import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/friend_service.dart';
 import 'package:mobile/services/join_game_service.dart';
 import 'package:mobile/services/socket_service.dart';
@@ -226,13 +227,37 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
     final gameId = game['id'] as String?;
     if (gameId == null) return;
 
-    final hasStarted = game['hasStarted'] as bool? ?? false;
+    final hasStarted =
+        game.containsKey('hasStarted')
+            ? game['hasStarted'] as bool? ?? false
+            : false;
 
     if (hasStarted) {
       _onJoinGame(game);
     } else {
+      if (!_checkEntryFee(game)) {
+        return;
+      }
       _handleJoinFlow(gameId);
     }
+  }
+
+  bool _checkEntryFee(Map<String, dynamic> game) {
+    final settings = game['settings'] as Map<String, dynamic>?;
+    final entryFee = settings?['entryFee'] as int? ?? 0;
+
+    if (entryFee > 0) {
+      final user = AuthService().notifier.value;
+      final userMoney = user?.virtualMoney ?? 0;
+
+      if (userMoney < entryFee) {
+        _showError(
+          'Vous n\'avez pas assez de monnaie virtuelle pour rejoindre cette partie',
+        );
+        return false;
+      }
+    }
+    return true;
   }
 
   void _handleObserverFlow(Map<String, dynamic> game, String gameId) {
@@ -289,6 +314,10 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
   void _onJoinGame(Map<String, dynamic> game) {
     final gameId = game['id'] as String?;
     if (gameId == null) return;
+
+    if (!_checkEntryFee(game)) {
+      return;
+    }
 
     final hasStarted = game['hasStarted'] as bool? ?? false;
     final existingPlayer = _joinService.getExistingPlayer(game);
@@ -362,6 +391,10 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
       );
 
       if (game.isNotEmpty) {
+        if (!_checkEntryFee(game)) {
+          return;
+        }
+
         final settings = _joinService.extractGameSettings(game);
         final mapName = _joinService.extractMapName(game);
         AudioService().stopMusic();

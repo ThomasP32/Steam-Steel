@@ -19,25 +19,28 @@
                     Frais d'entrée
                 </label>
                 <div class="fee-input-container">
-                    <input 
-                        type="number" 
-                        id="entryFee" 
-                        [(ngModel)]="entryFee" 
-                        min="0" 
-                        max="500" 
+                    <input
+                        type="number"
+                        id="entryFee"
+                        [(ngModel)]="entryFee"
+                        min="0"
+                        max="500"
                         step="1"
                         (focus)="onFocus()"
                         (blur)="onBlur()"
                         (input)="validateEntryFee()"
                         (keydown)="onKeyDown($event)"
-                        (keydown.enter)="onNext()" 
+                        (keydown.enter)="onNext()"
                         [class.invalid]="hasEntryFeeError"
                         [class.valid]="isEntryFeeValid()"
-                        class="fee-input" 
+                        class="fee-input"
                     />
                     <span class="fee-unit">pièces</span>
                 </div>
                 <p class="error-text" *ngIf="hasEntryFeeError">Maximum 500 pièces</p>
+                <p class="error-text" *ngIf="insufficientFunds && !hasEntryFeeError">
+                    Vous n'avez pas assez de monnaie virtuelle pour payer ces frais d'entrée
+                </p>
             </div>
             <p class="option-description">Montant que chaque joueur doit payer pour rejoindre.</p>
         </div>
@@ -61,7 +64,7 @@
 
     <div class="button-group">
         <button class="action-button back-button" (click)="onClose()">Retour</button>
-        <button class="action-button next-button" (click)="onNext()">Suivant</button>
+        <button class="action-button next-button" (click)="onNext()" [disabled]="!canProceed()" [class.disabled]="!canProceed()">Suivant</button>
     </div>
 </div>
 
