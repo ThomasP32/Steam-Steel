@@ -63,12 +63,13 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   void initState() {
     super.initState();
 
+    _creationService.reset();
+    _creationService.initializeOwnedAvatars();
+
     _loadUserName();
     _listenToGameLocked();
     _listenToYouJoined();
     _listenToGameClosed();
-
-    _creationService.initializeOwnedAvatars();
 
     if ((widget.gameSettings == null || widget.gameId?.isNotEmpty == true) &&
         widget.gameId != null &&
