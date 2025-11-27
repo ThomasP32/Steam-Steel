@@ -162,6 +162,22 @@ button {
     z-index: 1001;
     transition: min-width 0.2s;
     border-radius: 12px;
+
+    // When modal contains account component, match its size exactly
+    &:has(app-account) {
+        width: 1200px;
+        padding: 2rem;
+        border: 3px solid #7d7f7d;
+        background: linear-gradient(135deg, #2c3e50 0%, #1c242c 100%);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+        border-radius: 12px;
+        box-sizing: border-box;
+
+        app-account {
+            width: 100%;
+            display: block;
+        }
+    }
 }
 
 .close-button {

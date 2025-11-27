@@ -13,6 +13,17 @@
     border: 3px solid #7d7f7d;
     font-family: 'Press Start 2P', cursive;
     color: #c0c0c0;
+
+    // Remove card styling when inside a modal
+    :host-context(.modal) & {
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        border-radius: 0;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+    }
 }
 
 .account-content-wrapper {
@@ -21,6 +32,8 @@
     gap: 2rem;
     align-items: stretch;
     min-height: 100%;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .account-left {
