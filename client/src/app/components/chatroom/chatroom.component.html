@@ -37,15 +37,8 @@
     @if (showAvailableChannels) {
     <div class="channel-panel">
         <div class="create-channel">
-            <input
-                [(ngModel)]="channelSearchText"
-                maxlength="20"
-                placeholder="Rechercher un salon..."
-                maxlength="20"
-                class="search-input"
-                (keydown.enter)="createChannel()"
-            />
-            <button class="create-btn" (click)="createChannel()">+</button>
+            <input [(ngModel)]="channelSearchText" maxlength="20" placeholder="Rechercher un salon..." class="search-input" />
+            <button class="create-btn" (click)="toggleCreateModal()">+</button>
         </div>
         <div class="channel-list">
             @for (channel of getFilteredAvailableChannels(); track channel.name) {
@@ -134,4 +127,27 @@
             </div>
         </div>
     </section>
+
+    @if (showCreateModal) {
+    <div class="create-modal-overlay" (click)="toggleCreateModal()">
+        <div class="create-modal" (click)="$event.stopPropagation()">
+            <h3 class="modal-title">Créer un salon</h3>
+            <div class="modal-input-container">
+                <input
+                    [(ngModel)]="newChannelNameModal"
+                    maxlength="20"
+                    placeholder="Nom du salon"
+                    class="modal-input"
+                    (keydown.enter)="createChannelFromModal()"
+                    autofocus
+                />
+                <span class="char-counter">{{ newChannelNameModal.length }}/20</span>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel-btn" (click)="toggleCreateModal()">Annuler</button>
+                <button class="modal-create-btn" (click)="createChannelFromModal()">Créer</button>
+            </div>
+        </div>
+    </div>
+    }
 </div>

@@ -44,6 +44,8 @@ export class ChatroomComponent implements OnInit, OnDestroy {
     showNotification: boolean = false;
     channelToDelete: string = '';
     showDeleteConfirmation: boolean = false;
+    showCreateModal: boolean = false;
+    newChannelNameModal: string = '';
 
     private messagesCache: Map<string, Message[]> = new Map();
 
@@ -232,6 +234,32 @@ export class ChatroomComponent implements OnInit, OnDestroy {
             });
             this.channelSearchText = '';
         }
+    }
+
+    toggleCreateModal(): void {
+        this.showCreateModal = !this.showCreateModal;
+        if (!this.showCreateModal) {
+            this.newChannelNameModal = '';
+        }
+    }
+
+    createChannelFromModal(): void {
+        const name = this.newChannelNameModal.trim();
+        if (!name || !this.playerName) return;
+
+        if (name.length < 3 || name.length > 20) {
+            this.showNotificationMessage('Le nom du salon doit contenir entre 3 et 20 caractères');
+            return;
+        }
+
+        this.channelService.createChannel(name, this.playerName, true).then((result) => {
+            if (!result.success && result.message) {
+                this.showNotificationMessage(result.message);
+            } else {
+                this.toggleCreateModal();
+                this.showNotificationMessage('Salon créé avec succès!');
+            }
+        });
     }
 
     joinChannel(channel: Channel): void {
