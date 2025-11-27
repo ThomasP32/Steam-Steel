@@ -1,4 +1,4 @@
-<div class="game-card" [class.is-locked]="game.isLocked">
+<div class="game-card" [class.is-locked]="game.isLocked && !game.hasStarted">
     <div class="game-code-banner">{{ game.id }}</div>
     <div class="game-image-container">
         <img [src]="game.imagePreview" alt="map-preview" class="map-img" />

@@ -302,7 +302,7 @@ class _EndgameScreenState extends State<EndgameScreen> {
       return _sortAscending ? comparison : -comparison;
     });
 
-    return players;
+     return players.where((player) => player.wasActivePlayer).toList();
   }
 
   Widget _buildStatsTable(List<Player> players) {
