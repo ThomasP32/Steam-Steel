@@ -23,6 +23,7 @@ import { GameManagerService } from '../../../../services/game-manager/game-manag
 import { ItemsManagerService } from '../../../../services/items-manager/items-manager.service';
 import { JournalService } from '../../../../services/journal/journal.service';
 import { VirtualGameManagerService } from '../../../../services/virtual-game-manager/virtual-game-manager.service';
+import { GameManagerGateway } from '../game-manager/game-manager.gateway';
 
 @WebSocketGateway({ namespace: '/game', cors: { origin: '*' } })
 export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
@@ -35,6 +36,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     @Inject(JournalService) private readonly journalService: JournalService;
     @Inject(VirtualGameManagerService) private readonly virtualGameManager: VirtualGameManagerService;
     @Inject(ChallengeService) private readonly challengeService: ChallengeService;
+    @Inject(GameManagerGateway) private readonly gameManagerGateway: GameManagerGateway;
 
     constructor(
         private readonly combatService: CombatService,
@@ -427,8 +429,15 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             if (otherPlayer.socketId.includes('virtual') && game.currentTurn === otherPlayer.turn) {
                 await this.virtualGameManager.executeVirtualPlayerBehavior(otherPlayer, game);
             } else if (game.currentTurn === otherPlayer.turn) {
-                this.server.to(otherPlayer.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
-                if (this.gameManagerService.isPlayerStuck(game.id, otherPlayer.socketId)) {
+                // Safety check: Don't emit to invalidated/disconnected socketIds
+                if (!otherPlayer.socketId.startsWith('DISCONNECTED-')) {
+                    this.server.to(otherPlayer.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
+                    if (this.gameManagerService.isPlayerStuck(game.id, otherPlayer.socketId)) {
+                        this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
+                    }
+                } else {
+                    console.log(`[CombatGateway] Skipping ResumeTurnAfterCombatWin emission to invalidated socketId: ${otherPlayer.socketId} (player: ${otherPlayer.name})`);
+                    // If player is disconnected, auto-timeout the turn
                     this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
                 }
             }
@@ -453,10 +462,17 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                 // Virtual player won and can continue their turn
                 this.virtualGameManager.executeVirtualPlayerBehavior(winner, game);
             } else {
-                this.server.to(winner.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
-                // Check if winner is stuck after combat
-                if (this.gameManagerService.isPlayerStuck(game.id, winner.socketId)) {
-                    console.log(`[CombatGateway] Player ${winner.name} is stuck after combat. Auto-ending turn.`);
+                // Safety check: Don't emit to invalidated/disconnected socketIds
+                if (!winner.socketId.startsWith('DISCONNECTED-')) {
+                    this.server.to(winner.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
+                    // Check if winner is stuck after combat
+                    if (this.gameManagerService.isPlayerStuck(game.id, winner.socketId)) {
+                        console.log(`[CombatGateway] Player ${winner.name} is stuck after combat. Auto-ending turn.`);
+                        this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
+                    }
+                } else {
+                    console.log(`[CombatGateway] Skipping ResumeTurnAfterCombatWin emission to invalidated socketId: ${winner.socketId} (player: ${winner.name})`);
+                    // If winner is disconnected, auto-timeout the turn
                     this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
                 }
             }
@@ -613,8 +629,10 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                     this.cleanupCombatRoom(combat.id);
                     this.combatService.deleteCombat(game.id);
                 }, TIME_LIMIT_DELAY);
-            } else if (game.currentTurn === player.turn) {
-                this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
+            } else if (updatedGame.currentTurn === player.turn) {
+                // Player is in their turn - automatically finish their turn so next player can play
+                console.log(`[CombatGateway] Player ${player.name} left during their turn. Automatically finishing turn.`);
+                this.gameManagerGateway.prepareNextTurn(updatedGame.id);
             }
         }
     }

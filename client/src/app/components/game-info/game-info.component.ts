@@ -21,4 +21,13 @@ export class GameInfoComponent {
     convertMapSize(value: number): string {
         return this.mapConversionService.convertNumberToString(value);
     }
+
+    get totalPlayerCount(): number {
+        if (!this.game?.players) {
+            return 0;
+        }
+        return this.game.players.filter(
+            (player) => player.isActive || player.isEliminated
+        ).length;
+    }
 }

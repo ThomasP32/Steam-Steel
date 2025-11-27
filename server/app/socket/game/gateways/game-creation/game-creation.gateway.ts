@@ -27,6 +27,7 @@ import { FriendsService } from '../../../../http/services/friends/friends.servic
 import { UserService } from '../../../../http/services/user/user.service';
 import { UserSocketService } from '../../../../services/user-socket/user-socket.service';
 import { ShopGateway } from '../shop/shop.gateway';
+import { GameManagerGateway } from '../game-manager/game-manager.gateway';
 
 @WebSocketGateway({ namespace: '/game', cors: { origin: '*' } })
 export class GameGateway {
@@ -45,10 +46,16 @@ export class GameGateway {
     @Inject(ChallengeService) private readonly challengeService: ChallengeService;
     @Inject(ItemsManagerService) private readonly itemsManagerService: ItemsManagerService;
     @Inject(ShopGateway) private readonly shopGateway: ShopGateway;
+    @Inject(GameManagerGateway) private readonly gameManagerGateway: GameManagerGateway;
 
     @SubscribeMessage(GameCreationEvents.CreateGame)
     async handleCreateGame(client: Socket, newGame: Game): Promise<void> {
+        // Clean up any previous game rooms before creating a new one
+        await this.cleanupSocketGameRooms(client);
+        
         client.join(newGame.id);
+        (client as any).currentGameId = newGame.id;
+        console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} created and joined game: ${newGame.id}`);
         newGame.hostSocketId = client.id;
         const userId = this.userSocketSession.getUserIdBySocket(client.id);
 
@@ -76,6 +83,9 @@ export class GameGateway {
 
     @SubscribeMessage(GameCreationEvents.JoinGame)
     async handleJoinGame(client: Socket, data: JoinGameData): Promise<void> {
+        // Clean up any previous game rooms before joining a new one
+        await this.cleanupSocketGameRooms(client);
+
         if (this.gameCreationService.doesGameExist(data.gameId)) {
             let game = this.gameCreationService.getGameById(data.gameId);
             if ((game.hasStarted && !game.settings.isDropInOut) || (game.isLocked && !game.hasStarted)) {
@@ -152,6 +162,12 @@ export class GameGateway {
             if (game.hasStarted) {
                 this.gameCreationService.recalculateTurnOrder(game);
             }
+            
+            // Join the game room and track current game
+            client.join(data.gameId);
+            (client as any).currentGameId = data.gameId;
+            console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} joined game: ${data.gameId}`);
+            
             client.emit(GameCreationEvents.YouJoined, { updatedPlayer: newPlayer, updatedGame: game });
             this.server.to(data.gameId).emit(GameCreationEvents.PlayerJoined, game.players);
             this.server.to(data.gameId).emit(GameCreationEvents.CurrentPlayers, game.players);
@@ -235,6 +251,9 @@ export class GameGateway {
 
     @SubscribeMessage(GameCreationEvents.AccessGame)
     async handleAccessGame(client: Socket, gameId: string): Promise<void> {
+        // Clean up any previous game rooms before accessing a new one
+        await this.cleanupSocketGameRooms(client);
+
         if (this.gameCreationService.doesGameExist(gameId)) {
             const game = this.gameCreationService.getGameById(gameId);
             if (game.settings.isFriendsOnly) {
@@ -257,6 +276,8 @@ export class GameGateway {
                 // Allow access for drop-in/drop-out - detailed capacity checks (including eliminated players)
                 // will be done in handleResumeGame where we know the player identity
                 client.join(gameId);
+                (client as any).currentGameId = gameId;
+                console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} joined game (drop-in): ${gameId}`);
                 client.emit(GameCreationEvents.GameAccessed, game.id);
                 // Sync timer state for drop-in player
                 this.syncTimerState(client, gameId);
@@ -267,6 +288,8 @@ export class GameGateway {
             }
 
             client.join(gameId);
+            (client as any).currentGameId = gameId;
+            console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} joined game: ${gameId}`);
             client.emit(GameCreationEvents.GameAccessed, game.id);
         } else {
             client.emit(GameCreationEvents.GameNotFound, 'Le code est invalide, veuillez réessayer.');
@@ -341,8 +364,14 @@ export class GameGateway {
 
     @SubscribeMessage(GameCreationEvents.LeaveGame)
     async handleLeaveGame(client: Socket, gameId: string): Promise<void> {
+        // Defensive cleanup - ensure socket leaves all game rooms
+        console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} leaving game: ${gameId}`);
+        await this.cleanupSocketGameRooms(client);
+        
         let game = this.gameCreationService.getGameById(gameId);
         if (!game) {
+            // Game doesn't exist - cleanup already done above
+            console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} - game ${gameId} not found (already cleaned up)`);
             return;
         }
         const userId = this.userSocketSession.getUserIdBySocket(client.id);
@@ -397,11 +426,16 @@ export class GameGateway {
             } else {
                 game.players = game.players.map((player) => {
                     if (player.socketId === client.id) {
+                        // CRITICAL: Invalidate socketId to prevent turn events from being sent to this socket
+                        // The socketId is used to send events directly, so we must invalidate it when player leaves
+                        const invalidatedSocketId = `DISCONNECTED-${Date.now()}-${client.id}`;
+                        console.log(`[GameGateway] Invalidating socketId for ${player.name} in game ${gameId}: ${client.id} -> ${invalidatedSocketId}`);
+                        
                         // If game is in elimination mode, set player as eliminated
                         if (game.settings.isFastElimination && !player.isObserver) {
-                            return { ...player, isActive: false, isEliminated: true, isObserver: false };
+                            return { ...player, isActive: false, isEliminated: true, isObserver: false, socketId: invalidatedSocketId };
                         }
-                        return { ...player, isActive: false, isObserver: false };
+                        return { ...player, isActive: false, isObserver: false, socketId: invalidatedSocketId };
                     }
                     return player;
                 });
@@ -415,9 +449,18 @@ export class GameGateway {
 
             game.isLocked = false;
             this.server.to(game.id).emit(GameCreationEvents.GameLockToggled, game.isLocked);
-            client.leave(gameId);
-            client.leave(gameId + '-combat');
+            // Room cleanup already done at method start
             this.server.to(game.id).emit(GameCreationEvents.PlayerLeft, game.players);
+
+            // Check if leaving player was in their turn and advance turn if not in combat
+            if (game.hasStarted && leavingPlayer) {
+                const combat = this.combatService.getCombatByGameId(game.id);
+                if (!combat && game.currentTurn === leavingPlayer.turn) {
+                    // Player is in their turn and not in combat - automatically finish their turn so next player can play
+                    console.log(`[GameGateway] Player ${leavingPlayer.name} left during their turn. Automatically finishing turn.`);
+                    this.gameManagerGateway.prepareNextTurn(game.id);
+                }
+            }
 
             // Check if game should end after player leaves
             if (game.hasStarted && (game.mode === Mode.Ctf || game.mode === Mode.Classic)) {
@@ -439,13 +482,18 @@ export class GameGateway {
             }
             this.server.to(game.id).emit(GameCreationEvents.GameUpdated, game);
         } else {
+            // Player not found in game - room cleanup already done at method start
+            console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} not found in game ${gameId} (already cleaned up)`);
             return;
         }
         this.server.emit(GameCreationEvents.GameListUpdated);
     }
 
     @SubscribeMessage(GameCreationEvents.ResumeGame)
-    handleResumeGame(client: Socket, data: JoinGameData): void {
+    async handleResumeGame(client: Socket, data: JoinGameData): Promise<void> {
+        // Clean up any previous game rooms before resuming
+        await this.cleanupSocketGameRooms(client);
+
         if (this.gameCreationService.doesGameExist(data.gameId)) {
             const game = this.gameCreationService.getGameById(data.gameId);
             if (game.hasStarted) {
@@ -472,6 +520,8 @@ export class GameGateway {
                     existingPlayer.isActive = true;
                 }
                 client.join(data.gameId);
+                (client as any).currentGameId = data.gameId;
+                console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} resumed game: ${data.gameId}`);
                 client.emit(GameCreationEvents.GameResumed, game);
 
                 client.emit(GameCreationEvents.YouJoined, { updatedPlayer: existingPlayer, updatedGame: game });
@@ -490,10 +540,15 @@ export class GameGateway {
     }
 
     @SubscribeMessage(GameCreationEvents.ObserveGame)
-    handleObserveGame(client: Socket, data: JoinGameData): void {
+    async handleObserveGame(client: Socket, data: JoinGameData): Promise<void> {
+        // Clean up any previous game rooms before observing
+        await this.cleanupSocketGameRooms(client);
+
         if (this.gameCreationService.doesGameExist(data.gameId)) {
             const game = this.gameCreationService.getGameById(data.gameId);
             client.join(game.id);
+            (client as any).currentGameId = game.id;
+            console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} joined as observer: ${game.id}`);
 
             let existingPlayer = game.players.find((plyr) => plyr.name === data.player.name);
             if (existingPlayer) {
@@ -597,6 +652,33 @@ export class GameGateway {
     }
 
     /**
+     * Removes a socket from all game-related rooms to prevent receiving events from previous games.
+     * This is a defensive cleanup that ensures the socket starts fresh when joining a new game.
+     */
+    private async cleanupSocketGameRooms(client: Socket): Promise<void> {
+        const previousGame = (client as any).currentGameId;
+        
+        // Get all rooms this socket is in
+        const rooms = Array.from(client.rooms);
+        
+        // Filter out the default room (socket.id itself) - keep only game rooms
+        const gameRooms = rooms.filter(room => room !== client.id);
+        
+        if (gameRooms.length > 0) {
+            console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} cleaning up ${gameRooms.length} room(s)${previousGame ? ` (previous game: ${previousGame})` : ''}`);
+        }
+        
+        // Leave all game-related rooms
+        for (const room of gameRooms) {
+            client.leave(room);
+            console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} left room: ${room}`);
+        }
+        
+        // Clear the tracked game ID
+        delete (client as any).currentGameId;
+    }
+
+    /**
      * Handles combat termination when a player leaves the game during combat.
      * The other player in the combat is declared the winner.
      */
@@ -668,10 +750,17 @@ export class GameGateway {
             if (currentGame.currentTurn === winner.turn) {
                 this.gameCountdownService.resumeCountdown(currentGame.id);
                 if (!winner.socketId.includes('virtual')) {
-                    this.server.to(winner.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
-                    // Check if winner is stuck after combat
-                    if (this.gameManagerService.isPlayerStuck(currentGame.id, winner.socketId)) {
-                        console.log(`[GameGateway] Player ${winner.name} is stuck after combat. Auto-ending turn.`);
+                    // Safety check: Don't emit to invalidated/disconnected socketIds
+                    if (!winner.socketId.startsWith('DISCONNECTED-')) {
+                        this.server.to(winner.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
+                        // Check if winner is stuck after combat
+                        if (this.gameManagerService.isPlayerStuck(currentGame.id, winner.socketId)) {
+                            console.log(`[GameGateway] Player ${winner.name} is stuck after combat. Auto-ending turn.`);
+                            this.gameCountdownService.emit(CountdownEvents.Timeout, currentGame.id);
+                        }
+                    } else {
+                        console.log(`[GameGateway] Skipping ResumeTurnAfterCombatWin emission to invalidated socketId: ${winner.socketId} (player: ${winner.name})`);
+                        // If winner is disconnected, auto-timeout the turn
                         this.gameCountdownService.emit(CountdownEvents.Timeout, currentGame.id);
                     }
                 }

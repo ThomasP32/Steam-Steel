@@ -374,14 +374,25 @@ export class GameManagerGateway implements OnGatewayInit {
                 }
             }, delay);
         } else {
-            this.server.to(activePlayer.socketId).emit(GameTurnEvents.YourTurn, activePlayer);
+            // Safety check: Don't emit to invalidated/disconnected socketIds
+            if (!activePlayer.socketId.startsWith('DISCONNECTED-')) {
+                this.server.to(activePlayer.socketId).emit(GameTurnEvents.YourTurn, activePlayer);
+            } else {
+                console.warn(`[GameManagerGateway] Skipping YourTurn emission to invalidated socketId: ${activePlayer.socketId}`);
+            }
         }
 
         game.players
             .filter((player) => player.socketId !== activePlayer.socketId)
             .forEach((player) => {
                 if (player.socketId !== activePlayer.socketId) {
-                    this.server.to(player.socketId).emit(GameTurnEvents.PlayerTurn, activePlayer.name);
+                    // Safety check: Don't emit to invalidated/disconnected socketIds
+                    if (!player.socketId.startsWith('DISCONNECTED-')) {
+                        this.server.to(player.socketId).emit(GameTurnEvents.PlayerTurn, activePlayer.name);
+                    } else {
+                        console.log(`[GameManagerGateway] Skipping PlayerTurn emission to invalidated socketId: ${player.socketId} (player: ${player.name})`);
+                    }
+                    
                     if (player.inventory.length > INVENTORY_SIZE) {
                         const coordinates = player.position;
                         this.itemsManagerService.dropItem(player.inventory[INVENTORY_SIZE], game.id, player, coordinates);

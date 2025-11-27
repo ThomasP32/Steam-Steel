@@ -5,6 +5,7 @@ import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { ChallengeService } from '@app/services/challenge/challenge.service';
 import { ChannelService } from '@app/services/channel/channel.service';
 import { CharacterService } from '@app/services/character/character.service';
+import { CombatService } from '@app/services/combat/combat.service';
 import { SocketService } from '@app/services/communication-socket/communication-socket.service';
 import { EndgameService } from '@app/services/endgame/endgame.service';
 import { GameTurnService } from '@app/services/game-turn/game-turn.service';
@@ -45,6 +46,7 @@ export class EndgamePageComponent implements OnInit, OnDestroy {
         private readonly gameTurnService: GameTurnService,
         private readonly challengeService: ChallengeService,
         private readonly shopHttpService: ShopHttpService,
+        private readonly combatService: CombatService,
     ) {
         this.socketService = socketService;
         this.gameService = gameService;
@@ -55,6 +57,7 @@ export class EndgamePageComponent implements OnInit, OnDestroy {
         this.channelService = channelService;
         this.gameTurnService = gameTurnService;
         this.challengeService = challengeService;
+        this.combatService = combatService;
 
         this.gameTurnService.moneyReward$.subscribe((reward) => {
             this.moneyReward = reward;
@@ -121,6 +124,7 @@ export class EndgamePageComponent implements OnInit, OnDestroy {
     navigateToMain(): void {
         this.playerService.resetPlayer();
         this.channelService.removePartyChannel(this.game.id);
+        this.combatService.resetCombatState();
         this.socketService.sendMessage(FriendsEvents.UpdateUserStatus, { status: UserStatus.Online });
 
         setTimeout(() => {
