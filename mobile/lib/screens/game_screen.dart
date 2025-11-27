@@ -23,6 +23,7 @@ import 'package:mobile/widgets/friends/friend_button.dart';
 import 'package:mobile/widgets/game/action_button_widget.dart';
 import 'package:mobile/widgets/game/challenges_widget.dart';
 import 'package:mobile/widgets/game/combat_modal_widget.dart';
+import 'package:mobile/widgets/game/combat_winner_widget.dart';
 import 'package:mobile/widgets/game/door_selector_widget.dart';
 import 'package:mobile/widgets/game/end_game_alert_widget.dart';
 import 'package:mobile/widgets/game/inventory_modal_widget.dart';
@@ -75,6 +76,11 @@ class _GameScreenState extends State<GameScreen> {
   OverlayEntry? _combatNotificationOverlay;
   Coordinate? _playerStartTile;
   StreamSubscription<dynamic>? _playerStartTileSub;
+  bool _showCombatWinnerModal = false;
+  String _combatWinnerName = '';
+  bool _isCombatEvasion = false;
+  StreamSubscription<dynamic>? _combatFinishedSub;
+  StreamSubscription<dynamic>? _combatFinishedByEvasionSub;
 
   @override
   void initState() {
@@ -95,6 +101,7 @@ class _GameScreenState extends State<GameScreen> {
     _listenToGameFinished();
     _listenToPlayerLeft();
     _listenToPlayerStartTile();
+    _listenToCombatWinner();
     _countdownService.initialize();
     _listenToCountdown();
     _listenToObservationMode();
@@ -842,6 +849,8 @@ class _GameScreenState extends State<GameScreen> {
     _combatNotificationOverlay?.remove();
     _combatNotificationOverlay = null;
     _deleteSubs();
+    _combatFinishedSub?.cancel();
+    _combatFinishedByEvasionSub?.cancel();
     if (_playerTurnListener != null) {
       _gameTurnService.playerTurnNotifier.removeListener(_playerTurnListener!);
     }
@@ -883,6 +892,66 @@ class _GameScreenState extends State<GameScreen> {
     _playerLeftSub?.cancel();
     _gameUpdatedSub?.cancel();
     _playerStartTileSub?.cancel();
+    _combatFinishedSub?.cancel();
+    _combatFinishedByEvasionSub?.cancel();
+  }
+
+  void _listenToCombatWinner() {
+    // Listen for combat finished normally (winner by defeating opponent)
+    _combatFinishedSub = SocketService()
+        .listen<dynamic>('combatFinished')
+        .listen((data) {
+          if (!mounted) return;
+          if (data is Map<String, dynamic>) {
+            final winner = data['winner'] as Map<String, dynamic>?;
+            if (winner != null) {
+              final winnerName = winner['name'] as String? ?? 'Joueur inconnu';
+              setState(() {
+                _combatWinnerName = winnerName;
+                _isCombatEvasion = false;
+                _showCombatWinnerModal = true;
+              });
+
+              // Auto-close after 2 seconds
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted && _showCombatWinnerModal) {
+                  setState(() {
+                    _showCombatWinnerModal = false;
+                  });
+                }
+              });
+            }
+          }
+        });
+
+    // Listen for combat finished by evasion
+    _combatFinishedByEvasionSub = SocketService()
+        .listen<dynamic>('combatFinishedByEvasion')
+        .listen((data) {
+          if (!mounted) return;
+          if (data is Map<String, dynamic>) {
+            final evadingPlayer =
+                data['evadingPlayer'] as Map<String, dynamic>?;
+            if (evadingPlayer != null) {
+              final evaderName =
+                  evadingPlayer['name'] as String? ?? 'Joueur inconnu';
+              setState(() {
+                _combatWinnerName = evaderName;
+                _isCombatEvasion = true;
+                _showCombatWinnerModal = true;
+              });
+
+              // Auto-close after 2 seconds
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted && _showCombatWinnerModal) {
+                  setState(() {
+                    _showCombatWinnerModal = false;
+                  });
+                }
+              });
+            }
+          }
+        });
   }
 
   void _toggleGameInfo() {
@@ -1300,6 +1369,18 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
             if (_showPlayerLeftModal) const PlayerLeftModalWidget(),
+            if (_showCombatWinnerModal)
+              Positioned.fill(
+                child: CombatWinnerWidget(
+                  winnerName: _combatWinnerName,
+                  isEvasion: _isCombatEvasion,
+                  onContinue: () {
+                    setState(() {
+                      _showCombatWinnerModal = false;
+                    });
+                  },
+                ),
+              ),
             if (isGameFinished)
               ValueListenableBuilder<GameEndReason?>(
                 valueListenable: _gameTurnService.gameEndReasonNotifier,
