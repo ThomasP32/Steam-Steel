@@ -370,9 +370,15 @@
     background-color: #3b3f46;
     border-color: #202020;
 }
-.filters-row .filters-btn.is-active {
-    outline: 2px solid #bdbdbd;
+.filters-row button.is-active {
+    background-color: #f39c12 ;
+    border-color: #f39c12;
     box-shadow: 0 0 8px rgba(189, 189, 189, 0.35) inset;
+}
+
+.filters-row button.is-active:hover {
+    background-color: #f39c12 ;
+    border-color: #f39c12;
 }
 
 .filters-row .order-btn {
@@ -387,6 +393,11 @@
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
-.filters-row .order-btn:hover {
+.filters-row .order-btn.disabled:hover {
     background-color: #3b3f46;
 }
+.filters-row .order-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+

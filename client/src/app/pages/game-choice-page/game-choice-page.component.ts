@@ -37,7 +37,7 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
     };
 
     isFilterOpen: boolean = false;
-    sortBy: 'name' | 'players' | 'mode' | null = 'name';
+    sortBy: 'name' | 'players' | 'mode' | null = null;
     sortOrder: 'asc' | 'desc' = 'asc';
     sortedMaps: Map[];
 
@@ -90,6 +90,7 @@ export class GameChoicePageComponent implements OnInit, OnDestroy {
     toggleSort(sortOption: 'name' | 'players' | 'mode') {
         if (this.sortBy === sortOption) {
             this.sortBy = null;
+            this.sortOrder = 'asc';
             this.sortedMaps = [...this.maps];
         } else {
             this.sortBy = sortOption;
