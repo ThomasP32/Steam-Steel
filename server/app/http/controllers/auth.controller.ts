@@ -118,6 +118,8 @@ export class AuthController {
 
         this.userService.removeUserSession(userId);
         await this.chatroomService.updateMessageAuthor(user.username, '[supprimé]');
+        await this.chatroomService.updateMessageAuthorProfilePicture(user.username, undefined, undefined);
+        await this.chatroomService.updateMessageAuthorAvatar(user.username, undefined, undefined);
         await this.adminService.deleteAllMapsByCreator(userId);
         await this.friendsService.removeUserFromAllFriendLists(user.username);
         await this.userService.deleteById(userId);

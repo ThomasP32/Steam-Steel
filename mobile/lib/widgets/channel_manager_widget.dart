@@ -141,6 +141,18 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
     final name = _createChannelController.text.trim();
     if (name.isEmpty) return;
 
+    if (name.length < 3 || name.length > 20) {
+      if (mounted) {
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.error(
+            message: 'Le nom du salon doit contenir entre 3 et 20 caractères',
+          ),
+        );
+      }
+      return;
+    }
+
     final allChannels = [
       ..._channelService.availableChannels,
       ..._channelService.joinedChannels,
@@ -699,6 +711,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                     TextField(
                       controller: _createChannelController,
                       autofocus: true,
+                      maxLength: 20,
                       style: TextStyle(
                         color: isDark ? Colors.white : Colors.black,
                         fontSize: 12,
@@ -722,6 +735,7 @@ class _ChannelManagerWidgetState extends State<ChannelManagerWidget> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4),
                         ),
+                        counterText: '',
                       ),
                     ),
                     const SizedBox(height: 20),
