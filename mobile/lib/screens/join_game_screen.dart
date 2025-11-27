@@ -717,7 +717,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 5,
-        childAspectRatio: 0.68,
+        childAspectRatio: 0.66,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),

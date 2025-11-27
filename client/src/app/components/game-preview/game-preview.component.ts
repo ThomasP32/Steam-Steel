@@ -4,11 +4,12 @@ import { AuthService } from '@app/services/auth/auth.service';
 import { MapConversionService } from '@app/services/map-conversion/map-conversion.service';
 import { MapConfig, MapSize } from '@common/constants';
 import { Game, Player } from '@common/game';
+import { A11yModule } from "@angular/cdk/a11y";
 
 @Component({
   selector: 'app-game-preview',
   standalone: true,
-  imports: [NgClass],
+  imports: [NgClass, A11yModule],
   templateUrl: './game-preview.component.html',
   styleUrl: './game-preview.component.scss'
 })

@@ -5,7 +5,7 @@
     align-items: stretch;
     width: 100%;
     max-width: 100%;
-    min-height: 430px;
+    height: 525px;
     padding: 1.6rem 0.6rem 0.6rem;
     gap: 12px;
     border: 2px solid #7d7f7d;
@@ -21,6 +21,11 @@
         .gamemode-bar {
             border-color: #bdbdbd;
         }
+    }
+
+    &.is-locked {
+        border-color: #b71c1c;
+        box-shadow: 0 4px 12px rgba(183, 28, 28, 0.08), 0 4px 8px rgba(0,0,0,0.18);
     }
 }
 
@@ -45,8 +50,8 @@
     text-align: center;
 
     background: rgba(0, 0, 0, 0.75);
-    border-bottom: 2px solid #202020;   /* 🔥 Bordure propre sous le banner */
-    border-radius: 0;                   /* 🔥 Pas de coins arrondis */
+    border-bottom: 2px solid #202020;  
+    border-radius: 0;                 
     z-index: 50;
     pointer-events: none;
 }
@@ -85,8 +90,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        margin: 8px 0;
+        gap: 3px;
+        margin: 2px 0;
         padding: 4px 8px;
         background: linear-gradient(135deg, #ffd700, #ffed4e);
         border-radius: 12px;
@@ -114,7 +119,8 @@
     justify-content: center;
     gap: 6px;
 
-    margin-top: -4px;
+    margin-top: -8px;
+    margin-bottom: -8px;
     padding: 4px 10px;
 
     font-size: 0.75rem;
@@ -133,30 +139,32 @@
 /* Couleurs identiques à ton badge actuel */
 .game-status-bottom.is-waiting {
     background: rgba(255, 152, 0, 0.15);
-    color: #ff9800;
+    color:#4caf50;
 }
 .game-status-bottom.is-waiting .status-dot {
-    background-color: #ff9800;
+    background-color: #4caf50;
 }
 
 .game-status-bottom.is-active {
     background: rgba(76, 175, 80, 0.12);
-    color: #4caf50;
+    color:#ff9800;
 }
 .game-status-bottom.is-active .status-dot {
-    background-color: #4caf50;
+    background-color:#ff9800;
 }
 
 
 .join-actions {
     margin-top: auto;
     display: flex;
-    gap: 10px;
+    gap: 6px;
 
     .join-button,
     .full-button,
-    .observe-button {
+    .observe-button,
+    .lock-button {
         font-family: 'Press Start 2P', cursive;
+        font-size: 0.75rem;
         flex: 1;
         padding: 10px 12px;
         border: 2px solid #202020;
@@ -170,6 +178,9 @@
     }
     .observe-button {
         background-color: #1c5276;
+    }
+    .lock-button {
+        background-color: #767676;
     }
     .full-button {
         background-color: #5d1d14;
