@@ -148,147 +148,153 @@ class GamePreviewWidget extends StatelessWidget {
     final isJoinable = !_hasStarted && !_isLocked;
     final isDisabled = !canObserve && !isJoinable && !canJoin;
 
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(
-          color: isDisabled ? Colors.red.shade300 : Colors.transparent,
-          width: 2,
+    return SizedBox(
+      height: 200,
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: isDisabled ? Colors.red.shade300 : Colors.transparent,
+            width: 2,
+          ),
         ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            decoration: const BoxDecoration(
-              color: Colors.black87,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
-            ),
-            child: Text(
-              _gameCode,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              decoration: const BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
+              ),
+              child: Text(
+                _gameCode,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AspectRatio(
-                  aspectRatio: 1,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          _buildImage(),
-                          if (isDisabled)
-                            Positioned(
-                              top: 4,
-                              left: 4,
-                              child: Container(
-                                padding: const EdgeInsets.all(3),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.shade700,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.lock,
-                                  color: Colors.white,
-                                  size: 10,
+            Padding(
+              padding: const EdgeInsets.all(4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AspectRatio(
+                    aspectRatio: 1,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            _buildImage(),
+                            if (isDisabled)
+                              Positioned(
+                                top: 4,
+                                left: 4,
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade700,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.lock,
+                                    color: Colors.white,
+                                    size: 10,
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _gameName,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    const Icon(Icons.people, size: 10, color: Colors.grey),
-                    const SizedBox(width: 2),
-                    Text(
-                      '$_activePlayerCount/$_maxPlayers',
-                      style: const TextStyle(fontSize: 9),
+                  const SizedBox(height: 4),
+                  Text(
+                    _gameName,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(width: 14),
-                    const Icon(Icons.map, size: 10, color: Colors.grey),
-                    const SizedBox(width: 2),
-                    Text(_mapSize, style: const TextStyle(fontSize: 9)),
-                  ],
-                ),
-                if (_entryFee > 0) ...[
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 2),
                   Row(
                     children: [
-                      Icon(
-                        Icons.monetization_on,
-                        size: 10,
-                        color: AppColors.accentHighlight(context),
-                      ),
+                      const Icon(Icons.people, size: 10, color: Colors.grey),
                       const SizedBox(width: 2),
                       Text(
-                        '$_entryFee pièces',
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: AppColors.accentHighlight(context),
-                          fontWeight: FontWeight.w600,
-                        ),
+                        '$_activePlayerCount/$_maxPlayers',
+                        style: const TextStyle(fontSize: 9),
                       ),
+                      const SizedBox(width: 14),
+                      const Icon(Icons.map, size: 10, color: Colors.grey),
+                      const SizedBox(width: 2),
+                      Text(_mapSize, style: const TextStyle(fontSize: 9)),
                     ],
                   ),
-                ],
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Container(
-                      width: 5,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color:
-                            _hasStarted
-                                ? AppColors.accentHighlight(context)
-                                : Colors.green,
-                        shape: BoxShape.circle,
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Container(
+                        width: 5,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: _hasStarted
+                              ? AppColors.accentHighlight(context)
+                              : Colors.green,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 3),
-                    Text(_status, style: const TextStyle(fontSize: 9)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                if (canJoin) _buildDualButtons() else _buildSingleButton(),
-              ],
+                      const SizedBox(width: 3),
+                      Text(_status, style: const TextStyle(fontSize: 9)),
+                    ],
+                  ),
+                   const SizedBox(height: 2),
+                  _entryFee > 0
+                      ? Row(
+                          children: [
+                            Icon(
+                              Icons.monetization_on,
+                              size: 10,
+                              color: AppColors.accentHighlight(context),
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                '$_entryFee pièces',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: AppColors.accentHighlight(context),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        )
+                      : const SizedBox(height: 18),
+                  const SizedBox(height: 4),
+                  if (canJoin) _buildDualButtons() else _buildSingleButton(),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
