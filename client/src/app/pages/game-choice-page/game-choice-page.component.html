@@ -25,8 +25,8 @@
                 <button class="filters-btn" [class.is-active]="sortBy === 'players'" (click)="toggleSort('players')">Nombre de joueurs</button>
                 <button class="filters-btn" [class.is-active]="sortBy === 'mode'" (click)="toggleSort('mode')">Mode</button>
 
-                <button class="order-btn" (click)="toggleOrder()" [attr.data-order]="sortOrder" aria-label="Asc/Desc">
-                    <img
+                <button class="order-btn" [disabled]="!sortBy" [class.disabled]="!sortBy" [class.is-active]="sortOrder === 'desc'" (click)="toggleOrder()" [attr.data-order]="sortOrder" aria-label="Asc/Desc">
+                <img
                         [src]="sortOrder === 'asc' ? 'assets/icons/sort-asc.png' : 'assets/icons/sort-desc.png'"
                         alt="Ordre de tri"
                         width="24"
