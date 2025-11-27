@@ -26,6 +26,21 @@
         <app-chatroom [isInGame]="false" (closed)="isChatVisible = false"></app-chatroom>
     </div>
     } }
+    @if (showDeleteConfirmation) {
+        <div class="delete-account-modal">
+            <div class="popup-overlay"></div>
+            <div class="modal">
+                <h2>Confirmer la suppression</h2>
+                <p>Êtes-vous sûr de vouloir supprimer votre compte ?</p>
+                <p>Cette action est irréversible.</p>
+    
+                <div class="modal-button-container">
+                    <button class="modal-button" (click)="confirmDeleteAccount()">Oui</button>
+                    <button class="modal-button" (click)="showDeleteConfirmation = false">Non</button>
+                </div>
+            </div>
+        </div>
+    }
 
     <ng-container *ngIf="isLoginModalVisible">
         <div class="modal-overlay">
@@ -49,7 +64,7 @@
         <div class="modal-overlay">
             <div class="modal">
                 <span class="close-button" (click)="onCloseAccountModal()" onkeypress="">×</span>
-                <app-account (closed)="onCloseAccountModal()"></app-account>
+                <app-account (deleteRequest)="showDeleteConfirmation = true"   (closed)="onCloseAccountModal()" ></app-account>
             </div>
         </div>
     </ng-container>

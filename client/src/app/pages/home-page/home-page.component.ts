@@ -26,6 +26,7 @@ export class HomePageComponent implements OnInit, AfterViewInit, OnDestroy {
     isChatVisible: boolean = false;
     isFriendsListVisible: boolean = false;
     showShop: boolean = false;
+    showDeleteConfirmation: boolean = false;
 
     private authSubscription: Subscription = new Subscription();
 
@@ -77,6 +78,14 @@ export class HomePageComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     onCloseAccountModal(): void {
         this.isAccountModalVisible = false;
+    }
+
+    confirmDeleteAccount(): void {
+        this.authService.deleteAccount().then(() => {
+            this.authService.logout();
+            this.showDeleteConfirmation = false;
+            this.isAccountModalVisible = false;
+        });
     }
 
     logout(): void {
