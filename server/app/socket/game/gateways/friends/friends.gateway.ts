@@ -7,6 +7,7 @@ import { Server } from 'socket.io';
 import { FriendsService } from '../../../../http/services/friends/friends.service';
 import { UserService } from '../../../../http/services/user/user.service';
 import { ChatroomService } from '../../../../services/chatroom/chatroom.service';
+import { GameCreationService } from '../../../../services/game-creation/game-creation.service';
 import { UserSocketService } from '../../../../services/user-socket/user-socket.service';
 @WebSocketGateway({ namespace: '/game', cors: { origin: '*' } })
 export class FriendsGateway {
@@ -15,6 +16,7 @@ export class FriendsGateway {
     @Inject(FriendsService) private readonly friendsService: FriendsService;
     @Inject(UserService) private readonly userService: UserService;
     @Inject(ChatroomService) private readonly chatroomService: ChatroomService;
+    @Inject(GameCreationService) private readonly gameCreationService: GameCreationService;
     @Inject(UserSocketService) private readonly userSocketService: UserSocketService;
 
     constructor() {
@@ -132,6 +134,9 @@ export class FriendsGateway {
         const inviter = await this.userService.findByUsername(inviterUsername);
         if (!inviter) return;
 
+        const game = this.gameCreationService.getGameById(gameId);
+        const entryFee = game?.settings?.entryFee ?? 0;
+
         const friends = await this.friendsService.getFriends(inviter._id.toString());
 
         for (const friend of friends) {
@@ -145,6 +150,7 @@ export class FriendsGateway {
                             gameName,
                             inviterUsername,
                             inviterName: inviter.username,
+                            entryFee,
                         };
                         this.server.to(socketId).emit(FriendsEvents.GameInvitationReceived, invitationData);
                     }

@@ -65,6 +65,29 @@
     margin-bottom: 0;
 }
 
+.entry-fee {
+    color: #f39c12;
+    font-size: 16px;
+    margin-top: 10px;
+    margin-bottom: 0;
+
+    i {
+        margin-left: 5px;
+        color: #f1c40f;
+    }
+}
+
+.error-message {
+    color: #e74c3c;
+    font-size: 14px;
+    margin-top: 10px;
+    font-weight: bold;
+    background-color: rgba(231, 76, 60, 0.1);
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #e74c3c;
+}
+
 .button-group {
     display: flex;
     gap: 15px;

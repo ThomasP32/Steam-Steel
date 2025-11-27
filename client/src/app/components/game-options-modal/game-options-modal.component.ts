@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '@app/services/auth/auth.service';
 
 @Component({
     selector: 'app-game-options-modal',
@@ -20,6 +21,23 @@ export class GameOptionsModalComponent {
     entryFee: number = 0;
     hasEntryFeeError: boolean = false;
     showAlert: boolean = false;
+    insufficientFunds: boolean = false;
+    private userMoney: number = 0;
+    private authService = inject(AuthService);
+
+    constructor() {
+        this.loadUserMoney();
+    }
+
+    async loadUserMoney(): Promise<void> {
+        try {
+            const userInfo = await this.authService.getUserInfo();
+            this.userMoney = userInfo.user.virtualMoney || 0;
+        } catch (error) {
+            console.error('Error loading user money:', error);
+            this.userMoney = 0;
+        }
+    }
 
     onClose(): void {
         this.closed.emit();
@@ -31,7 +49,12 @@ export class GameOptionsModalComponent {
             this.showAlert = true;
             return;
         }
-        
+
+        if (this.entryFee > this.userMoney) {
+            this.insufficientFunds = true;
+            return;
+        }
+
         this.next.emit({
             isFastElimination: this.isFastElimination,
             isDropInOut: this.isDropInOut,
@@ -50,6 +73,7 @@ export class GameOptionsModalComponent {
         }
         this.entryFee = Math.floor(this.entryFee);
         this.hasEntryFeeError = this.entryFee > 500;
+        this.insufficientFunds = this.entryFee > this.userMoney && this.entryFee <= 500;
     }
 
     onFocus(): void {
@@ -74,6 +98,11 @@ export class GameOptionsModalComponent {
 
     isEntryFeeValid(): boolean {
         return this.entryFee > 0 && this.entryFee <= 500;
+    }
+
+    canProceed(): boolean {
+        if (this.entryFee > 500) return false;
+        return this.entryFee <= this.userMoney;
     }
 
     toggleFastElimination(): void {

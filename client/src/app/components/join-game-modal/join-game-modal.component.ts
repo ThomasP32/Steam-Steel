@@ -30,7 +30,7 @@ export class JoinGameModalComponent implements OnInit, AfterViewInit, OnDestroy 
         this.authService = authService;
     }
 
-    async ngOnInit(): Promise<void>  {
+    async ngOnInit(): Promise<void> {
         this.configureJoinGameSocketFeatures();
         await this.loadUserInfo();
     }
@@ -42,7 +42,7 @@ export class JoinGameModalComponent implements OnInit, AfterViewInit, OnDestroy 
     private async loadUserInfo(): Promise<void> {
         const userInfo = await this.authService.getUserInfo();
         this.currentUsername = userInfo.user.username;
-      }
+    }
 
     focusFirstInput(): void {
         const firstInput = this.codeInputs.first;
@@ -90,8 +90,21 @@ export class JoinGameModalComponent implements OnInit, AfterViewInit, OnDestroy 
 
     configureJoinGameSocketFeatures(): void {
         this.socketSubscription.add(
-            this.socketService.listen<Game>(GameCreationEvents.CurrentGame).subscribe((game) => {
-                const existingPlayer = game.players.find((plyr) => plyr.name === this.currentUsername)
+            this.socketService.listen<Game>(GameCreationEvents.CurrentGame).subscribe(async (game) => {
+                const entryFee = game.settings?.entryFee ?? 0;
+
+                if (entryFee > 0) {
+                    const userInfo = await this.authService.getUserInfo();
+                    const userMoney = userInfo.user.virtualMoney ?? 0;
+
+                    if (userMoney < entryFee) {
+                        this.errorMessage = "Vous n'avez pas assez de monnaie virtuelle pour rejoindre cette partie";
+                        this.resetCodeAndFocus();
+                        return;
+                    }
+                }
+
+                const existingPlayer = game.players.find((plyr) => plyr.name === this.currentUsername);
                 if (existingPlayer) {
                     const joinGameData: JoinGameData = { player: existingPlayer, gameId: game.id! };
                     this.socketService.sendMessage(GameCreationEvents.ResumeGame, joinGameData);

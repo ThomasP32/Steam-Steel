@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { ChatroomComponent } from '@app/components/chatroom/chatroom.component';
 import { ErrorMessageComponent } from '@app/components/error-message-component/error-message.component';
@@ -26,6 +26,8 @@ import { Subject, Subscription, takeUntil } from 'rxjs';
     styleUrl: './join-game-page.component.scss',
 })
 export class JoinGamePageComponent implements OnInit, OnDestroy {
+    @ViewChild(ErrorMessageComponent) errorModal!: ErrorMessageComponent;
+
     isChatVisible: boolean = false;
     currentUsername: string = '';
     currentUserId: string = '';
@@ -112,6 +114,23 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
     }
 
     onJoin(game: Game) {
+        const entryFee = game.settings?.entryFee ?? 0;
+
+        if (entryFee > 0) {
+            this.authService.getUserInfo().then((userInfo) => {
+                const userMoney = userInfo.user.virtualMoney ?? 0;
+                if (userMoney < entryFee) {
+                    this.errorModal.open("Vous n'avez pas assez de monnaie virtuelle pour rejoindre cette partie");
+                    return;
+                }
+                this.proceedToJoinGame(game);
+            });
+        } else {
+            this.proceedToJoinGame(game);
+        }
+    }
+
+    private proceedToJoinGame(game: Game) {
         const existingPlayer = game.players.find((plyr) => plyr.name === this.currentUsername);
         if (existingPlayer) {
             const joinGameData: JoinGameData = { player: existingPlayer, gameId: game.id! };

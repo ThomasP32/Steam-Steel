@@ -6,12 +6,12 @@ import { GameInfoComponent } from '@app/components/game-info/game-info.component
 import { FriendsEvents } from '@common/events/friends.events';
 import { GameCreationEvents } from '@common/events/game-creation.events';
 import { GameInvitation, GameInvitationModalComponent } from '../../components/game-invitation-modal/game-invitation-modal.component';
-import { ThemeService } from '../../services/theme/theme.service';
 import { AuthService } from '../../services/auth/auth.service';
 import { SocketService } from '../../services/communication-socket/communication-socket.service';
 import { FriendsService } from '../../services/friends/friends.service';
 import { GameTurnService } from '../../services/game-turn/game-turn.service';
 import { GameService } from '../../services/game/game.service';
+import { ThemeService } from '../../services/theme/theme.service';
 
 @Component({
     selector: 'app-root',
@@ -24,9 +24,10 @@ export class AppComponent implements OnInit {
     @HostBinding('class') get hostClasses(): string {
         return `${this.themeClass} ${this.isGamePage ? 'game-page' : ''}`;
     }
-    
+
     themeClass: string = 'theme-dark';
     currentInvitation: GameInvitation | null = null;
+    userMoney: number = 0;
     isFriendsListVisible: boolean = false;
     isGameInfoVisible: boolean = false;
     isGamePage: boolean = false;
@@ -73,7 +74,7 @@ export class AppComponent implements OnInit {
     setTheme(theme: string) {
         this.themeClass = theme;
     }
-    
+
     async toggleTheme() {
         const next = this.themeClass === 'theme-dark' ? 'theme-light' : 'theme-dark';
         try {
@@ -90,8 +91,10 @@ export class AppComponent implements OnInit {
             return;
         }
 
-        this.socketService.listen<GameInvitation>(FriendsEvents.GameInvitationReceived).subscribe((invitation) => {
+        this.socketService.listen<GameInvitation>(FriendsEvents.GameInvitationReceived).subscribe(async (invitation) => {
             this.currentInvitation = invitation;
+            const userInfo = await this.authService.getUserInfo();
+            this.userMoney = userInfo.user.virtualMoney ?? 0;
         });
     }
 
