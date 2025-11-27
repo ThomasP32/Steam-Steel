@@ -211,11 +211,11 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
     if (!mounted) return;
     if (_service.isHost.value) return;
 
-    final audioService = AudioService()
-    ..setHostControlledSettings(
-      musicEnabled: _service.hostMusicEnabled.value,
-      sfxEnabled: _service.hostSfxEnabled.value,
-    );
+    final audioService =
+        AudioService()..setHostControlledSettings(
+          musicEnabled: _service.hostMusicEnabled.value,
+          sfxEnabled: _service.hostSfxEnabled.value,
+        );
   }
 
   Future<void> _loadPlayerBanners() async {
@@ -348,7 +348,12 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
         ),
         title: Row(
           children: [
-            Text(p.name.isNotEmpty ? p.name : 'Joueur'),
+            Flexible(
+              child: Text(
+                p.name.isNotEmpty ? p.name : 'Joueur',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             if (!isAI) ...[
               const SizedBox(width: 8),
               Image.asset(
@@ -405,294 +410,43 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
               child: ThemeBackground(pageId: 'waitingroom'),
             ),
             SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
-                    _buildHeader(),
-                    const SizedBox(height: 12),
-                    _buildPlayersList(),
-                    const SizedBox(height: 12),
-                    Row(
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                        _buildLeftPanel(isDark),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            child: Column(
+                              children: [
+                                _buildGameDetails(isDark),
+                                const SizedBox(height: 12),
+                                _buildPlayersList(isDark),
+                                const SizedBox(height: 12),
+                                _buildBottomSection(isDark),
+                              ],
+                            ),
                           ),
-                          decoration: BoxDecoration(
-                            color:
-                                isDark
-                                    ? Colors.black.withValues(alpha: 0.6)
-                                    : Colors.white.withValues(alpha: 0.75),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Row(
-                            children: [
-                              Text(
-                                'Mon argent: ',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(width: 4),
-                              MoneyWidget(),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const ChallengesWidget(),
-                        const Spacer(),
-                        ValueListenableBuilder(
-                          valueListenable: _service.entryFee,
-                          builder: (context, entryFee, _) {
-                            if (entryFee <= 0) {
-                              return const SizedBox.shrink();
-                            }
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.accentHighlight(context),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: AppColors.accentHighlight(context),
-                                  width: 2,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Text(
-                                    "Frais d'entrée: ",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF7D4F00),
-                                    ),
-                                  ),
-                                  Image.asset(
-                                    'lib/assets/icons/money.png',
-                                    width: 20,
-                                    height: 20,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return const Icon(
-                                        Icons.monetization_on,
-                                        size: 16,
-                                        color: Colors.white,
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '$entryFee',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF7D4F00),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    _buildFooter(),
-                  ],
-                ),
-              ),
-            ),
-            // Audio toggles on right side (only for host)
-            ValueListenableBuilder(
-              valueListenable: _service.isHost,
-              builder: (context, isHost, _) {
-                if (!isHost) {
-                  return const SizedBox.shrink();
-                }
-                return Positioned(
-                  top: 520,
-                  right: 24,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Musique:',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          ValueListenableBuilder<bool>(
-                            valueListenable: audioService.musicEnabledNotifier,
-                            builder: (context, enabled, _) {
-                              return SizedBox(
-                                width: 44,
-                                height: 44,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? AppColors.buttonBackgroundDark
-                                            : AppColors.buttonBackgroundLight,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                  onPressed: () {
-                                    final newValue = !enabled;
-                                    audioService.musicEnabled = newValue;
-                                    _service.updateAudioSettings(
-                                      musicEnabled: newValue,
-                                      sfxEnabled: audioService.sfxEnabled,
-                                    );
-                                    setState(() {});
-                                  },
-                                  child: Icon(
-                                    enabled
-                                        ? Icons.music_note
-                                        : Icons.music_off,
-                                    color:
-                                        Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? AppColors.buttonTextDark
-                                            : AppColors.buttonTextLight,
-                                    size: 24,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(width: 20),
-                          // Music selector dropdown
-                          ValueListenableBuilder<String>(
-                            valueListenable: audioService.equippedMusicNotifier,
-                            builder: (context, selectedMusic, _) {
-                              final user = _authService.notifier.value;
-                              final ownsMinecraft =
-                                  user?.shopItems.any(
-                                    (item) => item.itemId == 'sound_1',
-                                  ) ??
-                                  false;
-
-                              final musicItems = <DropdownMenuItem<String>>[
-                                const DropdownMenuItem(
-                                  value: 'music2.mp3',
-                                  child: Text('Musique par défaut'),
-                                ),
-                              ];
-
-                              if (ownsMinecraft) {
-                                musicItems.add(
-                                  const DropdownMenuItem(
-                                    value: 'minecraft.mp3',
-                                    child: Text('Minecraft'),
-                                  ),
-                                );
-                              }
-
-                              return SizedBox(
-                                width: 200,
-                                child: DropdownButton<String>(
-                                  value: selectedMusic,
-                                  isExpanded: true,
-                                  items: musicItems,
-                                  onChanged: (String? newValue) {
-                                    if (newValue != null) {
-                                      audioService.setEquippedMusic(newValue);
-                                      _service.updateAudioSettings(
-                                        musicEnabled: audioService.musicEnabled,
-                                        sfxEnabled: audioService.sfxEnabled,
-                                        equippedMusic: newValue,
-                                      );
-                                    }
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Effets sonores:',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          ValueListenableBuilder<bool>(
-                            valueListenable: audioService.sfxEnabledNotifier,
-                            builder: (context, enabled, _) {
-                              return SizedBox(
-                                width: 44,
-                                height: 44,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? AppColors.buttonBackgroundDark
-                                            : AppColors.buttonBackgroundLight,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                  onPressed: () {
-                                    final newValue = !enabled;
-                                    audioService.sfxEnabled = newValue;
-                                    _service.updateAudioSettings(
-                                      musicEnabled: audioService.musicEnabled,
-                                      sfxEnabled: newValue,
-                                    );
-                                    setState(() {});
-                                  },
-                                  child: Icon(
-                                    enabled
-                                        ? Icons.volume_up
-                                        : Icons.volume_off,
-                                    color:
-                                        Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? AppColors.buttonTextDark
-                                            : AppColors.buttonTextLight,
-                                    size: 24,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
                   ),
-                );
-              },
+                ],
+              ),
             ),
 
             const Positioned(
-              top: 28,
-              right: 12,
+              top: 16,
+              right: 16,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
-                children: [FriendButton(), ChatWidget()],
+                children: [FriendButton(), SizedBox(width: 8), ChatWidget()],
               ),
             ),
           ],
@@ -701,223 +455,452 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
     );
   }
 
-  Widget _buildHeader() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildLeftPanel(bool isDark) {
+    return Container(
+      width: 245,
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.accentHighlight(context),
+                  width: 3,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.accentHighlight(
+                      context,
+                    ).withValues(alpha: 0.6),
+                    blurRadius: 15,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.grey.shade900,
+                child: ValueListenableBuilder(
+                  valueListenable: _playerService.notifier,
+                  builder: (context, player, _) {
+                    final idx = (player.avatar.index + 1).clamp(1, 17);
+                    return Image.asset(
+                      'lib/assets/previewcharacters/${idx}_preview.png',
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: Text(
+              _playerName,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color:
+                  isDark
+                      ? Colors.black.withValues(alpha: 0.6)
+                      : Colors.white.withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Mon argent:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 4),
+                MoneyWidget(),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          const ChallengesWidget(isCompact: true),
+          const Spacer(),
+          ValueListenableBuilder(
+            valueListenable: _service.isHost,
+            builder: (context, isHost, _) {
+              if (!isHost) return const SizedBox.shrink();
+              return _buildAudioControls(isDark);
+            },
+          ),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                FriendService().updateUserStatus(UserStatus.online);
+                unawaited(AudioService().stopMusic());
+                final gameId = widget.gameId ?? _service.gameId.value;
+                if (gameId.isNotEmpty) {
+                  ChannelService().removeGameChannel(gameId);
+                }
+                _service.leaveGame();
+                GoRouter.of(context).go('/');
+              },
+              style: ElevatedButton.styleFrom(
+                side: BorderSide(
+                  color: AppColors.accentHighlight(context),
+                  width: 3,
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              icon: const Icon(Icons.exit_to_app, size: 18),
+              label: const Text('Quitter', style: TextStyle(fontSize: 14)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildGameDetails(bool isDark) {
     return ValueListenableBuilder(
       valueListenable: _service.gameId,
       builder: (context, gameId, _) {
         return ValueListenableBuilder(
-          valueListenable: _service.isLocked,
-          builder: (context, isLocked, _) {
+          valueListenable: _service.mapName,
+          builder: (context, mapName, _) {
             return ValueListenableBuilder(
-              valueListenable: _service.isHost,
-              builder: (context, isHost, _) {
+              valueListenable: _service.isLocked,
+              builder: (context, isLocked, _) {
                 return ValueListenableBuilder(
-                  valueListenable: _service.players,
-                  builder: (context, players, _) {
+                  valueListenable: _service.isHost,
+                  builder: (context, isHost, _) {
                     return ValueListenableBuilder(
-                      valueListenable: _service.maxPlayers,
-                      builder: (context, maxPlayers, _) {
+                      valueListenable: _service.players,
+                      builder: (context, players, _) {
                         return ValueListenableBuilder(
-                          valueListenable: _service.mapName,
-                          builder: (context, mapName, _) {
-                            return Column(
-                              children: [
-                                Row(
+                          valueListenable: _service.maxPlayers,
+                          builder: (context, maxPlayers, _) {
+                            return ValueListenableBuilder(
+                              valueListenable: _service.entryFee,
+                              builder: (context, entryFee, _) {
+                                return Column(
                                   children: [
-                                    Expanded(
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              isDark
-                                                  ? Colors.black.withValues(
-                                                    alpha: 0.6,
+                                    if (isHost) ...[
+                                      Center(
+                                        child: GestureDetector(
+                                          onTap:
+                                              isHost &&
+                                                      !(isLocked &&
+                                                          players.length ==
+                                                              maxPlayers)
+                                                  ? () => _service.toggleLock(
+                                                    !isLocked,
                                                   )
-                                                  : Colors.white.withValues(
-                                                    alpha: 0.75,
+                                                  : null,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                              vertical: 12,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  isLocked
+                                                      ? Colors.red.shade700
+                                                      : Colors.green.shade700,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color:
+                                                    isLocked
+                                                        ? Colors.red.shade900
+                                                        : Colors.green.shade900,
+                                                width: 3,
+                                              ),
+                                            ),
+                                            child: Column(
+                                              children: [
+                                                Text(
+                                                  isLocked
+                                                      ? 'Fermée'
+                                                      : 'Ouverte',
+                                                  style: const TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
                                                   ),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              'Code:',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            Text(
-                                              gameId,
-                                              style: const TextStyle(
-                                                fontSize: 24,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    GestureDetector(
-                                      onTap:
-                                          isHost &&
-                                                  !(isLocked &&
-                                                      players.length ==
-                                                          maxPlayers)
-                                              ? () =>
-                                                  _service.toggleLock(!isLocked)
-                                              : null,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              isDark
-                                                  ? Colors.black.withValues(
-                                                    alpha: 0.6,
-                                                  )
-                                                  : Colors.white.withValues(
-                                                    alpha: 0.75,
+                                      const SizedBox(height: 7),
+                                      ValueListenableBuilder(
+                                        valueListenable: _service.gameSettings,
+                                        builder: (context, settings, _) {
+                                          if (!settings.isFriendsOnly) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return ValueListenableBuilder(
+                                            valueListenable: _service.isLocked,
+                                            builder: (context, isLocked, _) {
+                                              return SizedBox(
+                                                child: ElevatedButton.icon(
+                                                  onPressed:
+                                                      isLocked
+                                                          ? null
+                                                          : _onInviteAllFriends,
+                                                  icon: const Icon(
+                                                    Icons.group,
+                                                    size: 16,
                                                   ),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
+                                                  label: const Text(
+                                                    'Inviter tous mes amis en ligne',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        Colors.green,
+                                                    foregroundColor:
+                                                        Colors.white,
+                                                    disabledBackgroundColor:
+                                                        Colors.grey,
+                                                    disabledForegroundColor:
+                                                        Colors.white70,
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 12,
+                                                          vertical: 8,
+                                                        ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        },
+                                      ),
+                                    ] else ...[
+                                      // Non-host view: show read-only status
+                                      Column(
+                                        children: [
+                                          Text(
+                                            'La partie est',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.accentHighlight(
+                                                context,
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              'La partie est',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            isLocked ? 'fermée' : 'ouverte',
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 7),
+                                    ],
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          flex: 2,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  isDark
+                                                      ? Colors.black.withValues(
+                                                        alpha: 0.6,
+                                                      )
+                                                      : Colors.white.withValues(
+                                                        alpha: 0.75,
+                                                      ),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
                                                 color:
                                                     AppColors.accentHighlight(
                                                       context,
                                                     ),
+                                                width: 2,
                                               ),
                                             ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              isLocked ? 'fermée' : 'ouverte',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                decoration:
-                                                    isHost
-                                                        ? TextDecoration
-                                                            .underline
-                                                        : null,
-                                                color:
-                                                    isHost
-                                                        ? AppColors.accentHighlight(
-                                                          context,
-                                                        )
-                                                        : (isDark
-                                                            ? Colors.white
-                                                            : Colors.black),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              isDark
-                                                  ? Colors.black.withValues(
-                                                    alpha: 0.6,
-                                                  )
-                                                  : Colors.white.withValues(
-                                                    alpha: 0.75,
+                                            child: Column(
+                                              children: [
+                                                const Text(
+                                                  'Code',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 11,
                                                   ),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  gameId,
+                                                  style: const TextStyle(
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.end,
-                                          children: [
-                                            const Text(
-                                              'Carte:',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            Text(
-                                              mapName,
-                                              style: const TextStyle(
-                                                fontSize: 18,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 125),
-                                  ],
-                                ),
-                                if (isHost) ...[
-                                  ValueListenableBuilder(
-                                    valueListenable: _service.gameSettings,
-                                    builder: (context, settings, _) {
-                                      if (!settings.isFriendsOnly) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      return ValueListenableBuilder(
-                                        valueListenable: _service.isLocked,
-                                        builder: (context, isLocked, _) {
-                                          return Padding(
-                                            padding: const EdgeInsets.only(
-                                              top: 12,
-                                            ),
-                                            child: ElevatedButton.icon(
-                                              onPressed:
-                                                  isLocked
-                                                      ? null
-                                                      : _onInviteAllFriends,
-                                              icon: const Icon(
-                                                Icons.group,
-                                                size: 18,
-                                              ),
-                                              label: const Text(
-                                                'Inviter tous mes amis en ligne',
-                                                style: TextStyle(fontSize: 14),
-                                              ),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.green,
-                                                foregroundColor: Colors.white,
-                                                disabledBackgroundColor:
-                                                    Colors.grey,
-                                                disabledForegroundColor:
-                                                    Colors.white70,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 16,
-                                                      vertical: 10,
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  isDark
+                                                      ? Colors.black.withValues(
+                                                        alpha: 0.6,
+                                                      )
+                                                      : Colors.white.withValues(
+                                                        alpha: 0.75,
+                                                      ),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color:
+                                                    AppColors.accentHighlight(
+                                                      context,
                                                     ),
+                                                width: 2,
                                               ),
                                             ),
-                                          );
-                                        },
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ],
+                                            child: Column(
+                                              children: [
+                                                const Text(
+                                                  'Carte',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 11,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  mapName,
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        if (entryFee > 0) ...[
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            flex: 2,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                gradient: const LinearGradient(
+                                                  colors: [
+                                                    Color(0xFFFFD700),
+                                                    Color(0xFFFFED4E),
+                                                  ],
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: const Color(
+                                                    0xFFFFC107,
+                                                  ),
+                                                  width: 2,
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: const Color(
+                                                      0xFFFFD700,
+                                                    ).withValues(alpha: 0.5),
+                                                    blurRadius: 10,
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Column(
+                                                children: [
+                                                  const Text(
+                                                    "Frais d'entrée",
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Color(0xFF7D4F00),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Image.asset(
+                                                        'lib/assets/icons/money.png',
+                                                        width: 16,
+                                                        height: 16,
+                                                        errorBuilder: (
+                                                          context,
+                                                          error,
+                                                          stackTrace,
+                                                        ) {
+                                                          return const Icon(
+                                                            Icons
+                                                                .monetization_on,
+                                                            size: 16,
+                                                            color: Color(
+                                                              0xFF7D4F00,
+                                                            ),
+                                                          );
+                                                        },
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        '$entryFee',
+                                                        style: const TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: Color(
+                                                            0xFF7D4F00,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                );
+                              },
                             );
                           },
                         );
@@ -933,9 +916,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
     );
   }
 
-  Widget _buildPlayersList() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+  Widget _buildPlayersList(bool isDark) {
     return Expanded(
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -1014,141 +995,70 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
     );
   }
 
-  Widget _buildFooter() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return ValueListenableBuilder(
-      valueListenable: _service.isHost,
-      builder: (context, isHost, _) {
-        return ValueListenableBuilder(
-          valueListenable: _service.players,
-          builder: (context, players, _) {
+  Widget _buildBottomSection(bool isDark) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Spacer(),
+        ValueListenableBuilder(
+          valueListenable: _service.isHost,
+          builder: (context, isHost, _) {
             return ValueListenableBuilder(
-              valueListenable: _service.isLocked,
-              builder: (context, isLocked, _) {
+              valueListenable: _service.players,
+              builder: (context, players, _) {
                 return ValueListenableBuilder(
-                  valueListenable: _service.maxPlayers,
-                  builder: (context, maxPlayers, _) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            FriendService().updateUserStatus(UserStatus.online);
-                            unawaited(AudioService().stopMusic());
-                            final gameId =
-                                widget.gameId ?? _service.gameId.value;
-                            if (gameId.isNotEmpty) {
-                              ChannelService().removeGameChannel(gameId);
-                            }
-                            _service.leaveGame();
-                            
-                            GoRouter.of(context).go('/');
-                          },
+                  valueListenable: _service.isLocked,
+                  builder: (context, isLocked, _) {
+                    if (isHost) {
+                      if (players.length > 1 && isLocked) {
+                        return ElevatedButton(
+                          onPressed: _service.initializeGame,
                           style: ElevatedButton.styleFrom(
-                            side: BorderSide(
-                              color: AppColors.accentHighlight(context),
-                              width: 3,
-                            ),
-                          ),
-                          label: const Text('Quitter la partie'),
-                        ),
-                        if (isHost) ...[
-                          if (players.length > 1 && isLocked)
-                            ElevatedButton(
-                              onPressed: _service.initializeGame,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.accentHighlight(
-                                  context,
-                                ),
-                                foregroundColor: Colors.white,
-                              ),
-                              child: const Text('Commencer la partie'),
-                            )
-                          else if (players.length > 1)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color:
-                                    isDark
-                                        ? Colors.black.withValues(alpha: 0.6)
-                                        : Colors.white.withValues(alpha: 0.75),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'Vérouillez la salle pour commencer',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.accentHighlight(context),
-                                ),
-                              ),
-                            )
-                          else ...[
-                            RotationTransition(
-                              turns: _gearController,
-                              child: const Image(
-                                image: AssetImage('lib/assets/icons/gear.png'),
-                                width: 80,
-                                height: 80,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color:
-                                    isDark
-                                        ? Colors.black.withValues(alpha: 0.6)
-                                        : Colors.white.withValues(alpha: 0.75),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                "En attente d'autres joueurs...",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.accentHighlight(context),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ] else ...[
-                          RotationTransition(
-                            turns: _gearController,
-                            child: const Image(
-                              image: AssetImage('lib/assets/icons/gear.png'),
-                              width: 80,
-                              height: 80,
-                            ),
-                          ),
-                          Container(
+                            backgroundColor: AppColors.accentHighlight(context),
+                            foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color:
-                                  isDark
-                                      ? Colors.black.withValues(alpha: 0.6)
-                                      : Colors.white.withValues(alpha: 0.75),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              "En attente d'autres joueurs...",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.accentHighlight(context),
-                              ),
+                              horizontal: 24,
+                              vertical: 12,
                             ),
                           ),
-                        ],
+                          child: const Text('Commencer la partie'),
+                        );
+                      } else if (players.length > 1) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                isDark
+                                    ? Colors.black.withValues(alpha: 0.6)
+                                    : Colors.white.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Vérouillez la salle',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.accentHighlight(context),
+                            ),
+                          ),
+                        );
+                      }
+                    }
+
+                    return Row(
+                      children: [
+                        RotationTransition(
+                          turns: _gearController,
+                          child: const Image(
+                            image: AssetImage('lib/assets/icons/gear.png'),
+                            width: 50,
+                            height: 50,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -1162,10 +1072,11 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            '${players.length}/$maxPlayers joueurs',
-                            style: const TextStyle(
-                              fontSize: 16,
+                            'En attente...',
+                            style: TextStyle(
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
+                              color: AppColors.accentHighlight(context),
                             ),
                           ),
                         ),
@@ -1176,8 +1087,220 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
               },
             );
           },
-        );
-      },
+        ),
+        const Spacer(),
+        ValueListenableBuilder(
+          valueListenable: _service.players,
+          builder: (context, players, _) {
+            return ValueListenableBuilder(
+              valueListenable: _service.maxPlayers,
+              builder: (context, maxPlayers, _) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color:
+                        isDark
+                            ? Colors.black.withValues(alpha: 0.6)
+                            : Colors.white.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${players.length}/$maxPlayers',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAudioControls(bool isDark) {
+    final audioService = AudioService();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Musique:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 8),
+            ValueListenableBuilder<bool>(
+              valueListenable: audioService.musicEnabledNotifier,
+              builder: (context, enabled, _) {
+                return SizedBox(
+                  width: 35,
+                  height: 35,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.buttonBackgroundDark
+                              : AppColors.buttonBackgroundLight,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      padding: EdgeInsets.zero,
+                    ),
+                    onPressed: () {
+                      final newValue = !enabled;
+                      audioService.musicEnabled = newValue;
+                      _service.updateAudioSettings(
+                        musicEnabled: newValue,
+                        sfxEnabled: audioService.sfxEnabled,
+                      );
+                      setState(() {});
+                    },
+                    child: Icon(
+                      enabled ? Icons.music_note : Icons.music_off,
+                      color:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.buttonTextDark
+                              : AppColors.buttonTextLight,
+                      size: 18,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        ValueListenableBuilder<String>(
+          valueListenable: audioService.equippedMusicNotifier,
+          builder: (context, selectedMusic, _) {
+            final user = _authService.notifier.value;
+            final ownsMinecraft =
+                user?.shopItems.any((item) => item.itemId == 'sound_1') ??
+                false;
+
+            final musicItems = <DropdownMenuItem<String>>[
+              const DropdownMenuItem(
+                value: 'music2.mp3',
+                child: Text(
+                  'Défaut',
+                  style: TextStyle(fontSize: 10, color: Colors.white),
+                ),
+              ),
+            ];
+
+            if (ownsMinecraft) {
+              musicItems.add(
+                const DropdownMenuItem(
+                  value: 'minecraft.mp3',
+                  child: Text(
+                    'Minecraft',
+                    style: TextStyle(fontSize: 10, color: Colors.white),
+                  ),
+                ),
+              );
+            }
+
+            return SizedBox(
+              width: double.infinity,
+              child: DropdownButton<String>(
+                value: selectedMusic,
+                isExpanded: true,
+                items: musicItems,
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    audioService.setEquippedMusic(newValue);
+                    _service.updateAudioSettings(
+                      musicEnabled: audioService.musicEnabled,
+                      sfxEnabled: audioService.sfxEnabled,
+                      equippedMusic: newValue,
+                    );
+                  }
+                },
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 5),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Effets',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  'sonores:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 8),
+            ValueListenableBuilder<bool>(
+              valueListenable: audioService.sfxEnabledNotifier,
+              builder: (context, enabled, _) {
+                return SizedBox(
+                  width: 35,
+                  height: 35,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.buttonBackgroundDark
+                              : AppColors.buttonBackgroundLight,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      padding: EdgeInsets.zero,
+                    ),
+                    onPressed: () {
+                      final newValue = !enabled;
+                      audioService.sfxEnabled = newValue;
+                      _service.updateAudioSettings(
+                        musicEnabled: audioService.musicEnabled,
+                        sfxEnabled: newValue,
+                      );
+                      setState(() {});
+                    },
+                    child: Icon(
+                      enabled ? Icons.volume_up : Icons.volume_off,
+                      color:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.buttonTextDark
+                              : AppColors.buttonTextLight,
+                      size: 18,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+      ],
     );
   }
 
