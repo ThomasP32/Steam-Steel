@@ -1,5 +1,7 @@
-<div class="profile-modal-container">
-    <p class="modal-title">Choisir le profile du joueur virtuel:</p>
+<div class="popup-overlay">
+    <div class="profile-modal-container">
+
+    <p class="modal-title">Choisir le profil du joueur virtuel:</p>
 
     <div class="profile-options">
         <button class="profile-button profile-button--aggressive" (click)="setProfile('aggressive')">Agressif</button>
@@ -9,5 +11,6 @@
     <div class="action-buttons">
         <button class="close-button" (click)="closeModal()">Annuler</button>
         <button class="create-player-button" [disabled]="!selectedProfile" (click)="onSubmit()">Confirmer</button>
+    </div>
     </div>
 </div>
