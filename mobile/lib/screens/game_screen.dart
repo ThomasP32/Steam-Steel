@@ -1128,7 +1128,7 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 80),
+                  const SizedBox(height: 8),
                   ValueListenableBuilder<GameClassic?>(
                     valueListenable: _gameService.notifier,
                     builder: (context, game, _) {
@@ -1146,11 +1146,7 @@ class _GameScreenState extends State<GameScreen> {
                                   : Colors.white.withValues(alpha: 0.75),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: _buildPlayerList(game),
-                        ),
+                        child: _buildPlayerListContainer(game),
                       );
                     },
                   ),
@@ -2050,6 +2046,18 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPlayerListContainer(GameClassic? game) {
+    return SizedBox(
+      height: 380,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: _buildPlayerList(game),
+        ),
       ),
     );
   }
