@@ -143,7 +143,9 @@ export class ShopComponent implements OnInit, OnDestroy {
     canAfford(item: ShopItem): boolean {
         const hasEnoughMoney = this.currentMoney >= item.price && !item.owned;
         const hasRequiredLevel = !item.levelRequired || item.canPurchase !== false;
-        return hasEnoughMoney && hasRequiredLevel;
+        const hasRequiredChallenges = !item.ChallengeRequired || item.canPurchase !== false;
+        
+        return hasEnoughMoney && hasRequiredLevel && hasRequiredChallenges;
     }
 
     async buyItem(item: ShopItem): Promise<void> {
