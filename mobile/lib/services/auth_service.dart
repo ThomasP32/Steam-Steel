@@ -327,6 +327,14 @@ class AuthService {
     );
 
     if (r.statusCode == 200) {
+      final responseBody = jsonDecode(r.body);
+      if (responseBody is Map) {
+        if (responseBody['success'] == false) {
+          final message = responseBody['message']?.toString() ?? 'Update failed';
+          throw Exception(message);
+        }
+      }
+      
       await fetchUser();
       return;
     }
