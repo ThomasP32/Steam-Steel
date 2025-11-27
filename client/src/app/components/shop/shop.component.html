@@ -108,12 +108,27 @@
                                         [disabled]="!canAfford(item) || (item.levelRequired && item.canPurchase === false)"
                                         (click)="buyItem(item)"
                                     >
-                                        <span *ngIf="item.levelRequired && item.canPurchase === false">
-                                            <i class="fas fa-lock"></i> Niveau {{ item.levelRequired }} requis
-                                        </span>
-                                        <span *ngIf="(!item.levelRequired || item.canPurchase !== false) && canAfford(item)">Acheter</span>
-                                        <span *ngIf="(!item.levelRequired || item.canPurchase !== false) && !canAfford(item)"
-                                            >Fonds insuffisants</span
+                                        <ng-container *ngIf="item.levelRequired && item.canPurchase === false; else checkChallenge">
+                                            <span>
+                                                <i class="fas fa-lock"></i> Niveau {{ item.levelRequired }} requis
+                                            </span>
+                                        </ng-container>
+
+                                        <ng-template #checkChallenge>
+                                            <ng-container *ngIf="item.ChallengeRequired && item.canPurchase === false; else checkFunds">
+                                                <span>
+                                                    <i class="fas fa-lock"></i> {{ item.ChallengeRequired }} Défis requis
+                                                </span>
+                                            </ng-container>
+                                        </ng-template>
+
+                                        <ng-template #checkFunds>
+                                            <span *ngIf="!canAfford(item)">Fonds insuffisants</span>
+                                        </ng-template>
+
+                                        <span
+                                            *ngIf="!(item.levelRequired && item.canPurchase === false) && !(item.ChallengeRequired && item.canPurchase === false) && canAfford(item)"
+                                            >Acheter</span
                                         >
                                     </button>
 

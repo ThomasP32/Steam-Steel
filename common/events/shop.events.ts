@@ -16,4 +16,6 @@ export interface ShopItem {
     levelRequired?: number;
     canPurchase?: boolean;
     userLevel?: number;
+    ChallengeRequired?: number;
+    userChallengesCompleted?: number;
 }

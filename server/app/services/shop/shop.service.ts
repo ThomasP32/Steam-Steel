@@ -82,7 +82,6 @@ export class ShopService {
             category: 'banner',
             imagePath: 'assets/banner/3.png',
             description: "Une bannière futuriste qui symbolise l'avenir",
-            levelRequired: 5,
         },
         {
             id: 'banner_4',
@@ -91,7 +90,6 @@ export class ShopService {
             category: 'banner',
             imagePath: 'assets/banner/4.png',
             description: 'Une bannière qui symbolise les ténèbres',
-            levelRequired: 10,
         },
         {
             id: 'banner_5',
@@ -100,7 +98,6 @@ export class ShopService {
             category: 'banner',
             imagePath: 'assets/banner/5.png',
             description: 'Une bannière qui évoque la glace et la résilience',
-            levelRequired: 15,
         },
         {
             id: 'banner_6',
@@ -109,7 +106,7 @@ export class ShopService {
             category: 'banner',
             imagePath: 'assets/banner/6.png',
             description: 'Une bannière qui incarne la puissance du tonnerre',
-            levelRequired: 20,
+            ChallengeRequired: 5,
         },
         {
             id: 'banner_7',
@@ -118,7 +115,34 @@ export class ShopService {
             category: 'banner',
             imagePath: 'assets/banner/7.png',
             description: 'Une bannière suprême qui domine toutes les autres',
-            levelRequired: 25,
+            ChallengeRequired: 10,
+        },
+        {
+            id: 'banner_8',
+            name: 'Bannière Halloween',
+            price: 800,
+            category: 'banner',
+            imagePath: 'assets/banner/8.png',
+            description: 'Une bannière Halloween effrayante et mystérieuse',
+            ChallengeRequired: 15,
+        },
+        {
+            id: 'banner_9',
+            name: 'Bannière Noel',
+            price: 900,
+            category: 'banner',
+            imagePath: 'assets/banner/9.png',
+            description: 'Une bannière de Noël festive et joyeuse',
+            ChallengeRequired: 20,
+        },
+        {
+            id: 'banner_10',
+            name: 'Bannière Mulicolore',
+            price: 1000,
+            category: 'banner',
+            imagePath: 'assets/banner/10.png',
+            description: 'Une bannière multicolore qui brille de mille feux',
+            ChallengeRequired: 25,
         },
 
         // Sons (pour le futur)
@@ -130,7 +154,7 @@ export class ShopService {
             imagePath: 'assets/icons/minecraft.png',
             description: 'Musique emblématique de Minecraft',
         },
-
+        //Profiles
         {
             id: 'profile_4',
             name: 'Daphné',
@@ -351,6 +375,10 @@ export class ShopService {
             return { success: false, error: `Niveau ${item.levelRequired} requis` };
         }
 
+        if (item.ChallengeRequired && user.stats.challengesCompleted < item.ChallengeRequired) {
+            return { success: false, error: `Défis ${item.ChallengeRequired} requis` };
+        }
+
         if (user.virtualMoney < item.price) {
             return { success: false, error: 'Fonds insuffisants' };
         }
@@ -517,16 +545,17 @@ export class ShopService {
 
         const userItems = user.shopItems || [];
         const userLevel = user.stats?.level || 1;
-
+        const userChallengesCompleted = user.stats?.challengesCompleted || 0;
         return this.shopCatalog.map((item) => {
             const userItem = userItems.find((ui) => ui.itemId === item.id);
-            const canPurchase = !item.levelRequired || userLevel >= item.levelRequired;
+            const canPurchase = (!item.levelRequired || userLevel >= item.levelRequired) && (!item.ChallengeRequired || userChallengesCompleted >= item.ChallengeRequired);
             return {
                 ...item,
                 owned: !!userItem,
                 equipped: userItem?.equipped || false,
                 canPurchase,
                 userLevel,
+                userChallengesCompleted
             };
         });
     }
