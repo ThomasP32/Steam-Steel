@@ -94,7 +94,7 @@ export class EndgamePageComponent implements OnInit, OnDestroy {
     }
 
     get players(): Player[] {
-        return this.gameService.game?.players || [];
+        return this.gameService.game?.players.filter(player => player.wasActivePlayer) || [];
     }
 
     isGameCtf(game: Game): game is GameCtf {
