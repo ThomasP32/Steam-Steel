@@ -28,6 +28,7 @@ export class AccountComponent implements OnInit {
     ownsMinecraftMusic = false;
 
     @Output() closed = new EventEmitter<void>();
+    @Output() deleteRequest = new EventEmitter<void>();
 
     constructor(
         private readonly appComponent: AppComponent,
@@ -166,10 +167,7 @@ export class AccountComponent implements OnInit {
     }
 
     deleteAccount(): void {
-        this.authService.deleteAccount().then(() => {
-            this.authService.logout();
-            this.closed.emit();
-        });
+        this.deleteRequest.emit();
     }
 
     toggleMusic(): void {
