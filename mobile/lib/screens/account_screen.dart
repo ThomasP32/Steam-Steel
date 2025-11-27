@@ -34,6 +34,8 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _showLoginPassword = false;
   bool _showRegisterPassword = false;
   late VoidCallback _authListener;
+  String? _loginErrorMessage;
+  String? _registerErrorMessage;
 
   @override
   void initState() {
@@ -68,7 +70,10 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _register() async {
-    if (mounted) setState(() => _loading = true);
+    if (mounted) setState(() {
+      _loading = true;
+      _registerErrorMessage = null;
+    });
     try {
       await _authService.register(
         _emailCtrl.text,
@@ -88,14 +93,13 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } on Exception catch (e) {
       final raw = e.toString();
-      final msg =
-          raw.startsWith('Exception: ')
-              ? raw.substring('Exception: '.length)
-              : raw;
+      final msg = raw.startsWith('Exception: ') 
+          ? raw.substring('Exception: '.length) 
+          : raw;
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
+        setState(() {
+          _registerErrorMessage = msg;
+        });
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -103,31 +107,33 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _login() async {
-    if (mounted) setState(() => _loading = true);
+    if (mounted) setState(() {
+      _loading = true;
+      _loginErrorMessage = null;
+    });
     try {
       await _authService.login(_usernameCtrl.text, _passCtrl.text);
       if (mounted) {
         context.go('/');
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Connexion réussie')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Connexion réussie')),
+            );
           }
         });
       }
     } on Exception catch (e) {
       final raw = e.toString();
-      final msg =
-          raw.startsWith('Exception: ')
-              ? raw.substring('Exception: '.length)
-              : raw;
+      final msg = raw.startsWith('Exception: ') 
+          ? raw.substring('Exception: '.length) 
+          : raw;
       DebugLogger.log('Login error: $msg', tag: 'AuthScreen');
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
+        setState(() {
+          _loginErrorMessage = msg;
+        });
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -178,10 +184,14 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       await _authService.deleteAccount();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Compte supprimé')));
-        context.go('/');
+        final router = GoRouter.of(context);
+        final messenger = ScaffoldMessenger.of(context);
+        
+        router.go('/');
+        
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Compte supprimé')),
+        );
       }
     } on Exception catch (e) {
       final raw = e.toString();
@@ -220,112 +230,158 @@ class _AuthScreenState extends State<AuthScreen> {
           unlockedProfilePictures.add(profileNum);
         }
       }
-    }
+    }         
+     
+    String? errorMessage;
+    bool isLoading = false;
 
-    final result = await showDialog<Map<String, dynamic>?>(
+    await showDialog<void>(
       context: context,
-      builder:
-          (ctx) => StatefulBuilder(
-            builder:
-                (ctx, setModalState) => AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+
+
+          Future<void> handleSave() async {
+            setModalState(() {
+              errorMessage = null;
+              isLoading = true;
+            });
+
+            try {
+              await _authService.updateAccount(
+                username: usernameEditCtrl.text.trim(),
+                email: emailEditCtrl.text.trim(),
+                profilePicture: selectedProfilePicture,
+                profilePictureCustom: customPreview,
+              );
+
+              if (mounted) {
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Compte mis à jour'),
+                    backgroundColor: Colors.green,
                   ),
-                  title: const Text(
-                    'Modifier mon compte\n',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                  content: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextField(
-                          controller: usernameEditCtrl,
-                          maxLength: 10,
-                          decoration: const InputDecoration(
-                            labelText: 'Pseudonyme',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: emailEditCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Photo de profil :',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        ProfilePicturePicker(
-                          selected: selectedProfilePicture,
-                          customPreview: customPreview,
-                          showOnlyFree: false,
-                          onProfilePictureChanged: (pp) {
-                            setModalState(() {
-                              selectedProfilePicture = pp;
-                              customPreview = null;
-                            });
-                          },
-                          onCustomPreviewChanged:
-                              (p) => setModalState(() => customPreview = p),
-                        ),
-                      ],
+                );
+                setState(() {});
+              }
+            } on Exception catch (e) {
+              final errorMsg = e.toString().replaceFirst('Exception: ', '');
+              final lowerErrorMsg = errorMsg.toLowerCase();
+
+              if ((lowerErrorMsg.contains('pseudo') ||
+                      lowerErrorMsg.contains('username')) &&
+                  lowerErrorMsg.contains('utilisé')) {
+                setModalState(() {
+                  errorMessage = 'Ce pseudonyme est déjà utilisé';
+                  isLoading = false;
+                });
+              } else if (lowerErrorMsg.contains('email') &&
+                  lowerErrorMsg.contains('utilisé')) {
+                setModalState(() {
+                  errorMessage = 'Cet email est déjà utilisé';
+                  isLoading = false;
+                });
+              } else {
+                setModalState(() {
+                  errorMessage = errorMsg;
+                  isLoading = false;
+                });
+              }
+
+            }
+            DebugLogger.log('ERROR $errorMessage', tag: 'AccountScreen');
+          }
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            title: const Text(
+              'MODIFIER MON COMPTE\n',
+              style: TextStyle(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: usernameEditCtrl,
+                    maxLength: 10,
+                    decoration: const InputDecoration(
+                      labelText: 'Pseudonyme',
+                      border: OutlineInputBorder(),
                     ),
                   ),
-                  actionsAlignment: MainAxisAlignment.center,
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text('Annuler'),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: emailEditCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(),
                     ),
-                    ElevatedButton(
-                      onPressed:
-                          () => Navigator.of(ctx).pop({
-                            'username': usernameEditCtrl.text.trim(),
-                            'email': emailEditCtrl.text.trim(),
-                            'profilePicture': selectedProfilePicture,
-                            'profilePictureCustom': customPreview,
-                          }),
-                      child: const Text('Sauvegarder'),
+                  ),
+               
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      errorMessage!,
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
-                ),
-          ),
+                  const SizedBox(height: 16),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Photo de profil :',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ProfilePicturePicker(
+                    selected: selectedProfilePicture,
+                    customPreview: customPreview,
+                    showOnlyFree: false,
+                    onProfilePictureChanged: (pp) {
+                      setModalState(() {
+                        selectedProfilePicture = pp;
+                        customPreview = null;
+                      });
+                    },
+                    onCustomPreviewChanged: (p) => setModalState(() => customPreview = p),
+                  ),
+                ],
+              ),
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.of(ctx).pop(),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: isLoading ? null : handleSave,
+                child: isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Sauvegarder'),
+              ),
+            ],
+          );
+        },
+      ),
     );
-
-    if (result == null || !mounted) return;
-
-    setState(() => _loading = true);
-    try {
-      await _authService.updateAccount(
-        username: result['username'] as String,
-        email: result['email'] as String,
-        profilePicture: result['profilePicture'] as ProfilePicture,
-        profilePictureCustom: result['profilePictureCustom'] as String?,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Compte mis à jour')));
-      }
-    } on Exception catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
   }
 
   @override
@@ -423,8 +479,8 @@ class _AuthScreenState extends State<AuthScreen> {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Text(
-                  'Mon compte',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  'MON COMPTE',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ),
 
@@ -455,7 +511,9 @@ class _AuthScreenState extends State<AuthScreen> {
                                     : Colors.white.withValues(alpha: 0.75),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text('Pseudonyme:'),
+                          child: const Text('Pseudonyme:', 
+                            style: TextStyle(fontSize: 14),
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Container(
@@ -476,7 +534,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               Text(
                                 user.username,
                                 style: const TextStyle(
-                                  fontSize: 25,
+                                  fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                 ),
                                 overflow: TextOverflow.ellipsis,
@@ -508,7 +566,9 @@ class _AuthScreenState extends State<AuthScreen> {
                                 : Colors.white.withValues(alpha: 0.75),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text('Statut:'),
+                      child: const Text('Statut:', 
+                        style: TextStyle(fontSize: 14),
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Container(
@@ -526,7 +586,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: Text(
                         _getStatusText(user.status),
                         style: TextStyle(
-                          fontSize: 25,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: _getStatusColor(user.status),
                         ),
@@ -550,59 +610,11 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           child: const Text('Thème:'),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 12),
                         const ThemeToggleButton(),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                isDark
-                                    ? Colors.black45
-                                    : Colors.white.withValues(alpha: 0.75),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text('Musique:'),
-                        ),
-                        const SizedBox(width: 8),
-                        ValueListenableBuilder<bool>(
-                          valueListenable: audioService.musicEnabledNotifier,
-                          builder: (context, enabled, _) {
-                            return SizedBox(
-                              width: 44,
-                              height: 44,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  padding: EdgeInsets.zero,
-                                ),
-                                onPressed:
-                                    () => setState(
-                                      () =>
-                                          audioService.musicEnabled = !enabled,
-                                    ),
-                                child: Icon(
-                                  enabled ? Icons.music_note : Icons.music_off,
-                                  size: 24,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 24),
-                      ],
-                    ),
-                    // Music selector
-                    const SizedBox(height: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -618,52 +630,99 @@ class _AuthScreenState extends State<AuthScreen> {
                                     : Colors.white.withValues(alpha: 0.75),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text('Musique sélectionnée:'),
+                          child: const Text('Musique:'),
                         ),
-                        const SizedBox(height: 4),
-                        ValueListenableBuilder<String>(
-                          valueListenable: audioService.equippedMusicNotifier,
-                          builder: (context, selectedMusic, _) {
-                            // Check if user owns Minecraft music
-                            DebugLogger.log(
-                              'Shop items: ${user.shopItems.map((e) => e.itemId).toList()}',
-                              tag: 'AccountScreen',
-                            );
-                            final ownsMinecraft = user.shopItems.any(
-                              (item) => item.itemId == 'sound_1',
-                            );
-                            DebugLogger.log(
-                              'Owns Minecraft: $ownsMinecraft',
-                              tag: 'AccountScreen',
-                            );
-
-                            final musicItems = <DropdownMenuItem<String>>[
-                              const DropdownMenuItem(
-                                value: 'music2.mp3',
-                                child: Text('Musique par défaut'),
-                              ),
-                            ];
-
-                            if (ownsMinecraft) {
-                              musicItems.add(
-                                const DropdownMenuItem(
-                                  value: 'minecraft.mp3',
-                                  child: Text('Minecraft'),
-                                ),
-                              );
-                            }
-
-                            return DropdownButton<String>(
-                              value: selectedMusic,
-                              isExpanded: true,
-                              items: musicItems,
-                              onChanged: (String? newValue) {
-                                if (newValue != null) {
-                                  audioService.setEquippedMusic(newValue);
-                                }
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            ValueListenableBuilder<bool>(
+                              valueListenable: audioService.musicEnabledNotifier,
+                              builder: (context, enabled, _) {
+                                return SizedBox(
+                                  width: 44,
+                                  height: 44,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                    onPressed:
+                                        () => setState(
+                                          () =>
+                                              audioService.musicEnabled = !enabled,
+                                        ),
+                                    child: Icon(
+                                      enabled ? Icons.music_note : Icons.music_off,
+                                      size: 24,
+                                    ),
+                                  ),
+                                );
                               },
-                            );
-                          },
+                            ),
+                 const SizedBox(width: 16),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 2),
+                                child: ValueListenableBuilder<String>(
+                                valueListenable: audioService.equippedMusicNotifier,
+                                builder: (context, selectedMusic, _) {
+                                  final ownsMinecraft = user.shopItems.any(
+                                    (item) => item.itemId == 'sound_1',
+                                  );
+
+                                  final musicItems = <DropdownMenuItem<String>>[
+                                    const DropdownMenuItem(
+                                      value: 'music2.mp3',
+                                      child: Text('Musique par défaut', style: TextStyle(fontSize: 12),),
+                                    ),
+                                  ];
+
+                                  if (ownsMinecraft) {
+                                    musicItems.add(
+                                      const DropdownMenuItem(
+                                        value: 'minecraft.mp3',
+                                        child: Text('Minecraft', style: TextStyle(fontSize: 12),),
+                                      ),
+                                    );
+                                  }
+
+                                  return Container(
+                                    height: 44,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF2c3e50)
+                                          : const Color(0xFFC0C0C0),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: DropdownButton<String>(
+                                      value: selectedMusic,
+                                      isExpanded: true,
+                                      underline: const SizedBox.shrink(),
+                                      dropdownColor: Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF2c3e50)
+                                          : const Color(0xFFC0C0C0),
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        fontSize: 12,
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.white
+                                            : Colors.black87,
+                                      ),
+                                      items: musicItems,
+                                      onChanged: (String? newValue) {
+                                        if (newValue != null) {
+                                          audioService.setEquippedMusic(newValue);
+                                        }
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -672,7 +731,7 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -685,7 +744,9 @@ class _AuthScreenState extends State<AuthScreen> {
                           : Colors.white.withValues(alpha: 0.75),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text('Email:'),
+                child: const Text('Email:', 
+                  style: TextStyle(fontSize: 14),
+                ),
               ),
               const SizedBox(height: 4),
               Container(
@@ -700,7 +761,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 child: Text(
                   user.email,
                   style: const TextStyle(
-                    fontSize: 25,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -742,8 +803,8 @@ class _AuthScreenState extends State<AuthScreen> {
               borderRadius: BorderRadius.circular(4),
             ),
             child: const Text(
-              'Statistiques',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              'STATISTIQUES',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 16),
@@ -929,6 +990,17 @@ class _AuthScreenState extends State<AuthScreen> {
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _loading ? null : _login(),
             ),
+            if (_loginErrorMessage != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _loginErrorMessage!,
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontSize: 12,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _loading ? null : _login,
@@ -938,20 +1010,19 @@ class _AuthScreenState extends State<AuthScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child:
-                  _loading
-                      ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                      : const Text(
-                        'Se connecter',
-                        style: TextStyle(fontSize: 16),
+              child: _loading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
                       ),
+                    )
+                  : const Text(
+                      'Se connecter',
+                      style: TextStyle(fontSize: 16),
+                    ),
             ),
             const SizedBox(height: 12),
             TextButton(
@@ -1022,11 +1093,9 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 prefixIcon: const Icon(Icons.lock),
                 suffixIcon: GestureDetector(
-                  onTapDown:
-                      (_) => setState(() => _showRegisterPassword = true),
+                  onTapDown: (_) => setState(() => _showRegisterPassword = true),
                   onTapUp: (_) => setState(() => _showRegisterPassword = false),
-                  onTapCancel:
-                      () => setState(() => _showRegisterPassword = false),
+                  onTapCancel: () => setState(() => _showRegisterPassword = false),
                   child: const Padding(
                     padding: EdgeInsets.all(12),
                     child: Text('👁', style: TextStyle(fontSize: 20)),
@@ -1073,11 +1142,20 @@ class _AuthScreenState extends State<AuthScreen> {
               selected: _selectedProfilePicture,
               customPreview: _customProfilePicturePreview,
               showOnlyFree: true,
-              onProfilePictureChanged:
-                  (pp) => setState(() => _selectedProfilePicture = pp),
-              onCustomPreviewChanged:
-                  (p) => setState(() => _customProfilePicturePreview = p),
+              onProfilePictureChanged: (pp) => setState(() => _selectedProfilePicture = pp),
+              onCustomPreviewChanged: (p) => setState(() => _customProfilePicturePreview = p),
             ),
+            if (_registerErrorMessage != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                _registerErrorMessage!,
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontSize: 12,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loading ? null : _register,
@@ -1137,19 +1215,6 @@ class _AuthScreenState extends State<AuthScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [Text('Jouées: $played'), Text('Gagnées: $won')],
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text('Taux de victoire'),
-                    Text(
-                      '$winRate%',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
           ],
@@ -1161,13 +1226,13 @@ class _AuthScreenState extends State<AuthScreen> {
   String _getStatusText(String status) {
     switch (status.toLowerCase()) {
       case 'online':
-        return 'En ligne';
+        return 'EN LIGNE';
       case 'offline':
-        return 'Hors ligne';
+        return 'HORS LIGNE';
       case 'ingame':
-        return 'En jeu';
+        return 'EN JEU';
       default:
-        return 'Inconnu';
+        return 'INCONNU';
     }
   }
 
