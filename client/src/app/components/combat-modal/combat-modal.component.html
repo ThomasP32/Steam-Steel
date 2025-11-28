@@ -40,7 +40,9 @@
         }
 
         <button class="action-button" [disabled]="isItYourTurn()" (click)="attack()">Attaquer</button>
-        <button class="action-button" [disabled]="isItYourTurn()" (click)="evade()">evasion ({{ player.specs.evasions }})</button>
+        <button class="action-button" [disabled]="isItYourTurn() || player.specs.evasions <= 0" (click)="evade()">
+            evasion ({{ player.specs.evasions }})
+        </button>
         @if(attacking) {
         <p class="dice">{{ defenseTotal }}</p>
         } @else {
