@@ -97,6 +97,12 @@ export class ThemeService {
       .toggle-theme-btn,
       .filters-btn,
       .order-btn,
+      .exit-button,
+      .modal-button,
+      .create-game-button,
+      .password-toggle,
+      .create-modal .modal-buttons .modal-cancel-btn,
+      .create-modal .modal-buttons .modal-create-btn,
       .no-theme
     )`;
         const css = `
@@ -222,24 +228,28 @@ export class ThemeService {
       }
       ${scope} ${S.account_card}{
         background:${C.modal_bg} !important;
-        border: 4px solid ${C.friends_border_accent} !important;
         color: ${C.button_text} !important; 
+
       }
       ${scope} ${S.account_card} h2, ${scope} ${S.account_card} h3{
         color: ${C.button_text} !important; 
       }
-      ${scope} ${S.account_card} ${S.info_label}, ${scope} ${S.account_card} ${S.info_value}, ${scope} ${S.account_card} ${S.stat_label}, ${scope} ${
+      ${scope} ${S.account_card} ${S.info_label}, ${scope} ${S.account_card} ${S.stat_label}, ${scope} ${
           S.account_card
       } .stat-value, ${scope} ${S.account_card} .account-title, ${scope} ${S.account_card} .stats-title, ${scope} ${
           S.account_card
       } .username-with-level, ${scope} ${S.account_card} .email-section{
         color: ${C.button_text} !important; 
       }
-      ${scope} ${S.account_card} span:not(${S.buttons_all} *):not(${S.buttons_all}), ${scope} ${S.account_card} div:not(${S.buttons_all} *):not(${
-          S.buttons_all
-      }), ${scope} ${S.account_card} h2, ${scope} ${S.account_card} h3 {
-        color: ${C.button_text} !important; 
+      
+      ${scope} .username-with-level .info-value {
+        color: ${C.friends_border_accent} !important;
       }
+
+      ${scope} .email-section .info-value {
+        color: ${C.friends_border_accent} !important;
+      }
+
       ${scope} ${S.account_card} .status-value.online{
         color: ${C.status_online} !important;
         font-weight: bold !important;
@@ -473,7 +483,7 @@ export class ThemeService {
       }
 
       /* --- Bouton de Filtre survolé et Actif (Accentuation Bleue) --- */
-      ${scope} ${S.filters_btn}:hover:not(.is-active), ${scope} ${S.order_btn}:hover{
+      ${scope} ${S.filters_btn}:hover:not(.is-active), ${scope} ${S.order_btn}:hover:not(.disabled){
         border-color: ${C.friends_border_accent} !important;
         box-shadow: 0 0 10px rgba(8, 112, 147, 0.5);
       }
@@ -588,7 +598,7 @@ export class ThemeService {
       ${scope} .custom-alert-overlay .alert-button{
         /* Réutilise le style des action buttons */
         background: ${C.friends_border_accent} !important;
-        border: 3px solid ${C.riends_border_accent} !important;
+        border: 3px solid ${C.friends_border_accent} !important;
         color: white !important;
       }
       ${scope} .custom-alert-overlay .alert-button:hover{
@@ -659,20 +669,18 @@ export class ThemeService {
         background: ${C.modal_bg} !important;
         border: 4px solid ${C.button_border} !important;
       }
-
+      ${scope} ${S.character_box}:not(.locked-character){
+        background: ${C.map_grad_from} !important; /* Fond gris foncé pour chaque boîte */
+        border: 2px solid ${C.friends_border_accent} !important;
+      }
       /* --- Boîte d'Avatar : État Sélectionné (Devient PLEIN BLEU) --- */
       ${scope} ${S.character_box}.selected-character{
         /* Fond de la boîte sélectionnée devient PLEIN BLEU (écraser le background-color: #f39c12) */
         background-color: ${C.friends_border_accent} !important; 
         border: 2px solid ${C.friends_border_accent} !important;
-        box-shadow: 0px 0px 20px 5px rgba(8, 112, 147, 0.7) !important;
+        box-shadow: 0px 0px 20px 10px rgba(8, 112, 147, 0.7) !important;
       }
 
-      /* --- Boîte d'Avatar (Chaque image dans la liste) --- */
-      ${scope} ${S.character_box}{
-        background: ${C.map_grad_from} !important; /* Fond gris foncé pour chaque boîte */
-        border: 2px solid ${C.friends_border_accent} !important;
-      }
       
       /* --- Boîte d'Avatar : Etat Survol et Sélectionné --- */
       ${scope} ${S.character_box}:hover{
@@ -1044,7 +1052,6 @@ export class ThemeService {
       /* S'assurer que le titre de section est en button_text */
       ${scope} ${S.section_header} h3{
         color: ${C.button_text} !important; 
-        /* On conserve la bordure douce pour la séparation */
         border-bottom: 3px solid ${C.button_border} !important; 
       }
       
@@ -1086,6 +1093,10 @@ export class ThemeService {
       }
 
       ${scope} .map-details {
+        color: ${C.button_text} !important; 
+      }
+
+      ${scope} .map-details p{
         color: ${C.button_text} !important; 
       }
 
@@ -1161,6 +1172,14 @@ export class ThemeService {
         color: ${C.button_border} !important;
         transition: all 0.2s ease;
       }
+
+    
+      // ${scope} .filters-btn, .order-btn.disabled:hover {
+      //   background: ${C.button_bg} !important;
+      //   border: 3px solid ${C.button_border} !important;
+      //   color: ${C.button_border} !important;
+      //   transition: all 0.2s ease;
+      // }
     
       ${scope} ${S.map_button}.selected,  ${S.mode_button}.selected, .filters-btn.selected, .order-btn.selected {
         background: ${C.friends_border_accent} !important;
@@ -1307,7 +1326,7 @@ export class ThemeService {
 
       /* Game Page */
 
-      ${scope} .actions-info,  ${scope} .dice-info  .chosen-dice, ${scope} .inventory, ${scope} .actions p, ${scope} .action-button, ${scope} .action-bar .actions  {
+      ${scope} .actions-info,  ${scope} .dice-info  .chosen-dice, ${scope} .inventory, ${scope} .actions p, ${scope} .action-button, ${scope} .action-bar .actions, .exit-button  {
         border: 2px solid ${C.friends_border_accent} !important;
         background: ${C.map_card_to} !important;
         color: ${C.button_text} !important;
@@ -1350,14 +1369,14 @@ export class ThemeService {
         border: 2px dashed ${C.friends_border_accent} !important;
       }
 
-      ${scope} .action-button:hover {
+      ${scope} .action-button:hover, .exit-button:hover {
         border: 2px solid €{C.friends_border_accent} !important;
       }
-      ${scope} .action-button .tooltip {
+      ${scope} .action-button .tooltip, .exit-button .exit-tooltip {
         background-color: ${C.friends_border_accent} !important;
       }
 
-      ${scope} .action-button .tooltip::after {
+      ${scope} .action-button .tooltip::after, .exit-button .exit-tooltip::after {
         border-color: ${C.friends_border_accent} transparent transparent transparent !important;
       }
 
@@ -1404,12 +1423,12 @@ export class ThemeService {
          color: ${C.button_text} !important; /* Texte/Symbole + en noir/sombre */
       }
 
-      ${scope} .open-exit-confirmation-modal .modal, ${scope} .game-finished-modal .modal, ${scope} .inventory-modal, ${scope} .no-active-players-modal .modal, ${scope} .exit-modal .modal, ${scope} .levelup-modal{ 
+      ${scope} .open-exit-confirmation-modal .modal, ${scope} .game-finished-modal .modal, ${scope} .inventory-modal, ${scope} .no-active-players-modal .modal, ${scope} .exit-modal .modal, ${scope} .levelup-modal, ${scope} .combat-result, ${scope} .game-locked-modal .modal, ${scope} .delete-account-modal .modal, ${scope} .game-started-modal .modal, ${scope} .create-modal  { 
         background-color: white !important; /* Bleu */
         border: 4px solid ${C.friends_border_accent} !important; /* Bordure plus douce */
       }
 
-      ${scope} .open-exit-confirmation-modal .modal p, .game-finished-modal .modal p, ${scope} .no-active-players-modal p, ${scope} .exit-modal .modal p, ${scope} .levelup-modal > p{
+      ${scope} .open-exit-confirmation-modal .modal p, .game-finished-modal .modal p, ${scope} .no-active-players-modal p, ${scope} .exit-modal .modal p, ${scope} .levelup-modal > p, ${scope} .combat-result p, ${scope} .delete-account-modal .modal p, ${scope} .game-started-modal .modal p {
         color: ${C.button_text} !important; /* Texte/Symbole + en noir/sombre */
       }
       
@@ -1490,7 +1509,7 @@ export class ThemeService {
         border: 2px solid ${C.button_border} !important;
       }
 
-      ${scope} .levelup-action button:hover, ${scope} .exit-button-container button:hover, ${scope} .host-waiting .button-container button:hover, ${scope} .start-button:hover {
+      ${scope} .levelup-action button:hover, ${scope} .exit-button-container button:hover, ${scope} .host-waiting .button-container button:hover, ${scope} .start-button:hover, ${scope} .modal-button:hover, ${scope} .header-buttons .create-game-button:hover {
         background-color: ${C.button_border} !important;
       }
       
@@ -1781,9 +1800,49 @@ export class ThemeService {
         background: #8ab8d7 !important;
     }
     
+    ${scope} .music-dropdown {
+      border: 2px solid ${C.friends_border_accent} !important;
+    }
 
+    ${scope} .combat-notification {
+      background-color: ${C.friends_border_accent} !important;
+    }
+    ${scope} .modal-button, ${scope} .header-buttons .create-game-button, ${scope} .modal-cancel-btn, ${scope} .modal-create-btn,  {
+      background: ${C.friends_border_accent} !important; /* Bouton sélectionné en BLEU (Forcé) */
+      border-color: ${C.button_border} !important; /* Bordure en BLEU (Forcé) */
+      color: white !important; 
+    }
 
+    ${scope} .modal-buttons .modal-create-btn  {
+      background-color: ${C.friends_border_accent} !important; /* Bouton sélectionné en BLEU (Forcé) */
+      border-color: ${C.button_border} !important; /* Bordure en BLEU (Forcé) */
+      color: white !important; 
+    }
+    ${scope} .modal-buttons .modal-cancel-btn {
+      color: ${C.friends_border_accent} !important; 
+    }
 
+    ${scope} .modal-buttons .modal-cancel-btn:hover, ${scope} .modal-buttons .modal-create-btn:hover  {
+      background-color: ${C.button_bg} !important;
+    }
+
+    ${scope} .modal-input {
+      background-color: ${C.button_bg} !important;
+
+    }
+    ${scope} .modal-input:focus {
+      border-color: ${C.friends_border_accent} !important;
+
+    }
+
+    ${scope} .entry-fee-container .error-text, ${scope} .invitation-content .error-message  {
+      color: #ff4444 !important;
+    }
+    
+    ${scope} .modal:has(app-account) {
+      background: ${C.modal_bg} !important;
+      border: 3px solid ${C.friends_border_accent} !important;
+    }
 
       `.trim();
         this.ensureStyle().textContent = css;

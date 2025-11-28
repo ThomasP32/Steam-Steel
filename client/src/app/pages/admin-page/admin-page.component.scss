@@ -105,23 +105,24 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding: 10px;
+    
     &::-webkit-scrollbar {
         width: 14px;
     }
 
     &::-webkit-scrollbar-track {
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: 10px;
-        border: 2px solid #2c3e50;
+        background-color: rgba(0, 0, 0, 0.7);
+        border: 1px solid #202020;
+        margin-top: 10px;
     }
 
     &::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, #3498db, #2980b9);
-        border-radius: 10px;
-        border: 2px solid #2c3e50;
+        background: #2c3e50;
+        border: 1px solid #202020;
 
         &:hover {
-            background: linear-gradient(180deg, #5dade2, #3498db);
+            background: #2c3e50;
+            border-color: #9c9c9c;
         }
     }
 }

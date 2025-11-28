@@ -500,19 +500,19 @@ h4 {
     color: #aa3d3d;
 }
 
-.modal-button {
+.modal-button-container {
     display: flex;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
     gap: 10px;
     padding: 10px 20px;
-    color: white;
     margin-top: 20px;
-    font-family: 'Press Start 2P', sans-serif;
-    transition: background-color 0.3s ease;
 }
 
-.modal-button button {
+.modal-button {
+    font-family: 'Press Start 2P', sans-serif;
+    font-size: 1.1rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -521,11 +521,11 @@ h4 {
     border: 3px solid #202020;
     color: white;
     cursor: pointer;
-    font-family: 'Press Start 2P', sans-serif;
+    margin-top: 10px;
     transition: background-color 0.3s ease;
 }
 
-.modal-button button:hover {
+.modal-button:hover {
     background-color: #3b3f46;
 }
 
