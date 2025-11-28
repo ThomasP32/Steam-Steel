@@ -140,6 +140,27 @@ export class ThemeService {
         background:linear-gradient(135deg, ${C.map_grad_from} 30%, ${C.map_grad_to} 100%) !important;
       }
 
+      /* --- Styles de surbrillance des cases de la carte (mouvements possibles) --- */
+      ${scope} .map-cell.highlight::before {
+        background-color: rgba(8, 112, 147, 0.35) !important;
+        outline: 2px solid rgba(8, 112, 147, 0.7) !important;
+      }
+
+      ${scope} .map-cell.preview-highlight::before {
+        background-image: linear-gradient(
+          45deg,
+          rgba(8, 112, 147, 0.5) 25%,
+          transparent 25%,
+          transparent 50%,
+          rgba(8, 112, 147, 0.5) 50%,
+          rgba(8, 112, 147, 0.5) 75%,
+          transparent 75%,
+          transparent
+        ) !important;
+        background-color: rgba(8, 112, 147, 0.25) !important;
+        outline: 2px solid rgba(8, 112, 147, 0.7) !important;
+      }
+
       ${scope} ${S.info_item}, ${scope} ${S.inventory_slot}{
         background:${C.info_item_bg} !important;
       }
@@ -207,10 +228,16 @@ export class ThemeService {
       ${scope} ${S.account_card} h2, ${scope} ${S.account_card} h3{
         color: ${C.button_text} !important; 
       }
-      ${scope} ${S.account_card} ${S.info_label}, ${scope} ${S.account_card} ${S.info_value}, ${scope} ${S.account_card} ${S.stat_label}, ${scope} ${S.account_card} .stat-value, ${scope} ${S.account_card} .account-title, ${scope} ${S.account_card} .stats-title, ${scope} ${S.account_card} .username-with-level, ${scope} ${S.account_card} .email-section{
+      ${scope} ${S.account_card} ${S.info_label}, ${scope} ${S.account_card} ${S.info_value}, ${scope} ${S.account_card} ${S.stat_label}, ${scope} ${
+          S.account_card
+      } .stat-value, ${scope} ${S.account_card} .account-title, ${scope} ${S.account_card} .stats-title, ${scope} ${
+          S.account_card
+      } .username-with-level, ${scope} ${S.account_card} .email-section{
         color: ${C.button_text} !important; 
       }
-      ${scope} ${S.account_card} span:not(${S.buttons_all} *):not(${S.buttons_all}), ${scope} ${S.account_card} div:not(${S.buttons_all} *):not(${S.buttons_all}), ${scope} ${S.account_card} h2, ${scope} ${S.account_card} h3 {
+      ${scope} ${S.account_card} span:not(${S.buttons_all} *):not(${S.buttons_all}), ${scope} ${S.account_card} div:not(${S.buttons_all} *):not(${
+          S.buttons_all
+      }), ${scope} ${S.account_card} h2, ${scope} ${S.account_card} h3 {
         color: ${C.button_text} !important; 
       }
       ${scope} ${S.account_card} .status-value.online{
@@ -262,8 +289,20 @@ export class ThemeService {
         color: ${C.section_header_text} !important;
       }
       ${scope} ${S.user_item}, ${scope} ${S.request_item}{
-        background:${C.user_item_bg} !important;
+        background-color:${C.user_item_bg} !important;
         color: ${C.button_text} !important; 
+      }
+      
+      /* Préserver les bannières dans la liste d'amis */
+      ${scope} ${S.user_item}.has-banner, ${scope} ${S.request_item}.has-banner {
+        background-color: transparent !important;
+      }
+      
+      ${scope} ${S.user_item}.has-banner .user-name,
+      ${scope} ${S.user_item}.has-banner .user-status,
+      ${scope} ${S.user_item}.has-banner .user-details span {
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.8) !important;
       }
 
       ${scope} ${S.request_item}:hover{
@@ -687,11 +726,16 @@ export class ThemeService {
 
       /* --- Styles Page Salle d'Attente (Waiting Room) --- */
       
-      /* --- Conteneur principal du Joueur (Haut Gauche) --- */
-      ${scope} ${S.player_section}{
-        background: ${C.button_bg} !important; /* Fond gris clair */
+      /* --- Conteneur principal du Joueur (Haut Gauche) - enfant direct de waiting-room-container --- */
+      ${scope} ${S.waiting} > .player {
+        background-color: ${C.button_bg} !important; /* Fond gris clair */
         border: 4px solid ${C.button_border} !important;
         color: ${C.button_text} !important;
+      }
+      
+      /* Style pour les .player dans .players-list sans bannière */
+      ${scope} ${S.players_list} .player:not(.has-banner) {
+        background-color: ${C.button_bg} !important;
       }
       
       /* Nom du joueur en couleur de texte du thème */
@@ -745,11 +789,116 @@ export class ThemeService {
       ${scope} .entry-fee p, ${scope} .entry-fee h1 {
         color: ${C.button_text} !important;
       }
+
+      /* --- Styles Composant Challenge (Waiting Room) --- */
+      ${scope} .challenge-container {
+        color: ${C.button_text} !important;
+      }
+
+      ${scope} .challenge-full {
+        background: rgba(255, 255, 255, 0.9) !important;
+        border: 3px solid ${C.friends_border_accent} !important;
+        box-shadow:
+          0 0 10px rgba(8, 112, 147, 0.4),
+          0 0 20px rgba(8, 112, 147, 0.2) !important;
+      }
+
+      ${scope} .challenge-header .challenge-title {
+        color: ${C.friends_border_accent} !important;
+        text-shadow: none !important;
+      }
+
+      ${scope} .challenge-header .info-icon {
+        border-color: ${C.friends_border_accent} !important;
+        background: rgba(8, 112, 147, 0.15) !important;
+      }
+
+      ${scope} .challenge-header .info-icon:hover {
+        background: rgba(8, 112, 147, 0.3) !important;
+        border-color: ${C.friends_border_accent} !important;
+      }
+
+      ${scope} .challenge-header .info-icon span {
+        color: ${C.friends_border_accent} !important;
+      }
+
+      ${scope} .challenge-header .info-tooltip {
+        background: rgba(255, 255, 255, 0.98) !important;
+        border: 2px solid ${C.friends_border_accent} !important;
+        color: ${C.button_text} !important;
+      }
+
+      ${scope} .challenge-header .info-tooltip::after {
+        border-top-color: ${C.friends_border_accent} !important;
+      }
+
+      ${scope} .challenge-header .challenge-reward {
+        background: rgba(8, 112, 147, 0.15) !important;
+        border: 2px solid ${C.friends_border_accent} !important;
+      }
+
+      ${scope} .challenge-header .challenge-reward .reward-amount {
+        color: ${C.friends_border_accent} !important;
+      }
+
+      ${scope} .challenge-description {
+        color: ${C.button_text} !important;
+      }
+
+      ${scope} .progress-bar-container {
+        background: rgba(0, 0, 0, 0.1) !important;
+        border: 2px solid ${C.button_border} !important;
+      }
+
+      ${scope} .progress-bar {
+        background: linear-gradient(90deg, ${C.friends_border_accent} 0%, #3498db 50%, #5dade2 100%) !important;
+      }
+
+      ${scope} .progress-text {
+        color: ${C.friends_border_accent} !important;
+        text-shadow: none !important;
+      }
+
+      ${scope} .completion-badge {
+        color: #1D8348 !important;
+        background: rgba(29, 131, 72, 0.15) !important;
+        border: 2px solid #1D8348 !important;
+      }
+
+      ${scope} .challenge-container.completed .challenge-full {
+        border-color: #1D8348 !important;
+        box-shadow:
+          0 0 15px rgba(29, 131, 72, 0.4),
+          0 0 30px rgba(29, 131, 72, 0.2) !important;
+      }
+
+      ${scope} .challenge-container.completed .challenge-title {
+        color: #1D8348 !important;
+      }
+
+      ${scope} .challenge-container.completed .progress-bar {
+        background: linear-gradient(90deg, #1D8348 0%, #27ae60 50%, #2ecc71 100%) !important;
+      }
+
       /* --- Section Liste des Joueurs / Conteneur principal --- */
       ${scope} ${S.players_list}{
         /* Couleurs demandées */
-        background: white !important; /* Fond Blanc */
+        background-color: white !important; /* Fond Blanc */
         border: 4px solid ${C.friends_border_accent} !important;
+      }
+      
+      /* Préserver les bannières dans la liste des joueurs */
+      ${scope} ${S.players_list} .player.has-banner {
+        background-color: transparent !important;
+      }
+      
+      ${scope} ${S.players_list} .player.has-banner .player-name {
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.8) !important;
+      }
+      
+      ${scope} ${S.players_list} .player.has-banner .player-content {
+        color: white !important;
       }
 
       ${scope} .player .player-name, ${scope} .game-status h2{
@@ -1201,7 +1350,7 @@ export class ThemeService {
         border: 2px dashed ${C.friends_border_accent} !important;
       }
 
-      ${scope } .action-button:hover {
+      ${scope} .action-button:hover {
         border: 2px solid €{C.friends_border_accent} !important;
       }
       ${scope} .action-button .tooltip {
@@ -1436,6 +1585,26 @@ export class ThemeService {
       ${scope} .endgame-container table{
         background: ${C.button_bg} !important; 
       }
+      
+      /* Garder les bannières visibles sur les lignes */
+      ${scope} .endgame-container table tr.has-banner {
+        background-color: transparent !important;
+      }
+      
+      /* Assurer que le texte reste lisible sur les bannières */
+      ${scope} .endgame-container table tr.has-banner td {
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.8) !important;
+      }
+      
+      ${scope} .endgame-container table tr.has-banner .player-name {
+        color: white !important;
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9), -1px -1px 3px rgba(0, 0, 0, 0.9) !important;
+      }
+      
+      ${scope} .endgame-container table tr.has-banner .cell-content {
+        color: white !important;
+      }
+      
       ${scope} ${S.endgame_table_td} {
         /* Règle 3 : Texte en Noir/Gris */
         color: ${C.button_text} !important;
