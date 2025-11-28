@@ -30,7 +30,11 @@
 
     <div class="map-view">
         <div class="scrollable-container">
-            @if (myMaps.length > 0) {
+            @if (isLoading) {
+            <div class="loading-container">
+                <div class="spinner"></div>
+            </div>
+            } @else { @if (myMaps.length > 0) {
             <div class="section-header">
                 <h3>Mes Jeux</h3>
             </div>
@@ -40,7 +44,7 @@
                 <h3>Jeux Publics</h3>
             </div>
             <app-map-list [maps]="publicMaps" [currentUsername]="currentUsername" (mapDuplicated)="scrollToTop()"> </app-map-list>
-            }
+            } }
         </div>
     </div>
 </div>

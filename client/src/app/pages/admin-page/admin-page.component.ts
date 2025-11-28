@@ -30,6 +30,7 @@ export class AdminPageComponent implements OnInit, OnDestroy {
     publicMaps: DetailedMap[] = [];
     isCreateMapModalVisible = false;
     isChatVisible: boolean = false;
+    isLoading: boolean = false;
     currentUsername: string = '';
     currentUserId: string = '';
 
@@ -60,12 +61,19 @@ export class AdminPageComponent implements OnInit, OnDestroy {
             console.error('Erreur lors de la récupération des informations utilisateur:', error);
         }
 
+        this.isLoading = true;
         this.communicationMapService
             .basicGet<DetailedMap[]>('admin')
             .pipe(takeUntil(this.unsubscribe$))
-            .subscribe((maps: DetailedMap[]) => {
-                this.maps = maps;
-                this.separateMaps();
+            .subscribe({
+                next: (maps: DetailedMap[]) => {
+                    this.maps = maps;
+                    this.separateMaps();
+                    this.isLoading = false;
+                },
+                error: () => {
+                    this.isLoading = false;
+                },
             });
 
         this.socketService
@@ -85,12 +93,19 @@ export class AdminPageComponent implements OnInit, OnDestroy {
     }
 
     updateDisplay(): void {
+        this.isLoading = true;
         this.communicationMapService
             .basicGet<DetailedMap[]>('admin')
             .pipe(takeUntil(this.unsubscribe$))
-            .subscribe((maps: DetailedMap[]) => {
-                this.maps = maps;
-                this.separateMaps();
+            .subscribe({
+                next: (maps: DetailedMap[]) => {
+                    this.maps = maps;
+                    this.separateMaps();
+                    this.isLoading = false;
+                },
+                error: () => {
+                    this.isLoading = false;
+                },
             });
     }
 
