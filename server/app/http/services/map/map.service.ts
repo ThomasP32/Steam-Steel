@@ -24,7 +24,7 @@ export class MapService {
         const maps = await this.mapModel.find(
             {
                 isVisible: true,
-                $or: [{ state: MapState.Public }, { creator: userId }],
+                $or: [{ state: MapState.Public }, { state: MapState.Share }, { creator: userId }],
             },
             { _id: 0, isVisible: 0, lastModified: 0 },
         );
