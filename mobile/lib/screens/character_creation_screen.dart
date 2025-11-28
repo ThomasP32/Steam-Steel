@@ -50,6 +50,8 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   String? lifeOrSpeedBonus;
   String? attackOrDefenseBonus;
   bool _isSubmitting = false;
+  bool _showBonusError = false;
+  bool _showDiceError = false;
   StreamSubscription<dynamic>? _gameLockedSub;
   StreamSubscription<dynamic>? _youJoinedSub;
   StreamSubscription<dynamic>? _currentGameSub;
@@ -249,6 +251,31 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     });
   }
 
+  void _onButtonPressed() {
+    setState(() {
+      _showBonusError = false;
+      _showDiceError = false;
+    });
+
+    if (lifeOrSpeedBonus == null) {
+      setState(() {
+        _showBonusError = true;
+      });
+      return;
+    }
+
+    // Validate dice
+    if (attackOrDefenseBonus == null) {
+      setState(() {
+        _showDiceError = true;
+      });
+      return;
+    }
+
+    // All valid, proceed
+    _onSubmit();
+  }
+
   Future<void> _onSubmit() async {
     if (_isSubmitting) return;
     setState(() {
@@ -415,11 +442,6 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final canSubmit =
-        lifeOrSpeedBonus != null &&
-        attackOrDefenseBonus != null &&
-        !_isSubmitting;
-
     return WillPopScope(
       onWillPop: () async {
         FriendService().updateUserStatus(UserStatus.online);
@@ -444,7 +466,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
                     children: [
                       Expanded(flex: 3, child: _buildStatsPanel()),
                       const SizedBox(width: 16),
-                      Expanded(flex: 4, child: _buildCenterPanel(canSubmit)),
+                      Expanded(flex: 4, child: _buildCenterPanel()),
                       const SizedBox(width: 16),
                       const Expanded(flex: 3, child: SizedBox()),
                     ],
@@ -644,7 +666,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     );
   }
 
-  Widget _buildCenterPanel(bool canSubmit) {
+  Widget _buildCenterPanel() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black87;
     final accentColor = AppColors.accentHighlight(context);
@@ -714,20 +736,54 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
             ),
             const SizedBox(height: 12),
             ElevatedButton(
-              onPressed: canSubmit ? _onSubmit : null,
+              onPressed: _isSubmitting ? null : _onButtonPressed,
               style: ElevatedButton.styleFrom(
-                disabledForegroundColor: !isDark ? Colors.grey : null,
-                side:
-                    canSubmit ? BorderSide(color: accentColor, width: 2) : null,
+                side: BorderSide(color: accentColor, width: 2),
               ),
-              child: Text(
-                widget.isObserver
-                    ? 'Observer'
-                    : (widget.gameId?.isEmpty ?? true
-                        ? 'Créer une partie'
-                        : 'Rejoindre la partie'),
-              ),
+              child:
+                  _isSubmitting
+                      ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                      : Text(
+                        widget.isObserver
+                            ? 'Observer'
+                            : (widget.gameId?.isEmpty ?? true
+                                ? 'Créer une partie'
+                                : 'Rejoindre la partie'),
+                      ),
             ),
+            if (_showBonusError)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Ajoutez le bonus (+2 Vie ou Rapidité)',
+                  style: TextStyle(
+                    color: Colors.red.shade400,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            if (_showDiceError)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Attribuez un dé (D6 Attaque ou Défense)',
+                  style: TextStyle(
+                    color: Colors.red.shade400,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
           ],
         );
       },

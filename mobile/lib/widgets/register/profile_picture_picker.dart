@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -104,7 +105,11 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
       maxHeight: 800,
     );
     if (picked == null) return;
-    widget.onCustomPreviewChanged(picked.path);
+
+    final file = File(picked.path);
+    final bytes = await file.readAsBytes();
+    final base64String = 'data:image/png;base64,${base64Encode(bytes)}';
+    widget.onCustomPreviewChanged(base64String);
   }
 
   @override
@@ -121,116 +126,177 @@ class _ProfilePicturePickerState extends State<ProfilePicturePicker> {
     final hasCustom =
         widget.customPreview != null && widget.customPreview!.isNotEmpty;
 
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final pp in profilePictures)
-          Builder(
-            builder: (context) {
-              final isOwned = _isOwned(pp);
-              final isSelected = widget.selected == pp && !hasCustom;
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            // Predefined profile pictures
+            for (final pp in profilePictures)
+              Builder(
+                builder: (context) {
+                  final isOwned = _isOwned(pp);
+                  final isSelected = widget.selected == pp && !hasCustom;
 
-              return GestureDetector(
-                onTap: () => _selectProfile(pp),
-                child: Stack(
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color:
-                              isSelected
-                                  ? Colors.blueAccent
-                                  : (isOwned || widget.showOnlyFree
-                                      ? Colors.transparent
-                                      : Colors.grey),
-                          width: isSelected ? 3 : 2,
-                        ),
-                        boxShadow:
-                            isSelected
-                                ? [
-                                  BoxShadow(
-                                    color: Colors.blue.withValues(alpha: 0.16),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ]
-                                : null,
-                        image: DecorationImage(
-                          image: AssetImage(
-                            'lib/assets/profile/${pp.value}.png',
+                  return GestureDetector(
+                    onTap: () => _selectProfile(pp),
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color:
+                                  isSelected
+                                      ? Colors.blueAccent
+                                      : (isOwned || widget.showOnlyFree
+                                          ? Colors.transparent
+                                          : Colors.grey),
+                              width: isSelected ? 3 : 2,
+                            ),
+                            boxShadow:
+                                isSelected
+                                    ? [
+                                      BoxShadow(
+                                        color: Colors.blue.withValues(
+                                          alpha: 0.16,
+                                        ),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ]
+                                    : null,
+                            image: DecorationImage(
+                              image: AssetImage(
+                                'lib/assets/profile/${pp.value}.png',
+                              ),
+                              fit: BoxFit.cover,
+                              opacity:
+                                  isOwned || widget.showOnlyFree ? 1.0 : 0.3,
+                            ),
                           ),
-                          fit: BoxFit.cover,
-                          opacity: isOwned || widget.showOnlyFree ? 1.0 : 0.3,
                         ),
-                      ),
+                        if (!isOwned && !widget.showOnlyFree)
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              color: Colors.black.withValues(alpha: 0.5),
+                            ),
+                            child: const Icon(
+                              Icons.lock,
+                              color: Colors.white70,
+                              size: 24,
+                            ),
+                          ),
+                      ],
                     ),
-                    if (!isOwned && !widget.showOnlyFree)
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          color: Colors.black.withValues(alpha: 0.5),
-                        ),
-                        child: const Icon(
-                          Icons.lock,
-                          color: Colors.white70,
-                          size: 24,
-                        ),
-                      ),
+                  );
+                },
+              ),
+            // Camera button - always visible (like web client's "+" button)
+            GestureDetector(
+              onTap: _pickCustomProfilePicture,
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.grey.shade600, width: 2),
+                  color: Colors.white,
+                ),
+                child: Center(
+                  child: Icon(Icons.camera_alt, color: Colors.grey.shade500),
+                ),
+              ),
+            ),
+            // Custom image preview - shown separately when exists (like web client)
+            if (hasCustom)
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.blueAccent, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withValues(alpha: 0.16),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
                   ],
                 ),
-              );
-            },
-          ),
-        GestureDetector(
-          onTap: _pickCustomProfilePicture,
-          child: Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: hasCustom ? Colors.blueAccent : Colors.grey.shade600,
-                width: hasCustom ? 3 : 2,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: _buildCustomImage(widget.customPreview!),
+                ),
               ),
-              color: Colors.white,
-              boxShadow:
-                  hasCustom
-                      ? [
-                        BoxShadow(
-                          color: Colors.blue.withValues(alpha: 0.16),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
-                        ),
-                      ]
-                      : null,
-            ),
-            child:
-                !hasCustom
-                    ? Center(
-                      child: Icon(Icons.add, color: Colors.grey.shade500),
-                    )
-                    : ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: _buildCustomImage(widget.customPreview!),
-                    ),
-          ),
+          ],
         ),
+
+        if (hasCustom)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: GestureDetector(
+              onTap: () => widget.onCustomPreviewChanged(null),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  "Retirer l'image personnalisée",
+                  style: TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
 
   Widget _buildCustomImage(String path) {
+    if (path.startsWith('data:')) {
+      try {
+        final parts = path.split(',');
+        final payload = parts.length > 1 ? parts.last : parts.first;
+        final bytes = base64Decode(payload);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder:
+              (_, __, ___) =>
+                  Icon(Icons.broken_image, color: Colors.grey.shade500),
+        );
+      } on Object catch (_) {
+        return Icon(Icons.broken_image, color: Colors.grey.shade500);
+      }
+    }
+
+    if (path.startsWith('http')) {
+      return Image.network(
+        path,
+        fit: BoxFit.cover,
+        errorBuilder:
+            (_, __, ___) =>
+                Icon(Icons.broken_image, color: Colors.grey.shade500),
+      );
+    }
+
     return Image.file(
       File(path),
       fit: BoxFit.cover,
       errorBuilder:
-          (_, _, _) => Icon(Icons.broken_image, color: Colors.grey.shade500),
+          (_, __, ___) => Icon(Icons.broken_image, color: Colors.grey.shade500),
     );
   }
 }
