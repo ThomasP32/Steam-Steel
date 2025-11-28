@@ -313,9 +313,7 @@ class AuthService {
       body['profilePicture'] = profilePicture.value;
     }
 
-    if (profilePictureCustomPayload != null) {
-      body['profilePictureCustom'] = profilePictureCustomPayload;
-    }
+    body['profilePictureCustom'] = profilePictureCustomPayload;
 
     final r = await _client.patch(
       uri,
@@ -330,11 +328,12 @@ class AuthService {
       final responseBody = jsonDecode(r.body);
       if (responseBody is Map) {
         if (responseBody['success'] == false) {
-          final message = responseBody['message']?.toString() ?? 'Update failed';
+          final message =
+              responseBody['message']?.toString() ?? 'Update failed';
           throw Exception(message);
         }
       }
-      
+
       await fetchUser();
       return;
     }
