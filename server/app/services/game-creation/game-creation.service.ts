@@ -94,7 +94,6 @@ export class GameCreationService {
             if (game.settings.isFastElimination && existingPlayer.specs.nDefeats === 1) {
                 existingPlayer.isActive = false;
                 existingPlayer.isEliminated = true;
-
             } else {
                 // Only set isActive = true if player is not eliminated and not an observer
                 if (!existingPlayer.isEliminated && !existingPlayer.isObserver) {
@@ -193,7 +192,7 @@ export class GameCreationService {
 
         if (game.hasStarted) {
             const leavingPlayer = game.players.find((player) => player.socketId === client.id);
-            
+
             // If player was only an observer (never active participant) and was not eliminated, remove them from the game
             if (!leavingPlayer?.wasActivePlayer && leavingPlayer?.isObserver && !leavingPlayer?.isEliminated) {
                 game.players = game.players.filter((player) => player.socketId !== client.id);
@@ -203,8 +202,10 @@ export class GameCreationService {
                         // CRITICAL: Invalidate socketId to prevent turn events from being sent to this socket
                         // The socketId is used to send events directly, so we must invalidate it when player leaves
                         const invalidatedSocketId = `DISCONNECTED-${Date.now()}-${client.id}`;
-                        console.log(`[GameCreationService] Invalidating socketId for ${player.name} in game ${gameId}: ${client.id} -> ${invalidatedSocketId}`);
-                        
+                        console.log(
+                            `[GameCreationService] Invalidating socketId for ${player.name} in game ${gameId}: ${client.id} -> ${invalidatedSocketId}`,
+                        );
+
                         // If game is in elimination mode, set player as eliminated (only if they were an active player)
                         if (game.settings.isFastElimination) {
                             return { ...player, isActive: false, isEliminated: true, isObserver: false, socketId: invalidatedSocketId };
@@ -422,7 +423,8 @@ export class GameCreationService {
                 continue;
             }
 
-            if (player.isActive) {
+            // Count all players who were active participants (including eliminated ones who didn't quit)
+            if ((player.isActive || player.isEliminated) && player.wasActivePlayer) {
                 activePlayers.push(userId);
             }
 

@@ -459,7 +459,7 @@ class _ShopWidgetState extends State<ShopWidget> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      width: 250,
+      width: 270,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF34495E) : Colors.grey.shade200,
         borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(13)),
