@@ -523,10 +523,10 @@ export class GameManagerService {
 
         return { valid: true };
     }
-
+    
     logGameStateDebug(gameId: string, context: string): void {
         const game = this.gameCreationService.getGameById(gameId);
-        if (!game) {
+        if (!game && context) {
             return;
         }
 

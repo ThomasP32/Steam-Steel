@@ -453,8 +453,6 @@ export class VirtualGameManagerService extends EventEmitter {
         }
 
         const gameEnded = await this.updatePosition(activePlayer, pathToTargetItem, game.id, wasOnIceTile);
-        if (gameEnded) {
-        }
         return gameEnded;
     }
 

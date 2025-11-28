@@ -642,7 +642,6 @@ export class GameGateway {
      * This is a defensive cleanup that ensures the socket starts fresh when joining a new game.
      */
     private async cleanupSocketGameRooms(client: Socket): Promise<void> {
-        const previousGame = (client as any).currentGameId;
         
         // Get all rooms this socket is in
         const rooms = Array.from(client.rooms);

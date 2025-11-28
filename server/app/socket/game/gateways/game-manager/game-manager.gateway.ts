@@ -230,7 +230,7 @@ export class GameManagerGateway implements OnGatewayInit {
         }
     }
 
-    private handleGameTermination(gameId: string, reason: string): void {
+    private handleGameTermination(gameId: string): void {
         const game = this.gameCreationService.getGameById(gameId);
         if (!game) {
             return;
@@ -344,7 +344,7 @@ export class GameManagerGateway implements OnGatewayInit {
                     if (!validation.valid) {
                         console.warn(`[GameManagerGateway] Invalid game state for virtual player: ${validation.reason}`);
                         this.gameManagerService.logGameStateDebug(gameId, 'VirtualPlayerTurnError');
-                        this.handleGameTermination(gameId, 'invalid game state');
+                        this.handleGameTermination(gameId);
                         return;
                     }
 
@@ -357,7 +357,7 @@ export class GameManagerGateway implements OnGatewayInit {
                     console.error(`[GameManagerGateway] Error during virtual player turn:`, error);
                     console.error(`[GameManagerGateway] Error stack:`, error.stack);
                     this.gameManagerService.logGameStateDebug(gameId, 'VirtualPlayerException');
-                    this.handleGameTermination(gameId, 'error during virtual player turn');
+                    this.handleGameTermination(gameId);
                 }
             }, delay);
         } else {
