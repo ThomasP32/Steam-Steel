@@ -156,7 +156,7 @@ export class AuthService {
             try {
                 await firstValueFrom(this.communicationService.basicPost<any>(`${this.apiUrl}/logout?token=${token}`, {}));
             } catch (error) {
-                console.log('Erreur lors de la déconnexion côté serveur:', error);
+                console.error('Erreur lors de la déconnexion côté serveur:', error);
             }
         }
 
@@ -183,7 +183,7 @@ export class AuthService {
                     navigator.sendBeacon(url, data);
                 }
             } catch (error) {
-                console.log('Erreur lors de la déconnexion synchrone:', error);
+                console.error('Erreur lors de la déconnexion synchrone:', error);
             }
         }
 

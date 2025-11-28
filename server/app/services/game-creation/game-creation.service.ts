@@ -83,7 +83,6 @@ export class GameCreationService {
 
             this.gamePrizePools[gameId].totalPool += entryFee;
             this.gamePrizePools[gameId].playerEntries.set(userId, entryFee);
-            console.log(`[addPlayerToGame] Player ${userId} paid ${entryFee}, total pool: ${this.gamePrizePools[gameId].totalPool}`);
         }
         if (player.isEliminated === undefined) {
             player.isEliminated = false;
@@ -123,7 +122,6 @@ export class GameCreationService {
 
             // Assign challenge to new player
             if (!player.socketId.includes('virtual')) {
-                console.log(`[GameCreationService] Assigning challenge to new player ${player.name}`);
                 this.challengeService.assignForPlayer(game, player);
             }
 
@@ -167,13 +165,11 @@ export class GameCreationService {
         }
 
         const entryFee = this.gamePrizePools[gameId].playerEntries.get(userId);
-        console.log(`[handlePlayerRefund] Refunding ${entryFee} to user ${userId}`);
 
         if (entryFee > 0) {
             await this.shopService.refundPlayer(userId, entryFee);
             this.gamePrizePools[gameId].totalPool -= entryFee;
             this.gamePrizePools[gameId].playerEntries.delete(userId);
-            console.log(`[handlePlayerRefund] Refund successful: ${entryFee}`);
             return entryFee;
         }
 
@@ -183,8 +179,6 @@ export class GameCreationService {
     async handlePlayerLeaving(client: Socket, gameId: string, userId?: string): Promise<{ game: Game; refundAmount: number }> {
         const game = this.getGameById(gameId);
         let refundAmount = 0;
-
-        console.log(`[handlePlayerLeaving] Game ${gameId}, userId: ${userId}, hasStarted: ${game.hasStarted}`);
 
         if (userId) {
             refundAmount = await this.handlePlayerRefund(gameId, userId);
@@ -202,10 +196,6 @@ export class GameCreationService {
                         // CRITICAL: Invalidate socketId to prevent turn events from being sent to this socket
                         // The socketId is used to send events directly, so we must invalidate it when player leaves
                         const invalidatedSocketId = `DISCONNECTED-${Date.now()}-${client.id}`;
-                        console.log(
-                            `[GameCreationService] Invalidating socketId for ${player.name} in game ${gameId}: ${client.id} -> ${invalidatedSocketId}`,
-                        );
-
                         // If game is in elimination mode, set player as eliminated (only if they were an active player)
                         if (game.settings.isFastElimination) {
                             return { ...player, isActive: false, isEliminated: true, isObserver: false, socketId: invalidatedSocketId };
@@ -226,7 +216,6 @@ export class GameCreationService {
     }
 
     async handleHostLeaving(gameId: string, hostUserId: string): Promise<number> {
-        console.log(`[handleHostLeaving] Game ${gameId}, hostUserId: ${hostUserId}`);
         return await this.handlePlayerRefund(gameId, hostUserId);
     }
 
@@ -238,7 +227,6 @@ export class GameCreationService {
 
         const game = this.getGameById(gameId);
         if (game.hasStarted) {
-            console.log(`[refundAllPlayersInGame] Game ${gameId} has already started, no refunds`);
             return { totalRefunded: 0, refundedUsers: [] };
         }
 
@@ -250,14 +238,12 @@ export class GameCreationService {
                 await this.shopService.refundPlayer(userId, entryFee);
                 totalRefunded += entryFee;
                 refundedUsers.push(userId);
-                console.log(`[refundAllPlayersInGame] Refunded ${entryFee} to user ${userId}`);
             }
         }
 
         prizePool.totalPool = 0;
         prizePool.playerEntries.clear();
 
-        console.log(`[refundAllPlayersInGame] Total refunded: ${totalRefunded} to ${refundedUsers.length} players`);
         return { totalRefunded, refundedUsers };
     }
 
@@ -265,15 +251,12 @@ export class GameCreationService {
         const game = this.getGameById(gameId);
         let refundAmount = 0;
 
-        console.log(`[handlePlayerKicked] Game ${gameId}, playerId: ${playerId}, userId: ${userId}`);
-
         if (userId) {
             refundAmount = await this.handlePlayerRefund(gameId, userId);
         }
 
         game.players = game.players.filter((player) => player.socketId !== playerId);
 
-        console.log(`Player with socket ID ${playerId} has been kicked from game ${gameId}, refund: ${refundAmount}`);
         return { updatedGame: game, refundAmount };
     }
 
@@ -375,7 +358,6 @@ export class GameCreationService {
     }
 
     async endGameAndDistributeRewards(gameId: string, winners: string[] = [], activePlayers: string[] = []): Promise<Map<string, number>> {
-        console.log(`[endGameAndDistributeRewards] Game ${gameId} ending. Winners: ${winners.length}, Active players: ${activePlayers.length}`);
 
         let rewardsMap = new Map<string, number>();
 
@@ -488,13 +470,11 @@ export class GameCreationService {
     async chargeHostForGameCreation(userId: string, gameId: string, entryFee: number): Promise<boolean> {
         const canAfford = await this.shopService.canAfford(userId, entryFee);
         if (!canAfford) {
-            console.log(`[chargeHostForGameCreation] Host ${userId} cannot afford entry fee of ${entryFee}`);
             return false;
         }
 
         const paymentSuccess = await this.shopService.deductMoney(userId, entryFee);
         if (!paymentSuccess) {
-            console.log(`[chargeHostForGameCreation] Payment failed for host ${userId}`);
             return false;
         }
 
@@ -507,7 +487,6 @@ export class GameCreationService {
 
         this.gamePrizePools[gameId].totalPool += entryFee;
         this.gamePrizePools[gameId].playerEntries.set(userId, entryFee);
-        console.log(`[chargeHostForGameCreation] Host ${userId} paid ${entryFee}, total pool: ${this.gamePrizePools[gameId].totalPool}`);
 
         return true;
     }

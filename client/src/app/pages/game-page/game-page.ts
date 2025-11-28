@@ -332,8 +332,6 @@ export class GamePageComponent implements OnInit, AfterViewInit, OnDestroy {
     private listenForNoActivePlayers(): void {
         this.socketSubscription.add(
             this.socketService.listen(GameCreationEvents.GameEndedNoActivePlayers).subscribe(() => {
-                console.log('[GamePage] GameEndedNoActivePlayers received');
-
                 // Close combat modal if it's open
                 this.combatService.closeCombatModal();
 
@@ -351,7 +349,6 @@ export class GamePageComponent implements OnInit, AfterViewInit, OnDestroy {
                 }
 
                 setTimeout(() => {
-                    console.log('[GamePage] Navigating to end-game page');
                     this.navigateToEndOfGame();
                 }, TIME_REDIRECTION);
             }),

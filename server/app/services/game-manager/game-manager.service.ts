@@ -507,18 +507,12 @@ export class GameManagerService {
 
                 if (!isPositionOccupied) {
                     player.position = { x: player.initialPosition.x, y: player.initialPosition.y };
-                    console.log(
-                        `[GameManagerService] ✓ Recovered position for ${player.name} at initial position (${player.position.x}, ${player.position.y})`,
-                    );
                     return { valid: true, recovered: true };
                 } else {
                     // Find closest available position
                     const closestPosition = this.getFirstFreePosition(player.initialPosition, game);
                     if (closestPosition) {
                         player.position = closestPosition;
-                        console.log(
-                            `[GameManagerService] ✓ Recovered position for ${player.name} near initial position at (${player.position.x}, ${player.position.y})`,
-                        );
                         return { valid: true, recovered: true };
                     }
                 }
@@ -533,21 +527,11 @@ export class GameManagerService {
     logGameStateDebug(gameId: string, context: string): void {
         const game = this.gameCreationService.getGameById(gameId);
         if (!game) {
-            console.log(`[DEBUG ${context}] Game ${gameId} not found`);
             return;
         }
 
-        console.log(`[DEBUG ${context}] Game ${gameId}:`);
-        console.log(`  - Players: ${game.players.length}`);
-        game.players.forEach((p, i) => {
-            console.log(
-                `    ${i}. ${p.name} (${p.socketId.substring(0, 8)}...) - Active: ${p.isActive}, Observing: ${p.isEliminated}, Position: ${
-                    p.position ? `(${p.position.x},${p.position.y})` : 'UNDEFINED'
-                }`,
-            );
-        });
-        console.log(`  - Current turn: ${game.currentTurn}`);
-        console.log(`  - Turn count: ${game.nTurns}`);
+        
+        
     }
 
     // ===== Centralized Game Ending Logic =====
@@ -621,20 +605,10 @@ export class GameManagerService {
 
         const count = this.getActiveNonObserverCount(gameId);
 
-        // Debug: Log all players and their state
-        console.log(`[GameManager] checkAfterDisconnect for game ${gameId}:`);
-        if (game) {
-            game.players.forEach((p) => {
-                console.log(`  - ${p.name} (${p.socketId}): isActive=${p.isActive}, isEliminated=${p.isEliminated}, isObserver=${p.isObserver}`);
-            });
-        }
-        console.log(`  Total active count: ${count}`);
-
         // Only terminate if less than 2 players total
         if (count < 2) {
             const lastPlayer = this.getActiveNonObservers(gameId);
             const winner = lastPlayer[0];
-            console.log(`[GameManager] Victory by last player standing: ${winner.name}`);
             this.markGameWinner(gameId, winner);
             return {
                 reason: GameEndReason.Victory_LastPlayerStanding,
@@ -654,7 +628,6 @@ export class GameManagerService {
 
         // Check elimination (1 player left)
         if (isFastElimination && activePlayers.length === 1) {
-            console.log(`[GameManager] Victory by elimination: ${activePlayers[0].name}`);
             this.markGameWinner(gameId, activePlayers[0]);
             return {
                 reason: GameEndReason.Victory_Elimination,
@@ -664,7 +637,6 @@ export class GameManagerService {
 
         // Check 3 victories (Classic mode)
         if (this.hasThreeVictories(winner, gameId)) {
-            console.log(`[GameManager] Victory by 3 wins: ${winner.name}`);
             this.markGameWinner(gameId, winner);
             return {
                 reason: GameEndReason.Victory_CombatWins,
@@ -681,7 +653,6 @@ export class GameManagerService {
      */
     checkAfterMove(gameId: string, player: Player): GameEndResult {
         if (this.checkForWinnerCtf(player, gameId)) {
-            console.log(`[GameManager] CTF victory: ${player.name}`);
             this.markCtfGameWinners(gameId, this.gameCreationService.getGameById(gameId));
             return {
                 reason: GameEndReason.Victory_CtfFlag,
@@ -704,7 +675,6 @@ export class GameManagerService {
         const game = this.gameCreationService.getGameById(gameId);
         if (!game) return;
 
-        console.log(`[GameManager] Ending game ${gameId}, reason: ${endResult.reason}`);
         await this.challengeService.cleanupGame(game, endResult.reason);
 
         // Termination (no winner)

@@ -254,7 +254,6 @@ export class ShopService {
     async addMoney(userId: string, amount: number): Promise<boolean> {
         try {
             const result = await this.userModel.findByIdAndUpdate(userId, { $inc: { virtualMoney: amount } }, { new: true });
-            console.log('Add money result:', amount);
 
             return !!result;
         } catch (error) {
@@ -271,7 +270,6 @@ export class ShopService {
             }
 
             const result = await this.userModel.findByIdAndUpdate(userId, { $inc: { virtualMoney: -amount } }, { new: true });
-            console.log('Deduct money result:', amount);
             return !!result;
         } catch (error) {
             console.error('Error deducting money:', error);
@@ -301,13 +299,11 @@ export class ShopService {
                 // 2/3 du prize pool pour les gagnants
                 const winnersShare = Math.round((totalPrizePool * 2) / 3);
                 const winnerAmount = Math.floor(winnersShare / winners.length);
-                console.log('Winner prize:', winnerAmount);
 
                 // 1/3 du prize pool pour les autres joueurs actifs (lots de consolation)
                 const consolationShare = totalPrizePool - winnersShare;
                 const otherPlayers = activePlayers.filter((id) => !winners.includes(id));
                 const consolationAmount = otherPlayers.length > 0 ? Math.floor(consolationShare / otherPlayers.length) : 0;
-                console.log('Consolation prize:', consolationAmount);
 
                 for (const winnerId of winners) {
                     await this.userModel.findByIdAndUpdate(winnerId, { $inc: { virtualMoney: winnerAmount } }, { session });

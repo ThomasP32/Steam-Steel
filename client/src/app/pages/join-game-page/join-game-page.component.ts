@@ -64,7 +64,6 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
             console.error('Erreur lors de la récupération des informations utilisateur:', error);
         }
         await this.loadUserInfo();
-        console.log('INIT join game and load games');
 
         // Listen for games response
         this.socketService
@@ -100,7 +99,6 @@ export class JoinGamePageComponent implements OnInit, OnDestroy {
 
     canSeeGame(game: Game): boolean {
         // If game has no settings or is not friends-only, show it to everyone
-        console.log('GAME object in join game: ', game);
         if (!game.settings || !game.settings.isFriendsOnly) return true;
 
         const hostId = game.hostSocketId;

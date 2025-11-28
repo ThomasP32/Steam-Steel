@@ -233,7 +233,6 @@ export class ProfilePictureService {
             if (!equippedProfileItem) return null;
 
             const profile = this.profilePictures.find((pic) => pic.shopItemId === equippedProfileItem.itemId && pic.isShopProfile);
-            console.log('Profil de shop équipé récupéré:', profile);
             return profile ? profile.id : null;
         } catch (error) {
             console.error('Erreur lors de la récupération du profil équipé:', error);
@@ -293,7 +292,6 @@ export class ProfilePictureService {
                 const shopProfile = this.profilePictures.find((pic) => pic.shopItemId === equippedItem.itemId && pic.isShopProfile);
                 if (shopProfile) {
                     await this.shopHttpService.unequipItem(userId, equippedItem.itemId).toPromise();
-                    console.log('Profil de shop déséquipé:', shopProfile);
                 }
             }
         } catch (error) {

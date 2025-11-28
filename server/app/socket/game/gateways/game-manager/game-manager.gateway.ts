@@ -52,7 +52,6 @@ export class GameManagerGateway implements OnGatewayInit {
         this.virtualGameManagerService.on('virtualPlayerFinishedMoving', (gameId: string) => {
             const activeCombat = this.combatService.getCombatByGameId(gameId);
             if (activeCombat) {
-                console.log(`[GameManagerGateway] Combat active in game ${gameId}, turn will not advance until combat ends`);
                 return;
             }
             this.prepareNextTurn(gameId);
@@ -227,7 +226,6 @@ export class GameManagerGateway implements OnGatewayInit {
 
     private checkAndAutoEndTurn(gameId: string, playerSocketId: string): void {
         if (this.gameManagerService.isPlayerStuck(gameId, playerSocketId)) {
-            console.log(`[GameManagerGateway] Player is stuck (no actions, has movement points but cannot move). Auto-ending turn.`);
             this.prepareNextTurn(gameId);
         }
     }
@@ -238,7 +236,6 @@ export class GameManagerGateway implements OnGatewayInit {
             return;
         }
         if (this.gameManagerService.shouldTerminateGame(gameId)) {
-            console.log(`[GameManagerGateway] Terminating game ${gameId} - ${reason}`);
             this.gameCreationService.deleteRoom(gameId);
             this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
             this.gameCountdownService.deleteCountdown(gameId);
@@ -246,7 +243,6 @@ export class GameManagerGateway implements OnGatewayInit {
             this.server.emit(GameCreationEvents.GameListUpdated);
         } else {
             // Move to next turn if game is still viable
-            console.log(`[GameManagerGateway] Skipping to next turn - ${reason}`);
             this.prepareNextTurn(gameId);
         }
     }
@@ -303,11 +299,7 @@ export class GameManagerGateway implements OnGatewayInit {
             skipReasons.push('already ended previous turn');
         }
         if (skipReasons.length > 0) {
-            console.log(
-                `[GameManagerGateway] startTurn: Skipping ${activePlayer.name} (${skipReasons.join(
-                    ', ',
-                )}) (iteration ${iterationCount + 1}/${game.players.length})`,
-            );
+            
             game.currentTurn++;
             if (game.currentTurn >= game.players.length) {
                 game.currentTurn = 0;
@@ -339,9 +331,6 @@ export class GameManagerGateway implements OnGatewayInit {
                     }
 
                     if (currentPlayer.turn !== currentGame.currentTurn) {
-                        console.log(
-                            `[GameManagerGateway] Virtual player ${currentPlayer.name} timeout expired but turn has already advanced (was ${currentPlayer.turn}, now ${currentGame.currentTurn}). Skipping.`,
-                        );
                         return;
                     }
 
@@ -349,7 +338,6 @@ export class GameManagerGateway implements OnGatewayInit {
                     const validation = this.gameManagerService.validateGameState(gameId, activePlayer.socketId);
 
                     if (validation.recovered) {
-                        console.log(`[GameManagerGateway] ✓ Recovered invalid position for virtual player, continuing turn...`);
                         this.gameManagerService.logGameStateDebug(gameId, 'VirtualPlayerPositionRecovered');
                     }
 
@@ -360,7 +348,6 @@ export class GameManagerGateway implements OnGatewayInit {
                         return;
                     }
 
-                    console.log(`[GameManagerGateway] Virtual player ${currentPlayer.name} executing turn...`);
                     await this.virtualGameManagerService.executeVirtualPlayerBehavior(currentPlayer, currentGame);
                     this.server.to(currentGame.id).emit(GameManagerEvents.PositionToUpdate, { game: currentGame, player: currentPlayer });
 
@@ -389,9 +376,7 @@ export class GameManagerGateway implements OnGatewayInit {
                     // Safety check: Don't emit to invalidated/disconnected socketIds
                     if (!player.socketId.startsWith('DISCONNECTED-')) {
                         this.server.to(player.socketId).emit(GameTurnEvents.PlayerTurn, activePlayer.name);
-                    } else {
-                        console.log(`[GameManagerGateway] Skipping PlayerTurn emission to invalidated socketId: ${player.socketId} (player: ${player.name})`);
-                    }
+                    } 
                     
                     if (player.inventory.length > INVENTORY_SIZE) {
                         const coordinates = player.position;

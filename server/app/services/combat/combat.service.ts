@@ -37,7 +37,6 @@ export class CombatService {
     createCombat(gameId: string, challenger: Player, opponent: Player): Combat | null {
         // Check if combat already exists for this game
         if (this.doesCombatExist(gameId)) {
-            console.log(`[CombatService] Cannot create combat - combat already exists for game ${gameId}`);
             return null;
         }
 
@@ -310,8 +309,6 @@ export class CombatService {
         // Safety check: Don't emit to invalidated/disconnected socketIds
         if (!otherPlayer.socketId.startsWith('DISCONNECTED-')) {
             this.server.to(otherPlayer.socketId).emit(CombatEvents.PlayerTurnCombat);
-        } else {
-            console.log(`[CombatService] Skipping PlayerTurnCombat emission to invalidated socketId: ${otherPlayer.socketId} (player: ${otherPlayer.name})`);
         }
         combatCountdownService.startTurnCounter(game, currentPlayer.specs.evasions !== 0);
 
