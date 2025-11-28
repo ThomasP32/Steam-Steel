@@ -1,5 +1,6 @@
 import { FriendsService } from '@app/http/services/friends/friends.service';
 import { JWT_SECRET } from '@common/constants';
+import { UserStatus } from '@common/user-friends';
 import { Inject } from '@nestjs/common';
 import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import * as jwt from 'jsonwebtoken';
@@ -53,6 +54,12 @@ export class AccountGateway implements OnGatewayConnection, OnGatewayDisconnect,
         }
 
         this.userSocketSession.setUserSocket(userId, client.id);
+        
+        // Mettre le statut de l'utilisateur à Online quand il se connecte
+        const user = await this.userService.findById(userId);
+        if (user) {
+            await this.friendsService.updateUserStatus(user.username, UserStatus.Online);
+        }
     }
 
     async handleDisconnect(client: Socket) {
@@ -61,6 +68,12 @@ export class AccountGateway implements OnGatewayConnection, OnGatewayDisconnect,
             const currentSocketId = this.userSocketSession.getSocketId(userId);
             if (currentSocketId === client.id) {
                 this.userSocketSession.removeUser(userId);
+                
+                // Mettre le statut de l'utilisateur à Offline dans la DB
+                const user = await this.userService.findById(userId);
+                if (user) {
+                    await this.friendsService.updateUserStatus(user.username, UserStatus.Offline);
+                }
             }
         }
     }

@@ -140,22 +140,32 @@ export class FriendsGateway {
         const friends = await this.friendsService.getFriends(inviter._id.toString());
 
         for (const friend of friends) {
-            if (friend.status === UserStatus.Online) {
-                const friendUser = await this.userService.findByUsername(friend.username);
-                if (friendUser) {
-                    const socketId = this.userSocketService.getSocketId(friendUser._id.toString());
-                    if (socketId) {
-                        const invitationData = {
-                            gameId,
-                            gameName,
-                            inviterUsername,
-                            inviterName: inviter.username,
-                            entryFee,
-                        };
-                        this.server.to(socketId).emit(FriendsEvents.GameInvitationReceived, invitationData);
-                    }
-                }
+            const friendUser = await this.userService.findByUsername(friend.username);
+            if (!friendUser) {
+                continue;
             }
+
+            const socketId = this.userSocketService.getSocketId(friendUser._id.toString());
+            if (!socketId) {
+                continue;
+            }
+
+            if (friend.status === UserStatus.InGame) {
+                continue;
+            }
+
+            if (friend.status === UserStatus.Offline) {
+                await this.friendsService.updateUserStatus(friend.username, UserStatus.Online);
+            }
+
+            const invitationData = {
+                gameId,
+                gameName,
+                inviterUsername,
+                inviterName: inviter.username,
+                entryFee,
+            };
+            this.server.to(socketId).emit(FriendsEvents.GameInvitationReceived, invitationData);
         }
     }
 

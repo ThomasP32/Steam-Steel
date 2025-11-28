@@ -52,7 +52,6 @@ export class VirtualGameManagerService extends EventEmitter {
         if (player.socketId.includes('virtual') && player.level) {
             delete player.level;
         }
-        console.log(`[VirtualGameManagerService] ${player.name} (${player.profile}) starting behavior execution`);
 
         this.checkAndToggleDoor(player, game);
         if (player.profile === ProfileType.AGGRESSIVE) {
@@ -60,7 +59,6 @@ export class VirtualGameManagerService extends EventEmitter {
         } else if (player.profile === ProfileType.DEFENSIVE) {
             await this.executeDefensiveBehavior(player, game);
         }
-        console.log(`[VirtualGameManagerService] ${player.name} finished behavior execution`);
     }
 
     calculateVirtualPlayerPath(player: Player, game: Game): Coordinate[] {
@@ -106,12 +104,10 @@ export class VirtualGameManagerService extends EventEmitter {
             return false;
         }
 
-        console.log(`[VirtualGameManagerService] ${player.name} moving along path with ${path.length} steps`);
         for (const move of path) {
             this.gameManagerService.updatePosition(game.id, player.socketId, [move]);
             const onItem = this.itemsManagerService.onItem(player, game.id);
             if (onItem) {
-                console.log(`[VirtualGameManagerService] ${player.name} picked up item at (${move.x}, ${move.y})`);
                 this.itemsManagerService.pickUpItem(move, game.id, player);
                 if (player.inventory.length > INVENTORY_SIZE) {
                     this.server.to(player.socketId).emit(ItemsEvents.InventoryFull);
@@ -151,7 +147,6 @@ export class VirtualGameManagerService extends EventEmitter {
         const finalPosition = path[path.length - MINIMUM_MOVES];
         if (finalPosition) {
             player.position = finalPosition;
-            console.log(`[VirtualGameManagerService] ${player.name} finished moving to (${player.position.x}, ${player.position.y})`);
         }
         return false; // Game continues
     }
@@ -167,7 +162,6 @@ export class VirtualGameManagerService extends EventEmitter {
         // Check if game still exists
         const currentGame = this.gameCreationService.getGameById(game.id);
         if (!currentGame) {
-            console.log(`[VirtualGameManagerService] Game ${game.id} no longer exists, stopping aggressive behavior`);
             return;
         }
 
@@ -211,7 +205,6 @@ export class VirtualGameManagerService extends EventEmitter {
         // Check if game still exists
         const currentGame = this.gameCreationService.getGameById(game.id);
         if (!currentGame) {
-            console.log(`[VirtualGameManagerService] Game ${game.id} no longer exists, stopping defensive behavior`);
             return;
         }
 
@@ -423,7 +416,6 @@ export class VirtualGameManagerService extends EventEmitter {
 
         const gameEnded = await this.updatePosition(activePlayer, pathToTargetPlayer, game.id, wasOnIceTile);
         if (gameEnded) {
-            console.log(`[VirtualGameManagerService] Game ended during ${activePlayer.name} movement, stopping behavior`);
             return true;
         }
 
@@ -431,27 +423,18 @@ export class VirtualGameManagerService extends EventEmitter {
         if (possibleOpponents.length > 0 && activePlayer.specs.actions > 0) {
             const existingCombat = this.combatService.getCombatByGameId(game.id);
             if (existingCombat) {
-                console.log(
-                    `[VirtualGameManagerService] ${activePlayer.name} cannot start combat - combat already in progress in game ${game.id} (${existingCombat.challenger.name} vs ${existingCombat.opponent.name})`,
-                );
                 return false;
             }
 
             const opponent = possibleOpponents[Math.floor(Math.random() * possibleOpponents.length)];
-            console.log(
-                `[VirtualGameManagerService] ${activePlayer.name} initiating combat with ${opponent.name} at (${activePlayer.position.x}, ${activePlayer.position.y})`,
-            );
+        
             const combat = this.combatService.createCombat(game.id, activePlayer, opponent);
             if (!combat) {
-                console.log(`[VirtualGameManagerService] ${activePlayer.name} failed to create combat - combat already exists for game ${game.id}`);
                 return false;
             }
             const combatStarted = await this.startCombat(combat, game);
             if (combatStarted) {
-                console.log(`[VirtualGameManagerService] Combat ${combat.id} started between ${activePlayer.name} and ${opponent.name}`);
                 return false;
-            } else {
-                console.log(`[VirtualGameManagerService] Failed to start combat between ${activePlayer.name} and ${opponent.name}`);
             }
         }
         return false;
@@ -470,9 +453,6 @@ export class VirtualGameManagerService extends EventEmitter {
         }
 
         const gameEnded = await this.updatePosition(activePlayer, pathToTargetItem, game.id, wasOnIceTile);
-        if (gameEnded) {
-            console.log(`[VirtualGameManagerService] Game ended during ${activePlayer.name} movement to item, stopping behavior`);
-        }
         return gameEnded;
     }
 

@@ -76,29 +76,23 @@ export class ChannelService implements OnDestroy {
         this.channelListenersSub = [];
 
         if (!this.socketService.socket) {
-            console.log('[ChannelService] Socket not available, will retry...');
             return;
         }
 
-        console.log('[ChannelService] Setting up channel listeners...');
-
         this.channelListenersSub.push(
             this.socketService.listen<any>('connect').subscribe(() => {
-                console.log('[ChannelService] Socket connected, loading channels...');
                 this.loadChannels();
             }),
         );
 
         this.channelListenersSub.push(
             this.socketService.listen<Channel[]>(ChatEvents.ChannelsList).subscribe((channels: Channel[]) => {
-                console.log('[ChannelService] ChannelsList received:', channels?.length);
                 this.updateAvailableChannels(channels);
             }),
         );
 
         this.channelListenersSub.push(
             this.socketService.listen<Channel>(ChatEvents.ChannelCreated).subscribe((channel: Channel) => {
-                console.log('[ChannelService] ChannelCreated received:', channel);
                 if (channel && channel.name) {
                     const currentAvailable = this.availableChannelsSubject.value;
                     const joined = this.joinedChannelsSubject.value;
@@ -107,13 +101,7 @@ export class ChannelService implements OnDestroy {
 
                     if (!alreadyExists) {
                         const newList = [channel, ...currentAvailable];
-                        console.log(
-                            '[ChannelService] Adding channel, new list:',
-                            newList.map((c) => c.name),
-                        );
                         this.availableChannelsSubject.next(newList);
-                    } else {
-                        console.log('[ChannelService] Channel already exists:', channel.name);
                     }
                 }
             }),
@@ -121,14 +109,11 @@ export class ChannelService implements OnDestroy {
 
         this.channelListenersSub.push(
             this.socketService.listen<{ name: string }>(ChatEvents.ChannelDeleted).subscribe((data) => {
-                console.log('[ChannelService] ChannelDeleted received:', data);
                 if (data && data.name) {
                     this.removeChannelFromAll(data.name);
                 }
             }),
         );
-
-        console.log('[ChannelService] Channel listeners setup complete');
     }
 
     private updateAvailableChannels(channels: Channel[]): void {
@@ -331,7 +316,6 @@ export class ChannelService implements OnDestroy {
     }
 
     resetChannelState(): void {
-        console.log('[ChannelService] Resetting channel state...');
         this.availableChannelsSubject.next([]);
         this.joinedChannelsSubject.next([{ name: 'global', creator: 'system', isPublic: true }]);
         this.activeChannelSubject.next('global');

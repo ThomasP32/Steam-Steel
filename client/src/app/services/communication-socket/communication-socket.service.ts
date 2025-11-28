@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { environment } from 'src/environments/environment';
 
@@ -9,6 +9,9 @@ import { environment } from 'src/environments/environment';
 export class SocketService {
     public socket: Socket;
     private activeListeners: Map<string, number> = new Map();
+
+    private reconnectedSubject = new Subject<void>();
+    public reconnected$ = this.reconnectedSubject.asObservable();
 
     connect() {
         const token = localStorage.getItem('authToken');
@@ -20,6 +23,11 @@ export class SocketService {
             auth: { token },
         });
         this.socket.connect();
+
+        // Notifier que le socket s'est (re)connecté
+        this.socket.once('connect', () => {
+            this.reconnectedSubject.next();
+        });
     }
 
     isSocketAlive() {
@@ -38,21 +46,21 @@ export class SocketService {
             if (!this.socket) {
                 return;
             }
-            
+
             // Create a unique handler for this subscription
             const handler = (data: T) => {
                 subscriber.next(data);
             };
-            
+
             // Track listener creation
             const currentCount = this.activeListeners.get(eventName) || 0;
             this.activeListeners.set(eventName, currentCount + 1);
-            
+
             this.socket.on(eventName, handler);
-            
+
             return () => {
                 this.socket.off(eventName, handler);
-                
+
                 const count = this.activeListeners.get(eventName) || 0;
                 if (count > 0) {
                     this.activeListeners.set(eventName, count - 1);

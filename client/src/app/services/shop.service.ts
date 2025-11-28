@@ -21,7 +21,6 @@ export class ShopService {
 
     private setupSocketListeners(): void {
         this.socketService.listen<number>(ShopEvents.UserMoneyUpdated).subscribe((money) => {
-            console.log('UserMoneyUpdated received:', money);
             this.userMoneySubject.next(money);
         });
     }

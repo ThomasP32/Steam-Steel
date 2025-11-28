@@ -155,9 +155,7 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                 console.warn(`[CombatGateway] Defending player ${defendingPlayer.name} has invalid position, recovering...`);
                 if (defendingPlayer.initialPosition) {
                     defendingPlayer.position = { x: defendingPlayer.initialPosition.x, y: defendingPlayer.initialPosition.y };
-                    console.log(
-                        `[CombatGateway] ✓ Recovered position for ${defendingPlayer.name} at (${defendingPlayer.position.x}, ${defendingPlayer.position.y})`,
-                    );
+                    
                 }
             }
 
@@ -270,7 +268,6 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
             playerInGame.isEliminated = true;
             playerInGame.isActive = false;
         }
-        console.log(`[ELIMINATION DEBUG] Player ${player.name} set as eliminated (isEliminated: ${player.isEliminated})`);
     }
 
     /**
@@ -436,7 +433,6 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                         this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
                     }
                 } else {
-                    console.log(`[CombatGateway] Skipping ResumeTurnAfterCombatWin emission to invalidated socketId: ${otherPlayer.socketId} (player: ${otherPlayer.name})`);
                     // If player is disconnected, auto-timeout the turn
                     this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
                 }
@@ -467,11 +463,9 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                     this.server.to(winner.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
                     // Check if winner is stuck after combat
                     if (this.gameManagerService.isPlayerStuck(game.id, winner.socketId)) {
-                        console.log(`[CombatGateway] Player ${winner.name} is stuck after combat. Auto-ending turn.`);
                         this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
                     }
                 } else {
-                    console.log(`[CombatGateway] Skipping ResumeTurnAfterCombatWin emission to invalidated socketId: ${winner.socketId} (player: ${winner.name})`);
                     // If winner is disconnected, auto-timeout the turn
                     this.gameCountdownService.emit(CountdownEvents.Timeout, game.id);
                 }
@@ -631,7 +625,6 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
                 }, TIME_LIMIT_DELAY);
             } else if (updatedGame.currentTurn === player.turn) {
                 // Player is in their turn - automatically finish their turn so next player can play
-                console.log(`[CombatGateway] Player ${player.name} left during their turn. Automatically finishing turn.`);
                 this.gameManagerGateway.prepareNextTurn(updatedGame.id);
             }
         }
@@ -690,7 +683,6 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
     }
 
     private cleanupFailedCombat(gameId: string, combatId: string | undefined): void {
-        console.log(`[CombatGateway] Cleaning up failed combat for game ${gameId}`);
 
         try {
             // Delete combat countdown
@@ -712,13 +704,11 @@ export class CombatGateway implements OnGatewayInit, OnGatewayDisconnect {
 
             // Check if game should be terminated or continue
             if (this.gameManagerService.shouldTerminateGame(gameId)) {
-                console.log(`[CombatGateway] Terminating game ${gameId} after combat failure - no active or observing players`);
                 this.gameCreationService.deleteRoom(gameId);
                 this.challengeService.cleanupGame(game, GameEndReason.NoWinner_Termination);
                 this.gameCountdownService.deleteCountdown(gameId);
             } else {
                 // Resume game countdown and move to next turn
-                console.log(`[CombatGateway] Resuming game ${gameId} after combat failure`);
                 this.gameCountdownService.resumeCountdown(gameId);
                 this.gameCountdownService.emit(CountdownEvents.Timeout, gameId);
             }

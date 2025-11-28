@@ -165,7 +165,6 @@ export class ShopComponent implements OnInit, OnDestroy {
                 if (result.newBalance !== undefined) {
                     this.currentMoney = result.newBalance;
                 }
-                console.log('Achat réussi:', item.name);
 
                 if (item.category === 'characters') {
                     await this.characterService.refreshAvatars();
@@ -204,7 +203,6 @@ export class ShopComponent implements OnInit, OnDestroy {
 
                 item.equipped = true;
 
-                console.log('Équipement réussi:', item.name);
 
                 if (item.category === 'characters') {
                     await this.characterService.refreshAvatars();
@@ -241,8 +239,6 @@ export class ShopComponent implements OnInit, OnDestroy {
 
             if (result?.success) {
                 item.equipped = false;
-
-                console.log('Déséquipement réussi:', item.name);
 
                 if (item.category === 'characters') {
                     await this.characterService.refreshAvatars();

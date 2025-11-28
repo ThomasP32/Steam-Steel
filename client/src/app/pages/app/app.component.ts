@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostBinding, OnInit } from '@angular/core';
+import { Component, HostBinding, HostListener, OnInit } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { FriendsListComponent } from '@app/components/friends-list/friends-list.component';
 import { GameInfoComponent } from '@app/components/game-info/game-info.component';
@@ -69,6 +69,20 @@ export class AppComponent implements OnInit {
         this.isGamePage = this.router.url.includes('/game');
 
         this.checkAndSetupFriendsFeatures();
+
+        this.socketService.reconnected$.subscribe(() => {
+            if (this.isLoggedIn) {
+                this.setupGameInvitationListener();
+                this.friendsService.initializeFriendsSocket();
+            }
+        });
+    }
+
+    @HostListener('window:beforeunload')
+    onBeforeUnload(): void {
+        if (this.isLoggedIn) {
+            this.authService.logout();
+        }
     }
 
     setTheme(theme: string) {

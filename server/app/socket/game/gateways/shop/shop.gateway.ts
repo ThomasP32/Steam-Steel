@@ -23,7 +23,6 @@ export class ShopGateway {
             const socketId = this.userSocketService.getSocketId(userId);
             if (socketId) {
                 this.server.to(socketId).emit(ShopEvents.UserMoneyUpdated, money);
-                console.log(`[ShopGateway] Money update sent to user ${userId} (socket: ${socketId}): ${money}`);
             }
         }
     }

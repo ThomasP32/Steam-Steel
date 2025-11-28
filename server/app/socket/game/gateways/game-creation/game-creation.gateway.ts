@@ -55,7 +55,6 @@ export class GameGateway {
         
         client.join(newGame.id);
         (client as any).currentGameId = newGame.id;
-        console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} created and joined game: ${newGame.id}`);
         newGame.hostSocketId = client.id;
         const userId = this.userSocketSession.getUserIdBySocket(client.id);
 
@@ -166,7 +165,6 @@ export class GameGateway {
             // Join the game room and track current game
             client.join(data.gameId);
             (client as any).currentGameId = data.gameId;
-            console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} joined game: ${data.gameId}`);
             
             client.emit(GameCreationEvents.YouJoined, { updatedPlayer: newPlayer, updatedGame: game });
             this.server.to(data.gameId).emit(GameCreationEvents.PlayerJoined, game.players);
@@ -218,7 +216,6 @@ export class GameGateway {
         const { refundAmount } = await this.gameCreationService.handlePlayerKicked(data.gameId, data.playerId, kickedUserId);
 
         if (refundAmount > 0 && kickedUserId) {
-            console.log(`[KickPlayer] Refunding ${refundAmount} to kicked user ${kickedUserId}`);
             await this.shopGateway.notifyMoneyUpdate(kickedUserId);
         }
         game.players = game.players.filter((player) => player.socketId !== data.playerId);
@@ -277,7 +274,6 @@ export class GameGateway {
                 // will be done in handleResumeGame where we know the player identity
                 client.join(gameId);
                 (client as any).currentGameId = gameId;
-                console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} joined game (drop-in): ${gameId}`);
                 client.emit(GameCreationEvents.GameAccessed, game.id);
                 // Sync timer state for drop-in player
                 this.syncTimerState(client, gameId);
@@ -289,7 +285,6 @@ export class GameGateway {
 
             client.join(gameId);
             (client as any).currentGameId = gameId;
-            console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} joined game: ${gameId}`);
             client.emit(GameCreationEvents.GameAccessed, game.id);
         } else {
             client.emit(GameCreationEvents.GameNotFound, 'Le code est invalide, veuillez réessayer.');
@@ -365,13 +360,11 @@ export class GameGateway {
     @SubscribeMessage(GameCreationEvents.LeaveGame)
     async handleLeaveGame(client: Socket, gameId: string): Promise<void> {
         // Defensive cleanup - ensure socket leaves all game rooms
-        console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} leaving game: ${gameId}`);
         await this.cleanupSocketGameRooms(client);
         
         let game = this.gameCreationService.getGameById(gameId);
         if (!game) {
             // Game doesn't exist - cleanup already done above
-            console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} - game ${gameId} not found (already cleaned up)`);
             return;
         }
         const userId = this.userSocketSession.getUserIdBySocket(client.id);
@@ -429,7 +422,6 @@ export class GameGateway {
                         // CRITICAL: Invalidate socketId to prevent turn events from being sent to this socket
                         // The socketId is used to send events directly, so we must invalidate it when player leaves
                         const invalidatedSocketId = `DISCONNECTED-${Date.now()}-${client.id}`;
-                        console.log(`[GameGateway] Invalidating socketId for ${player.name} in game ${gameId}: ${client.id} -> ${invalidatedSocketId}`);
                         
                         // If game is in elimination mode, set player as eliminated
                         if (game.settings.isFastElimination && !player.isObserver) {
@@ -457,7 +449,6 @@ export class GameGateway {
                 const combat = this.combatService.getCombatByGameId(game.id);
                 if (!combat && game.currentTurn === leavingPlayer.turn) {
                     // Player is in their turn and not in combat - automatically finish their turn so next player can play
-                    console.log(`[GameGateway] Player ${leavingPlayer.name} left during their turn. Automatically finishing turn.`);
                     this.gameManagerGateway.prepareNextTurn(game.id);
                 }
             }
@@ -468,14 +459,12 @@ export class GameGateway {
 
                 const endResult = this.gameManagerService.checkAfterDisconnect(game.id);
                 if (endResult.reason !== 'ongoing') {
-                    console.log(`[GameCreation] Game ending after player quit. Reason: ${endResult.reason}`);
                     await this.gameManagerService.handleGameEnd(game.id, endResult, this.server);
                     this.gameCountdownService.deleteCountdown(game.id);
                     this.combatCountdownService.deleteCountdown(game.id);
                     return; // Exit early, game is ended
                 }
                 if (activeNonObserverCount === 0) {
-                    console.log(`[CTF] Last active player quit. Ending game ${game.id}`);
                     this.server.to(game.id).emit(GameCreationEvents.GameEndedNoActivePlayers);
                     this.gameCreationService.deleteRoom(game.id);
                 }
@@ -483,7 +472,6 @@ export class GameGateway {
             this.server.to(game.id).emit(GameCreationEvents.GameUpdated, game);
         } else {
             // Player not found in game - room cleanup already done at method start
-            console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} not found in game ${gameId} (already cleaned up)`);
             return;
         }
         this.server.emit(GameCreationEvents.GameListUpdated);
@@ -521,7 +509,6 @@ export class GameGateway {
                 }
                 client.join(data.gameId);
                 (client as any).currentGameId = data.gameId;
-                console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} resumed game: ${data.gameId}`);
                 client.emit(GameCreationEvents.GameResumed, game);
 
                 client.emit(GameCreationEvents.YouJoined, { updatedPlayer: existingPlayer, updatedGame: game });
@@ -548,7 +535,6 @@ export class GameGateway {
             const game = this.gameCreationService.getGameById(data.gameId);
             client.join(game.id);
             (client as any).currentGameId = game.id;
-            console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} joined as observer: ${game.id}`);
 
             let existingPlayer = game.players.find((plyr) => plyr.name === data.player.name);
             if (existingPlayer) {
@@ -656,7 +642,6 @@ export class GameGateway {
      * This is a defensive cleanup that ensures the socket starts fresh when joining a new game.
      */
     private async cleanupSocketGameRooms(client: Socket): Promise<void> {
-        const previousGame = (client as any).currentGameId;
         
         // Get all rooms this socket is in
         const rooms = Array.from(client.rooms);
@@ -664,14 +649,10 @@ export class GameGateway {
         // Filter out the default room (socket.id itself) - keep only game rooms
         const gameRooms = rooms.filter(room => room !== client.id);
         
-        if (gameRooms.length > 0) {
-            console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} cleaning up ${gameRooms.length} room(s)${previousGame ? ` (previous game: ${previousGame})` : ''}`);
-        }
         
         // Leave all game-related rooms
         for (const room of gameRooms) {
             client.leave(room);
-            console.log(`[GameGateway] Socket ${client.id.substring(0, 8)} left room: ${room}`);
         }
         
         // Clear the tracked game ID
@@ -692,7 +673,6 @@ export class GameGateway {
         const winner = isChallenger ? combat.opponent : combat.challenger;
         const loser = isChallenger ? combat.challenger : combat.opponent;
 
-        console.log(`[GameGateway] Player ${leavingPlayer.name} left during combat. Winner: ${winner.name}`);
 
         // Set leaving player as inactive
         loser.isActive = false;
@@ -755,11 +735,9 @@ export class GameGateway {
                         this.server.to(winner.socketId).emit(CombatEvents.ResumeTurnAfterCombatWin);
                         // Check if winner is stuck after combat
                         if (this.gameManagerService.isPlayerStuck(currentGame.id, winner.socketId)) {
-                            console.log(`[GameGateway] Player ${winner.name} is stuck after combat. Auto-ending turn.`);
                             this.gameCountdownService.emit(CountdownEvents.Timeout, currentGame.id);
                         }
                     } else {
-                        console.log(`[GameGateway] Skipping ResumeTurnAfterCombatWin emission to invalidated socketId: ${winner.socketId} (player: ${winner.name})`);
                         // If winner is disconnected, auto-timeout the turn
                         this.gameCountdownService.emit(CountdownEvents.Timeout, currentGame.id);
                     }

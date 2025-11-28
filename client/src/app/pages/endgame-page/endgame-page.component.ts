@@ -72,7 +72,6 @@ export class EndgamePageComponent implements OnInit, OnDestroy {
     }
 
     async ngOnInit(): Promise<void> {
-        console.log('[EndgamePage] ngOnInit, game:', this.gameService.game);
         
         // If no game data, redirect to main menu
         if (!this.gameService.game) {
