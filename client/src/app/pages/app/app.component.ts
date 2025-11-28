@@ -69,6 +69,13 @@ export class AppComponent implements OnInit {
         this.isGamePage = this.router.url.includes('/game');
 
         this.checkAndSetupFriendsFeatures();
+
+        this.socketService.reconnected$.subscribe(() => {
+            if (this.isLoggedIn) {
+                this.setupGameInvitationListener();
+                this.friendsService.initializeFriendsSocket();
+            }
+        });
     }
 
     @HostListener('window:beforeunload')
