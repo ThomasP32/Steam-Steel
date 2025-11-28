@@ -356,6 +356,12 @@ class _GameOptionsModalWidgetState extends State<GameOptionsModalWidget> {
                 _entryFeeController.clear();
               }
             },
+            onTapOutside: (_) {
+              if (_entryFeeController.text.isEmpty) {
+                _entryFeeController.text = '0';
+                setState(() => _hasEntryFeeError = false);
+              }
+            },
             onEditingComplete: () {
               if (_entryFeeController.text.isEmpty) {
                 _entryFeeController.text = '0';

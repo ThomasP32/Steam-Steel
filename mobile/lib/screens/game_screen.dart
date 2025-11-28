@@ -471,36 +471,36 @@ class _GameScreenState extends State<GameScreen> {
         tag: 'GameScreen',
       );
       if (!mounted) return;
-        // server signals that a combat exists somewhere -> track active state
-        _combatActive = true;
-        if (!_showCombatModal && !_isFriendModalOpen) {
-          DebugLogger.log('Showing combat notification', tag: 'GameScreen');
-          _showCombatNotification();
-        }
-      });
-
-      // Listen for combat ended signals to remove the notification
-      final combatEndEvents = [
-        'combatFinished',
-        'combatFinishedNormally',
-        'combatFinishedByEvasion',
-        'combatFinishedByDisconnection',
-      ];
-
-      for (final event in combatEndEvents) {
-        SocketService().listen<dynamic>(event).listen((data) {
-          DebugLogger.log('Combat ended event: $event', tag: 'GameScreen');
-          if (!mounted) return;
-          // no more active combat
-          _combatActive = false;
-          _combatNotificationOverlay?.remove();
-          _combatNotificationOverlay = null;
-        });
+      // server signals that a combat exists somewhere -> track active state
+      _combatActive = true;
+      if (!_showCombatModal && !_isFriendModalOpen) {
+        DebugLogger.log('Showing combat notification', tag: 'GameScreen');
+        _showCombatNotification();
       }
+    });
+
+    // Listen for combat ended signals to remove the notification
+    final combatEndEvents = [
+      'combatFinished',
+      'combatFinishedNormally',
+      'combatFinishedByEvasion',
+      'combatFinishedByDisconnection',
+    ];
+
+    for (final event in combatEndEvents) {
+      SocketService().listen<dynamic>(event).listen((data) {
+        DebugLogger.log('Combat ended event: $event', tag: 'GameScreen');
+        if (!mounted) return;
+        // no more active combat
+        _combatActive = false;
+        _combatNotificationOverlay?.remove();
+        _combatNotificationOverlay = null;
+      });
     }
+  }
 
   void _showCombatNotification() {
-  _combatNotificationOverlay?.remove();
+    _combatNotificationOverlay?.remove();
 
     final overlay = Overlay.of(context);
     _combatNotificationOverlay = OverlayEntry(
@@ -565,15 +565,17 @@ class _GameScreenState extends State<GameScreen> {
       _combatNotificationOverlay?.remove();
       _combatNotificationOverlay = null;
     } else if (!_showCombatModal) {
-       try {
+      try {
         SocketService().send('getCombats', widget.gameId);
-        
       } catch (e) {
         DebugLogger.log('Failed to request combats: $e', tag: 'GameScreen');
       }
 
       if (_combatActive && !_showCombatModal && !_isFriendModalOpen) {
-        DebugLogger.log('Re-showing combat notification after friend modal close', tag: 'GameScreen');
+        DebugLogger.log(
+          'Re-showing combat notification after friend modal close',
+          tag: 'GameScreen',
+        );
         _showCombatNotification();
       }
     }
@@ -716,7 +718,7 @@ class _GameScreenState extends State<GameScreen> {
   void _navigateToMainMenu() {
     _combatNotificationOverlay?.remove();
     _combatNotificationOverlay = null;
-    
+
     try {
       SocketService().send('leaveGame', widget.gameId);
     } on Exception catch (e) {
@@ -724,6 +726,7 @@ class _GameScreenState extends State<GameScreen> {
     }
 
     FriendService().updateUserStatus(UserStatus.online);
+    AudioService().stopMusic();
 
     if (widget.gameId.isNotEmpty) {
       ChannelService().removeGameChannel(widget.gameId);
@@ -1001,7 +1004,7 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
-   void quitGame() {
+  void quitGame() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog<void>(
@@ -1029,10 +1032,10 @@ class _GameScreenState extends State<GameScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
-                
+
                 _combatNotificationOverlay?.remove();
                 _combatNotificationOverlay = null;
-                
+
                 await ChannelService().removeGameChannel(widget.gameId);
 
                 FriendService().updateUserStatus(UserStatus.online);
@@ -1462,7 +1465,10 @@ class _GameScreenState extends State<GameScreen> {
                   valueListenable: _gameService.notifier,
                   builder: (context, game, _) {
                     final activePlayerCount =
-                        game?.players.where((p) => p.isActive || p.isEliminated).length ?? 0;
+                        game?.players
+                            .where((p) => p.isActive || p.isEliminated)
+                            .length ??
+                        0;
                     return Container(
                       width: 400,
                       padding: const EdgeInsets.all(20),

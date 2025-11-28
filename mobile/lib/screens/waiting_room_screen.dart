@@ -170,6 +170,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
         await SocketService().connect();
         if (!mounted) return;
         if (context.mounted) {
+          await AudioService().stopMusic();
           context.go('/');
           showTopSnackBar(
             Overlay.of(context),
@@ -543,12 +544,12 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen>
             child: ElevatedButton.icon(
               onPressed: () {
                 FriendService().updateUserStatus(UserStatus.online);
-                unawaited(AudioService().stopMusic());
                 final gameId = widget.gameId ?? _service.gameId.value;
                 if (gameId.isNotEmpty) {
                   ChannelService().removeGameChannel(gameId);
                 }
                 _service.leaveGame();
+                AudioService().stopMusic();
                 GoRouter.of(context).go('/');
               },
               style: ElevatedButton.styleFrom(

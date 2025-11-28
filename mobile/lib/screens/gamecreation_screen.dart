@@ -235,6 +235,19 @@ class _GameCreationScreenState extends State<GameCreationScreen> {
 
     return WillPopScope(
       onWillPop: () async {
+        // If keyboard is open, close it first
+        if (FocusScope.of(context).hasFocus) {
+          FocusScope.of(context).unfocus();
+          return false;
+        }
+
+        // If modal is showing, close it
+        if (showGameOptionsModal) {
+          closeGameOptionsModal();
+          return false;
+        }
+
+        // Otherwise navigate to home
         if (mounted) {
           context.go('/');
         }
