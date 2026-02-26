@@ -152,4 +152,4 @@ export const MINIMUM_MOVES: number = 1;
 
 export const CONTINUE_ODDS: number = 0.4;
 
-export const JWT_SECRET: string = 'votre_secret';
+export const JWT_SECRET: string = process.env.JWT_SECRET || 'dev-secret-key';

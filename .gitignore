@@ -6,8 +6,13 @@
 *.env
 server/.env
 
+amazon-cloudwatch-agent-config.json
+
 package-lock.json
 .DS_Store
+
+client/build/
+mobile/build/
 
 # Code Coverage Folder
 coverage/

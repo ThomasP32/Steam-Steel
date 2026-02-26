@@ -21,7 +21,6 @@ class ApiConfig {
     if (isDebug) {
       return 'http://10.0.2.2:3000';
     }
-    // Production default
-    return 'http://ec2-35-183-61-112.ca-central-1.compute.amazonaws.com:3000';
+    return 'http://localhost:3000';
   }
 }
